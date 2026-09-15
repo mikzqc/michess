@@ -1,0 +1,1 @@
+import { Chess } from 'chess.js'; import fs from 'fs'; const g = new Chess(); g.move('e4'); g.move('e5'); g.move('Qg4'); g.move('d6'); g.move('d3'); g.move('h6'); g.move('Nc3'); g.move('a6'); g.move('Nf5'); console.log(g.fen());  

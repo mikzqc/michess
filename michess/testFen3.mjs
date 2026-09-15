@@ -1,0 +1,1 @@
+import { Chess } from 'chess.js'; const g = new Chess(); g.move('e4'); g.move('e5'); g.move('Qg4'); g.move('d6'); g.move('d3'); g.move('h6'); g.move('Ne2'); g.move('a6'); g.move('Nf5'); console.log('White turn (evalAfter Black):', g.fen()); g.move('exf5'); console.log('Black turn (evalBefore Black):', g.fen());  

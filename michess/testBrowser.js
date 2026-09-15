@@ -1,0 +1,1 @@
+const sf = new Worker('./public/stockfish.js'); sf.onmessage = function(e) { console.log(e.data); if(e.data.includes('bestmove')) process.exit(0); }; sf.postMessage('position fen r1b1kbnr/ppp2ppp/2n5/4q3/4N3/3P4/PPP2PPP/R1BQKB1R w KQkq - 1 7'); sf.postMessage('go depth 10'); 

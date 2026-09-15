@@ -1,0 +1,119 @@
+import React, { useMemo } from 'react';
+import type { AnalyzedMove } from '../types/review';
+import { MoveClassificationBadge } from './MoveClassificationBadge';
+import { CLASSIFICATIONS, type MoveClassificationType } from '../types/classification';
+
+interface ReviewStatsProps {
+  analyzedMoves: AnalyzedMove[];
+  whiteAccuracy: number | null;
+  blackAccuracy: number | null;
+  overallAccuracy: number | null;
+  onMoveSelect: (index: number) => void;
+}
+
+export const ReviewStats: React.FC<ReviewStatsProps> = ({ analyzedMoves, whiteAccuracy, blackAccuracy, overallAccuracy, onMoveSelect }) => {
+  const stats = useMemo<{ counts: Record<string, { w: number; b: number }>; biggestMistakeMove: AnalyzedMove | null; opening: string }>(() => {
+    const counts: Record<string, { w: number; b: number }> = {};
+    Object.keys(CLASSIFICATIONS).forEach(key => {
+      counts[key] = { w: 0, b: 0 };
+    });
+
+    let biggestMistakeMove: AnalyzedMove | null = null;
+    let maxLoss = -1;
+    let opening = 'Starting Position';
+
+    analyzedMoves.forEach(m => {
+      if (m.classification && counts[m.classification]) {
+        counts[m.classification][m.color]++;
+      }
+      
+      // We assume book detection is robust enough for simple openings
+      if (m.classification === 'book') {
+        opening = 'Book line'; // simple indicator
+      }
+
+      // Biggest Mistake
+      if (m.evalLoss > maxLoss) {
+        maxLoss = m.evalLoss;
+        biggestMistakeMove = m;
+      }
+    });
+
+    return { counts, biggestMistakeMove, opening };
+  }, [analyzedMoves]);
+
+  return (
+    <div className="bg-slate-800 border border-slate-700 p-4 rounded-lg flex flex-col gap-4">
+      {/* Accuracy Section */}
+      <div className="grid grid-cols-3 text-center divide-x divide-slate-700">
+        <div className="flex flex-col">
+          <span className="text-sm text-slate-400">White</span>
+          <span className="text-xl font-bold text-white">{whiteAccuracy?.toFixed(1)}%</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm text-slate-400">Black</span>
+          <span className="text-xl font-bold text-white">{blackAccuracy?.toFixed(1)}%</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm text-slate-400">Overall</span>
+          <span className="text-xl font-bold text-emerald-400">{overallAccuracy?.toFixed(1)}%</span>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-700"></div>
+
+      {/* Classifications */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1 text-sm">
+          {['brilliant', 'great', 'best', 'excellent', 'good', 'book', 'inaccuracy', 'mistake', 'miss', 'blunder'].map((key) => (
+            <div key={key} className="flex justify-between items-center text-slate-300">
+              <div className="flex items-center gap-2">
+                <MoveClassificationBadge classification={key as MoveClassificationType} />
+                <span className="hidden sm:inline">{CLASSIFICATIONS[key as MoveClassificationType].name}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="w-4 text-right">{stats.counts[key].w}</span>
+                <span className="w-4 text-right text-slate-500">{stats.counts[key].b}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Additional Stats */}
+        <div className="flex flex-col gap-4">
+          <div className="bg-slate-900/50 p-2 rounded border border-slate-700 text-sm">
+            <div className="text-slate-400 mb-1">Opening</div>
+            <div className="font-bold text-white">{stats.opening}</div>
+            <div className="text-slate-400 mt-2 mb-1">Total Moves</div>
+            <div className="font-bold text-white">{analyzedMoves.length}</div>
+          </div>
+
+          {stats.biggestMistakeMove && stats.biggestMistakeMove.evalLoss > 50 && (
+            <div 
+              className="bg-red-900/20 p-2 rounded border border-red-900/50 text-sm cursor-pointer hover:bg-red-900/40 transition-colors"
+              onClick={() => {
+                const idx = analyzedMoves.indexOf(stats.biggestMistakeMove!);
+                if (idx !== -1) onMoveSelect(idx);
+              }}
+            >
+              <div className="text-red-400 font-bold mb-1 flex items-center gap-1">
+                Biggest Mistake
+              </div>
+              <div className="font-bold text-white">
+                {stats.biggestMistakeMove.moveNumber}. {stats.biggestMistakeMove.color === 'b' ? '...' : ''} {stats.biggestMistakeMove.san}
+              </div>
+              <div className="text-slate-300">
+                Loss: {(stats.biggestMistakeMove.evalLoss / 100).toFixed(2)}
+              </div>
+              {stats.biggestMistakeMove.accuracy !== undefined && (
+                <div className="text-slate-300">
+                  Accuracy: {stats.biggestMistakeMove.accuracy.toFixed(1)}%
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

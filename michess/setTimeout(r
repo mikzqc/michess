@@ -1,0 +1,1 @@
+while(this.state === 'thinking') await new Promise(r =, 10));

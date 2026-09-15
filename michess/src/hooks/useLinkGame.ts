@@ -1,0 +1,330 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Chess } from 'chess.js';
+import { supabase } from '../services/supabase';
+import type { LinkGame } from '../types/linkGame';
+import { generateUUID } from '../utils/uuid';
+
+export function useLinkGame(inviteCode: string | null, userId: string | undefined) {
+  const [gameData, setGameData] = useState<LinkGame | null>(null);
+  const [chess] = useState(new Chess());
+  const [fen, setFen] = useState(chess.fen());
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Manage Player Identity (Auth ID or Guest ID)
+  const [guestId] = useState(() => {
+    let id = localStorage.getItem('michess_guest_id');
+    if (!id) {
+      id = generateUUID();
+      localStorage.setItem('michess_guest_id', id);
+    }
+    return id;
+  });
+  
+  const playerId = userId || guestId;
+
+  // To avoid duplicate updates
+  const lastProcessedPgn = useRef('');
+
+  const fetchGame = useCallback(async () => {
+    if (!inviteCode || !supabase) return;
+    try {
+      const { data, error: fetchErr } = await supabase
+        .from('link_games')
+        .select('*')
+        .eq('invite_code', inviteCode)
+        .single();
+      
+      if (fetchErr) throw fetchErr;
+      
+      setGameData(data);
+      if (data.is_chaos) {
+        setFen(data.fen);
+        try { chess.load(data.fen); } catch {}
+      } else if (data.pgn !== lastProcessedPgn.current) {
+        chess.loadPgn(data.pgn || '');
+        setFen(chess.fen());
+        lastProcessedPgn.current = data.pgn;
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load game');
+    } finally {
+      setLoading(false);
+    }
+  }, [inviteCode, chess]);
+
+  useEffect(() => {
+    fetchGame();
+  }, [fetchGame]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!inviteCode || !supabase || !gameData?.id) return;
+
+    const channel = supabase.channel(`game_${gameData.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'link_games',
+          filter: `id=eq.${gameData.id}`
+        },
+        (payload) => {
+          const newGame = payload.new as LinkGame;
+          setGameData(newGame);
+          
+          if (newGame.is_chaos) {
+            setFen(newGame.fen);
+            try { chess.load(newGame.fen); } catch {}
+          } else if (newGame.pgn !== lastProcessedPgn.current) {
+            chess.loadPgn(newGame.pgn || '');
+            setFen(chess.fen());
+            lastProcessedPgn.current = newGame.pgn;
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase?.removeChannel(channel);
+    };
+  }, [inviteCode, gameData?.id, chess]);
+
+  const joinGame = async () => {
+    if (!supabase || !gameData) return;
+    if (gameData.status !== 'waiting') {
+      setError('Game is no longer waiting for players.');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.rpc('join_link_game', {
+        p_game_id: gameData.id,
+        p_joiner_id: playerId
+      });
+      
+      if (error) throw error;
+      fetchGame(); // refresh
+    } catch (err: any) {
+      setError(err.message || 'Failed to join game');
+    }
+  };
+
+  const makeMove = async (move: { from: string; to: string; promotion?: string }) => {
+    if (!supabase || !gameData) return false;
+    if (gameData.status !== 'active') return false;
+
+    // Verify it's the user's turn
+    const isWhite = gameData.white_player === playerId;
+    const isBlack = gameData.black_player === playerId;
+    const turnColor = chess.turn();
+
+    if ((turnColor === 'w' && !isWhite) || (turnColor === 'b' && !isBlack)) {
+      return false; // Not your turn!
+    }
+
+    try {
+      const moveResult = chess.move(move);
+      if (moveResult) {
+        setFen(chess.fen());
+        lastProcessedPgn.current = chess.pgn();
+        
+        let newStatus: LinkGame['status'] = gameData.status;
+        let winner = gameData.winner;
+
+        if (chess.isGameOver()) {
+          newStatus = 'completed';
+          if (chess.isCheckmate()) {
+            winner = turnColor === 'w' ? gameData.white_player : gameData.black_player;
+          }
+        }
+
+        const updates: Partial<LinkGame> = {
+          fen: chess.fen(),
+          pgn: chess.pgn(),
+          current_turn: chess.turn(),
+          status: newStatus,
+          winner,
+          updated_at: new Date().toISOString()
+        };
+
+        // Optimistically update local state
+        setGameData({ ...gameData, ...updates } as LinkGame);
+
+        // Push to supabase
+        const { error } = await supabase.rpc('update_link_game', {
+          p_game_id: gameData.id,
+          p_player_id: playerId,
+          p_fen: updates.fen,
+          p_pgn: updates.pgn,
+          p_turn: updates.current_turn,
+          p_status: updates.status,
+          p_winner: updates.winner
+        });
+        
+        if (error) console.error("Update failed", error);
+
+        return true;
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  };
+
+  const resign = async () => {
+    if (!supabase || !gameData) return;
+    if (gameData.status !== 'active') return;
+
+    const isWhite = gameData.white_player === playerId;
+    const winner = isWhite ? gameData.black_player : gameData.white_player;
+    
+    const updates: Partial<LinkGame> = {
+      status: 'completed',
+      winner,
+      updated_at: new Date().toISOString()
+    };
+
+    setGameData({ ...gameData, ...updates } as LinkGame);
+
+    await supabase.rpc('update_link_game', {
+      p_game_id: gameData.id,
+      p_player_id: playerId,
+      p_fen: null,
+      p_pgn: null,
+      p_turn: null,
+      p_status: 'completed',
+      p_winner: winner
+    });
+  };
+
+  const cancelGame = async () => {
+    if (!supabase || !gameData) return;
+    if (gameData.status === 'waiting' && (gameData.white_player === playerId || gameData.black_player === playerId)) {
+      await supabase.rpc('cancel_link_game', {
+        p_game_id: gameData.id,
+        p_player_id: playerId
+      });
+      setGameData(null);
+      setError('Game cancelled');
+    }
+  };
+
+  const abortGame = async () => {
+    if (!supabase || !gameData) return;
+    if (gameData.status !== 'active') return;
+
+    const updates: Partial<LinkGame> = {
+      status: 'abandoned',
+      updated_at: new Date().toISOString()
+    };
+
+    setGameData({ ...gameData, ...updates } as LinkGame);
+
+    await supabase.rpc('update_link_game', {
+      p_game_id: gameData.id,
+      p_player_id: playerId,
+      p_fen: null,
+      p_pgn: null,
+      p_turn: null,
+      p_status: 'abandoned',
+      p_winner: null
+    });
+  };
+
+  const claimTimeout = async (isDraw: boolean = false) => {
+    if (!supabase || !gameData) return;
+    if (gameData.status !== 'active') return;
+    if (!gameData.initial_time_ms) return;
+
+    try {
+      const { error } = await supabase.rpc('claim_timeout', {
+        p_game_id: gameData.id,
+        p_is_draw: isDraw
+      });
+      if (error) {
+        console.warn('Timeout claim rejected:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to claim timeout:', err);
+    }
+  };
+
+  const rematchGame = async () => {
+    if (!supabase || !gameData) return;
+    try {
+      await supabase.rpc('rematch_link_game', {
+        p_game_id: gameData.id,
+        p_player_id: playerId
+      });
+    } catch (err) {
+      console.error('Failed to rematch game:', err);
+    }
+  };
+
+  const activateChaosMode = async () => {
+    if (!supabase || !gameData) return;
+    try {
+      await supabase.rpc('activate_chaos_mode', { p_game_id: gameData.id });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const chaosUpdateGame = async (updates: Partial<LinkGame>) => {
+    if (!supabase || !gameData) return false;
+    
+    // optimistically update local state
+    setGameData({ ...gameData, ...updates, is_chaos: true } as LinkGame);
+    if (updates.fen) setFen(updates.fen);
+
+    try {
+      const { error } = await supabase.rpc('chaos_update_game', {
+        p_game_id: gameData.id,
+        p_fen: updates.fen || null,
+        p_pgn: updates.pgn || null,
+        p_turn: updates.current_turn || null,
+        p_status: updates.status || null,
+        p_winner: updates.winner || null
+      });
+      if (error) console.error("Chaos update failed", error);
+      return !error;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const chaosClockAction = async (action: 'pause' | 'resume' | 'reset', white_time_ms?: number, black_time_ms?: number) => {
+    if (!supabase || !gameData) return;
+    try {
+      await supabase.rpc('chaos_clock_action', {
+        p_game_id: gameData.id,
+        p_action: action,
+        p_white_time_ms: white_time_ms || null,
+        p_black_time_ms: black_time_ms || null
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return {
+    gameData,
+    fen,
+    chess,
+    error,
+    loading,
+    makeMove,
+    joinGame,
+    resign,
+    cancelGame,
+    abortGame,
+    claimTimeout,
+    rematchGame,
+    activateChaosMode,
+    chaosUpdateGame,
+    chaosClockAction,
+    playerId
+  };
+}

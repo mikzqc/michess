@@ -1,0 +1,129 @@
+import type { AnalyzedMove } from '../types/review';
+import type { MoveClassificationType } from '../types/classification';
+import { isBookMove } from './openingBook';
+
+// Thresholds in centipawn (cp) equivalent loss from the player's perspective.
+export const CLASSIFICATION_THRESHOLDS = {
+  EXCELLENT: 15,
+  GOOD: 40,
+  INACCURACY: 100,
+  MISTAKE: 250,
+  BLUNDER: 250, // > 250 is blunder
+  WINNING_MARGIN: 250, // Advantage size where we start forgiving evaluation drops
+};
+
+export function classifyMove(move: AnalyzedMove): MoveClassificationType {
+  const { uci, bestMove, san, fenBefore } = move;
+
+  if (san.includes('#')) return 'best';
+
+  if (!move.evalBefore.score || !move.evalAfter.score) {
+    return 'unclassified';
+  }
+
+  const isBestMove = bestMove === uci;
+
+  const getCp = (ev: { type: 'cp' | 'mate', value: number }) => {
+    if (ev.type === 'mate') {
+      return Math.sign(ev.value) * (10000 - Math.abs(ev.value) * 100);
+    }
+    return ev.value;
+  };
+
+  // Both are from White's perspective natively (guaranteed by useGameReview.ts normalization)
+  const beforeCp = getCp(move.evalBefore.score);
+  const afterCp = getCp(move.evalAfter.score);
+  
+  // Convert to player's perspective
+  const playerScoreBefore = move.color === 'w' ? beforeCp : -beforeCp;
+  const playerScoreAfter = move.color === 'w' ? afterCp : -afterCp;
+  
+  // Raw loss in centipawns
+  let effectiveLoss = Math.max(0, playerScoreBefore - playerScoreAfter);
+
+  if (isBookMove(fenBefore, san)) return 'book';
+
+  const beforeIsMate = move.evalBefore.score.type === 'mate';
+  const afterIsMate = move.evalAfter.score.type === 'mate';
+  const playerMateBefore = beforeIsMate ? (move.color === 'w' ? move.evalBefore.score.value : -move.evalBefore.score.value) : null;
+  const playerMateAfter = afterIsMate ? (move.color === 'w' ? move.evalAfter.score.value : -move.evalAfter.score.value) : null;
+
+  if (beforeIsMate && afterIsMate) {
+    if (playerMateBefore! > 0 && playerMateAfter! > 0) {
+      const delay = playerMateAfter! - playerMateBefore!;
+      effectiveLoss = delay > 0 ? delay * 10 : 0;
+    } else if (playerMateBefore! < 0 && playerMateAfter! < 0) {
+      effectiveLoss = 0;
+    }
+  } else if (beforeIsMate && !afterIsMate) {
+    if (playerMateBefore! > 0) {
+      // Missed forced mate
+      if (playerScoreAfter >= CLASSIFICATION_THRESHOLDS.WINNING_MARGIN * 2) {
+        effectiveLoss = CLASSIFICATION_THRESHOLDS.INACCURACY;
+      } else if (playerScoreAfter >= CLASSIFICATION_THRESHOLDS.WINNING_MARGIN) {
+        effectiveLoss = CLASSIFICATION_THRESHOLDS.MISTAKE;
+      } else {
+        return 'miss';
+      }
+    } else {
+      effectiveLoss = 0;
+    }
+  } else if (!beforeIsMate && afterIsMate) {
+    if (playerMateAfter! < 0) {
+      // Blundered into mate
+      if (playerScoreBefore <= -CLASSIFICATION_THRESHOLDS.WINNING_MARGIN * 2) {
+        effectiveLoss = CLASSIFICATION_THRESHOLDS.INACCURACY;
+      } else {
+        effectiveLoss = CLASSIFICATION_THRESHOLDS.BLUNDER + 100;
+      }
+    } else {
+      effectiveLoss = 0;
+    }
+  } else {
+    // Normal scaling - ONLY forgive drops if the player remains completely winning
+    if (playerScoreBefore >= 400) {
+      if (playerScoreAfter >= 400) {
+        effectiveLoss = effectiveLoss / 3;
+      } else if (playerScoreAfter >= 250) {
+        effectiveLoss = effectiveLoss / 1.5;
+      }
+    }
+    if (playerScoreBefore <= -400 && playerScoreAfter <= -400) {
+      effectiveLoss = effectiveLoss / 3;
+    }
+  }
+
+  if (playerScoreBefore >= 300 && playerScoreAfter < 100 && effectiveLoss >= 200) return 'miss';
+
+  if (effectiveLoss > CLASSIFICATION_THRESHOLDS.BLUNDER) return 'blunder';
+  if (effectiveLoss > CLASSIFICATION_THRESHOLDS.MISTAKE) return 'mistake';
+  if (effectiveLoss > CLASSIFICATION_THRESHOLDS.INACCURACY) return 'inaccuracy';
+  if (effectiveLoss > CLASSIFICATION_THRESHOLDS.GOOD) return 'good';
+
+  if (isBestMove || effectiveLoss <= 0) {
+    if (effectiveLoss <= 5) return 'best';
+    return 'excellent';
+  }
+
+  if (effectiveLoss <= CLASSIFICATION_THRESHOLDS.GOOD) {
+    return 'good';
+  }
+
+  return 'unclassified';
+}
+
+export function getClassificationExplanation(classification: MoveClassificationType): string {
+  switch (classification) {
+    case 'brilliant': return 'A difficult, objectively excellent tactical or positional move.';
+    case 'great': return 'A particularly strong move that significantly improves or preserves your position.';
+    case 'best': return 'This move matches the engine’s preferred move and maintains the position’s evaluation.';
+    case 'excellent': return 'A very strong move with negligible evaluation loss.';
+    case 'good': return 'A reasonable move with a small evaluation loss.';
+    case 'book': return 'An established opening book move.';
+    case 'inaccuracy': return 'A small but meaningful loss of evaluation.';
+    case 'mistake': return 'A clear error that loses noticeable evaluation or an important advantage.';
+    case 'miss': return 'A missed important opportunity or a failure to convert a major tactical advantage.';
+    case 'blunder': return 'A severe error that causes major evaluation loss or drastically changes the game result.';
+    default: return 'No classification available.';
+  }
+}

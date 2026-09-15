@@ -1,0 +1,1 @@
+const cp = require('child_process'); const sf = cp.spawn('node', ['./public/stockfish.js']); sf.stdout.on('data', d => console.log(d.toString())); sf.stdin.write('position fen r3kb1r/1b1p1ppp/p3p3/np6/2pP4/2P5/PP2BPqP/RN1Q1RK1 w kq - 0 14\ngo depth 10\n'); setTimeout(() => process.exit(0), 1000);

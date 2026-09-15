@@ -1,0 +1,1 @@
+import { Chess } from 'chess.js'; import { isBookMove } from './src/utils/openingBook.js'; const game = new Chess(); console.log('1. e4:', isBookMove(game.fen(), 'e4')); console.log('1. h4:', isBookMove(game.fen(), 'h4'));  
