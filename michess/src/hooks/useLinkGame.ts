@@ -111,9 +111,12 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
     }
   };
 
+  const isMovingRef = useRef(false);
+
   const makeMove = async (move: { from: string; to: string; promotion?: string }) => {
     if (!supabase || !gameData) return false;
     if (gameData.status !== 'active') return false;
+    if (isMovingRef.current) return false;
 
     // Verify it's the user's turn
     const isWhite = gameData.white_player === playerId;
@@ -125,6 +128,10 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
     }
 
     try {
+      isMovingRef.current = true;
+      const originalFen = chess.fen();
+      const originalPgn = chess.pgn();
+      
       const moveResult = chess.move(move);
       if (moveResult) {
         setFen(chess.fen());
@@ -163,13 +170,25 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
           p_winner: updates.winner
         });
         
-        if (error) console.error("Update failed", error);
+        if (error) {
+          console.error("Update failed", error);
+          // Rollback local state
+          chess.undo();
+          setFen(originalFen);
+          lastProcessedPgn.current = originalPgn;
+          setGameData(gameData);
+          setError("Network error: Move not sent.");
+          isMovingRef.current = false;
+          return false;
+        }
 
+        isMovingRef.current = false;
         return true;
       }
     } catch (e) {
-      return false;
+      console.error(e);
     }
+    isMovingRef.current = false;
     return false;
   };
 
