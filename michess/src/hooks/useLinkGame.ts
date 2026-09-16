@@ -177,7 +177,7 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
           setFen(originalFen);
           lastProcessedPgn.current = originalPgn;
           setGameData(gameData);
-          setError("Network error: Move not sent.");
+          console.warn("Network error: Move not sent. Board rolled back.");
           isMovingRef.current = false;
           return false;
         }
