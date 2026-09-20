@@ -14,6 +14,7 @@ import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
 import { calculateMaterial } from '../utils/material';
 import { CapturedPieces } from './CapturedPieces';
 import { useToast } from './Toast';
+import { getOpeningsDB, findOpening } from '../utils/openings';
 
 interface ReviewAreaProps {
   pgn: string;
@@ -28,11 +29,25 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
   
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>(settings.boardOrientation);
+  const [openingName, setOpeningName] = useState<string | null>(null);
+  const [openingEco, setOpeningEco] = useState<string | null>(null);
 
   useEffect(() => {
     startAnalysis();
     return () => cancelAnalysis();
   }, [startAnalysis, cancelAnalysis]);
+
+  useEffect(() => {
+    if (analyzedMoves.length === 0) return;
+    getOpeningsDB().then(db => {
+      const sans = analyzedMoves.map(m => m.san);
+      const match = findOpening(sans, db);
+      if (match.opening) {
+        setOpeningName(match.opening.name);
+        setOpeningEco(match.opening.eco);
+      }
+    });
+  }, [analyzedMoves.length]);
 
   const goToFirst = useCallback(() => setCurrentMoveIndex(-1), []);
   const goToLast = useCallback(() => setCurrentMoveIndex(analyzedMoves.length - 1), [analyzedMoves.length]);
@@ -333,6 +348,8 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
               whiteAccuracy={whiteAccuracy}
               blackAccuracy={blackAccuracy}
               overallAccuracy={overallAccuracy}
+              openingName={openingName || undefined}
+              openingEco={openingEco || undefined}
               onMoveSelect={setCurrentMoveIndex}
             />
             <EvaluationGraph 

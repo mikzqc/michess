@@ -91,12 +91,12 @@ BEGIN
             END IF;
             
             UPDATE public.link_games SET
-                fen = p_fen,
-                pgn = p_pgn,
-                current_turn = p_turn,
-                status = p_status,
-                winner = p_winner,
-                draw_offer_by = NULL, -- ALWAYS CLEAR DRAW OFFER
+                fen = COALESCE(p_fen, fen),
+                pgn = COALESCE(p_pgn, pgn),
+                current_turn = COALESCE(p_turn, current_turn),
+                status = COALESCE(p_status, status),
+                winner = COALESCE(p_winner, winner),
+                draw_offer_by = NULL, rematch_offer_by = NULL, -- ALWAYS CLEAR OFFERS
                 white_time_ms = v_mover_time,
                 last_move_at = CASE WHEN p_status = 'active' THEN CURRENT_TIMESTAMP ELSE NULL END,
                 updated_at = CURRENT_TIMESTAMP
@@ -116,12 +116,12 @@ BEGIN
             END IF;
             
             UPDATE public.link_games SET
-                fen = p_fen,
-                pgn = p_pgn,
-                current_turn = p_turn,
-                status = p_status,
-                winner = p_winner,
-                draw_offer_by = NULL, -- ALWAYS CLEAR DRAW OFFER
+                fen = COALESCE(p_fen, fen),
+                pgn = COALESCE(p_pgn, pgn),
+                current_turn = COALESCE(p_turn, current_turn),
+                status = COALESCE(p_status, status),
+                winner = COALESCE(p_winner, winner),
+                draw_offer_by = NULL, rematch_offer_by = NULL, -- ALWAYS CLEAR OFFERS
                 black_time_ms = v_mover_time,
                 last_move_at = CASE WHEN p_status = 'active' THEN CURRENT_TIMESTAMP ELSE NULL END,
                 updated_at = CURRENT_TIMESTAMP
@@ -130,12 +130,12 @@ BEGIN
     ELSE
         -- Untimed game
         UPDATE public.link_games SET
-            fen = p_fen,
-            pgn = p_pgn,
-            current_turn = p_turn,
-            status = p_status,
-            winner = p_winner,
-            draw_offer_by = NULL, -- ALWAYS CLEAR DRAW OFFER
+            fen = COALESCE(p_fen, fen),
+            pgn = COALESCE(p_pgn, pgn),
+            current_turn = COALESCE(p_turn, current_turn),
+            status = COALESCE(p_status, status),
+            winner = COALESCE(p_winner, winner),
+            draw_offer_by = NULL, rematch_offer_by = NULL, -- ALWAYS CLEAR OFFERS
             last_move_at = CASE WHEN p_status = 'active' THEN CURRENT_TIMESTAMP ELSE NULL END,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = p_game_id RETURNING * INTO v_game;
