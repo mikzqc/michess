@@ -10,6 +10,8 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
   const [fen, setFen] = useState(chess.fen());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(true);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   
   // Manage Player Identity (Auth ID or Guest ID)
   const [guestId] = useState(() => {
@@ -84,12 +86,22 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsConnected(true);
+          setIsReconnecting(false);
+          // Refetch to ensure we didn't miss events while disconnected
+          fetchGame();
+        } else if (status === 'TIMED_OUT' || status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          setIsConnected(false);
+          setIsReconnecting(true);
+        }
+      });
 
     return () => {
       supabase?.removeChannel(channel);
     };
-  }, [inviteCode, gameData?.id, chess]);
+  }, [inviteCode, gameData?.id, chess, fetchGame]);
 
   const joinGame = async () => {
     if (!supabase || !gameData) return;
@@ -157,7 +169,7 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
         };
 
         // Optimistically update local state
-        setGameData({ ...gameData, ...updates } as LinkGame);
+        setGameData({ ...gameData, ...updates, draw_offer_by: null } as LinkGame);
 
         // Push to supabase
         const { error } = await supabase.rpc('update_link_game', {
@@ -169,6 +181,11 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
           p_status: updates.status,
           p_winner: updates.winner
         });
+        
+        // If there was a pending draw offer, clear it
+        if (gameData.draw_offer_by) {
+          await supabase.from('link_games').update({ draw_offer_by: null }).eq('id', gameData.id);
+        }
         
         if (error) {
           console.error("Update failed", error);
@@ -328,6 +345,60 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
     }
   };
 
+  const offerDraw = async () => {
+    if (!supabase || !gameData) return;
+    if (gameData.status !== 'active') return;
+    
+    const isWhite = gameData.white_player === playerId;
+    
+    // We update the table directly since RPC doesn't have draw_offer_by
+    const { error } = await supabase
+      .from('link_games')
+      .update({ draw_offer_by: isWhite ? 'w' : 'b' })
+      .eq('id', gameData.id);
+      
+    if (error) console.error("Failed to offer draw:", error);
+  };
+
+  const acceptDraw = async () => {
+    if (!supabase || !gameData) return;
+    if (gameData.status !== 'active') return;
+    
+    const updates: Partial<LinkGame> = {
+      status: 'completed',
+      winner: null,
+      draw_offer_by: null,
+      updated_at: new Date().toISOString()
+    };
+    
+    setGameData({ ...gameData, ...updates } as LinkGame);
+    
+    // Use RPC for standard status update, plus we must update draw_offer_by
+    await supabase.rpc('update_link_game', {
+      p_game_id: gameData.id,
+      p_player_id: playerId,
+      p_fen: gameData.fen,
+      p_pgn: gameData.pgn,
+      p_turn: gameData.current_turn,
+      p_status: 'completed',
+      p_winner: null
+    });
+    
+    // Clear draw offer flag
+    await supabase.from('link_games').update({ draw_offer_by: null }).eq('id', gameData.id);
+  };
+
+  const declineDraw = async () => {
+    if (!supabase || !gameData) return;
+    
+    const { error } = await supabase
+      .from('link_games')
+      .update({ draw_offer_by: null })
+      .eq('id', gameData.id);
+      
+    if (error) console.error("Failed to decline draw:", error);
+  };
+
   return {
     gameData,
     fen,
@@ -344,6 +415,11 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
     activateChaosMode,
     chaosUpdateGame,
     chaosClockAction,
-    playerId
+    offerDraw,
+    acceptDraw,
+    declineDraw,
+    playerId,
+    isConnected,
+    isReconnecting
   };
 }

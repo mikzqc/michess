@@ -22,8 +22,10 @@ import { Link, Users } from 'lucide-react';
 import { useToast } from './components/Toast';
 import { PublicProfile } from './components/PublicProfile';
 import { SocialArea } from './components/SocialArea';
+import { PuzzleArea } from './components/PuzzleArea';
+import { Puzzle as PuzzleIcon } from 'lucide-react';
 
-type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile';
+type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles';
 
 function App() {
   const [view, setView] = useState<ViewState>('home');
@@ -48,12 +50,16 @@ function App() {
     if (match) {
       setLinkInviteCode(match[1]);
       setView('link-game');
+    } else if (path === '/puzzles') {
+      setView('puzzles');
     }
   }, []);
 
   const handleSetView = (v: ViewState) => {
     if (v === 'home') {
       window.history.pushState({}, '', '/');
+    } else if (v === 'puzzles') {
+      window.history.pushState({}, '', '/puzzles');
     }
     setView(v);
   };
@@ -161,6 +167,13 @@ function App() {
           <div className="h-6 w-px bg-slate-700 hidden md:block"></div>
 
           <button 
+            onClick={() => handleSetView('puzzles')} 
+            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'puzzles' ? 'text-chess-accent bg-chess-accent/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
+          >
+            <PuzzleIcon size={18} /> Puzzles
+          </button>
+
+          <button 
             onClick={() => handleSetView('history')} 
             className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'history' ? 'text-chess-accent bg-chess-accent/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
           >
@@ -227,7 +240,7 @@ function App() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto w-full animate-slide-up">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto w-full animate-slide-up">
               {/* Card 1: Bot */}
               <button 
                 onClick={() => setSetupMode('computer')}
@@ -263,6 +276,18 @@ function App() {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Local Match</h3>
                 <p className="text-slate-400 text-sm">Play a game with a friend on the same device.</p>
+              </button>
+
+              {/* Card 4: Puzzles */}
+              <button 
+                onClick={() => handleSetView('puzzles')}
+                className="bg-chess-panel border border-chess-border hover:border-chess-accent p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.4)] group"
+              >
+                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <PuzzleIcon size={32} className="text-emerald-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Free Puzzles</h3>
+                <p className="text-slate-400 text-sm">Improve your tactics with unlimited random puzzles.</p>
               </button>
             </div>
             
@@ -356,6 +381,11 @@ function App() {
           <SocialArea 
             onExit={() => handleSetView('home')} 
             onViewProfile={handleViewProfile} 
+          />
+        )}
+        {view === 'puzzles' && (
+          <PuzzleArea 
+            onExit={() => handleSetView('home')} 
           />
         )}
       </main>

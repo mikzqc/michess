@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useChessClock } from '../hooks/useChessClock';
 import { MoveHistory } from './MoveHistory';
 import { ChessClock } from './ChessClock';
-import { Copy, Flag, Check, ShieldAlert, RotateCcw, Eraser } from 'lucide-react';
+import { Copy, Flag, Check, ShieldAlert, RotateCcw, Eraser, Handshake } from 'lucide-react';
 import { useBoardHighlights } from '../hooks/useBoardHighlights';
 import { copyToClipboard } from '../utils/clipboard';
 import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
@@ -55,7 +55,12 @@ function hasSufficientMaterial(fen: string, color: 'w' | 'b'): boolean {
 
 export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, onReview, onSaveGame, onRequireAuth }) => {
   const { user } = useAuth();
-  const { gameData, fen, chess, error, loading, makeMove, joinGame, resign, cancelGame, abortGame, claimTimeout, playerId, rematchGame, activateChaosMode, chaosUpdateGame, chaosClockAction } = useLinkGame(inviteCode, user?.id);
+  const { 
+    gameData, fen, chess, error, loading, makeMove, joinGame, resign, 
+    cancelGame, abortGame, claimTimeout, playerId, rematchGame, 
+    activateChaosMode, chaosUpdateGame, chaosClockAction,
+    offerDraw, acceptDraw, declineDraw, isReconnecting
+  } = useLinkGame(inviteCode, user?.id);
   const clockState = useChessClock(gameData);
   const [copied, setCopied] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
@@ -489,6 +494,13 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
       </div>
 
       <div className="flex flex-col gap-4 h-[400px] lg:h-auto lg:min-h-[600px]">
+        {isReconnecting && (
+          <div className="bg-amber-900/40 border border-amber-500/50 rounded-lg px-3 py-2 flex items-center justify-center gap-2 text-amber-400">
+            <div className="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+            <span className="font-bold text-sm">Reconnecting...</span>
+          </div>
+        )}
+        
         {gameData.time_control && (
           <div className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 flex items-center justify-center gap-2">
             <span className="text-chess-accent font-bold font-mono">{gameData.time_control}</span>
@@ -567,12 +579,34 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
 
         <div className="grid grid-cols-2 gap-2 mt-2">
           {gameData.status === 'active' && isPlayer && (
-            <button 
-              onClick={handleResignClick}
-              className="col-span-2 bg-slate-700 hover:bg-red-900/50 hover:text-red-400 text-slate-300 py-3 rounded flex items-center justify-center gap-2 font-bold transition-colors border border-transparent hover:border-red-900"
-            >
-              <Flag size={18} /> Resign
-            </button>
+            <>
+              <button 
+                onClick={handleResignClick}
+                className={`${gameData.draw_offer_by ? 'col-span-1' : 'col-span-1'} bg-slate-700 hover:bg-red-900/50 hover:text-red-400 text-slate-300 py-3 rounded flex items-center justify-center gap-2 font-bold transition-colors border border-transparent hover:border-red-900`}
+              >
+                <Flag size={18} /> Resign
+              </button>
+              
+              {gameData.draw_offer_by === (gameData.white_player === playerId ? 'b' : 'w') ? (
+                <div className="col-span-1 grid grid-cols-2 gap-1">
+                  <button onClick={acceptDraw} title="Accept Draw" className="bg-green-700/50 hover:bg-green-600 text-white py-3 rounded flex items-center justify-center transition-colors">
+                    <Check size={18} />
+                  </button>
+                  <button onClick={declineDraw} title="Decline Draw" className="bg-red-900/50 hover:bg-red-800 text-white py-3 rounded flex items-center justify-center transition-colors">
+                    X
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={offerDraw}
+                  disabled={gameData.draw_offer_by === (gameData.white_player === playerId ? 'w' : 'b')}
+                  className="col-span-1 bg-slate-700 hover:bg-chess-accent hover:text-white text-slate-300 py-3 rounded flex items-center justify-center gap-2 font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Handshake size={18} /> 
+                  {gameData.draw_offer_by === (gameData.white_player === playerId ? 'w' : 'b') ? 'Sent...' : 'Draw'}
+                </button>
+              )}
+            </>
           )}
           {gameData.status !== 'active' && (
             <button 
