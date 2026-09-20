@@ -349,13 +349,11 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
     if (!supabase || !gameData) return;
     if (gameData.status !== 'active') return;
     
-    const isWhite = gameData.white_player === playerId;
-    
-    // We update the table directly since RPC doesn't have draw_offer_by
-    const { error } = await supabase
-      .from('link_games')
-      .update({ draw_offer_by: isWhite ? 'w' : 'b' })
-      .eq('id', gameData.id);
+    // We must use an RPC because direct updates are blocked by RLS
+    const { error } = await supabase.rpc('offer_draw', {
+      p_game_id: gameData.id,
+      p_player_id: playerId
+    });
       
     if (error) console.error("Failed to offer draw:", error);
   };
@@ -391,10 +389,10 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
   const declineDraw = async () => {
     if (!supabase || !gameData) return;
     
-    const { error } = await supabase
-      .from('link_games')
-      .update({ draw_offer_by: null })
-      .eq('id', gameData.id);
+    const { error } = await supabase.rpc('decline_draw', {
+      p_game_id: gameData.id,
+      p_player_id: playerId
+    });
       
     if (error) console.error("Failed to decline draw:", error);
   };
