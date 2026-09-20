@@ -139,10 +139,8 @@ class AudioService {
       });
     }
   }
-  public playMove(moveInfo: { san: string, flags: string }, isCheckmate: boolean, isStalemate: boolean) {
-    if (isCheckmate) this.play('checkmate');
-    else if (isStalemate) this.play('stalemate');
-    else if (moveInfo.san.includes('+')) this.play('check');
+  public playMove(moveInfo: { san: string, flags: string }) {
+    if (moveInfo.san.includes('#') || moveInfo.san.includes('+')) this.play('check');
     else if (moveInfo.san.includes('x')) this.play('capture');
     else if (moveInfo.flags.includes('p')) this.play('promote');
     else if (moveInfo.flags.includes('k') || moveInfo.flags.includes('q')) this.play('castle');

@@ -86,7 +86,13 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
             const history = chess.history({ verbose: true });
             const lastMove = history[history.length - 1];
             if (lastMove) {
-               audioService.playMove(lastMove, chess.isCheckmate(), chess.isStalemate() || chess.isDraw());
+               const amIWhite = newGame.white_player === playerId;
+               const amIBlack = newGame.black_player === playerId;
+               const didIMove = (lastMove.color === 'w' && amIWhite) || (lastMove.color === 'b' && amIBlack);
+               
+               if (!didIMove) {
+                 audioService.playMove(lastMove);
+               }
             }
 
             setFen(chess.fen());
@@ -154,7 +160,7 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
       
       const moveResult = chess.move(move);
       if (moveResult) {
-        audioService.playMove(moveResult, chess.isCheckmate(), chess.isStalemate() || chess.isDraw());
+        audioService.playMove(moveResult);
         setFen(chess.fen());
         lastProcessedPgn.current = chess.pgn();
         
