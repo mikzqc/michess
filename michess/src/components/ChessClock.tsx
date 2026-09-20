@@ -28,28 +28,28 @@ export const ChessClock: React.FC<ChessClockProps> = ({ timeMs, isActive }) => {
   const isCritical = timeMs <= 10000 && timeMs > 0;    // ≤ 10s
   const isExpired = timeMs <= 0;
 
-  let bgColor = 'bg-slate-800';
-  let textColor = 'text-white';
-  let borderColor = 'border-slate-700';
+  let bgColor = 'bg-surface-3';
+  let textColor = 'text-content-1';
+  let borderColor = 'border-border-1';
   let extraClasses = '';
 
   if (isExpired) {
-    bgColor = 'bg-red-900/40';
-    textColor = 'text-red-400';
-    borderColor = 'border-red-800';
+    bgColor = 'bg-error/10';
+    textColor = 'text-error';
+    borderColor = 'border-error/50';
   } else if (isCritical && isActive) {
-    bgColor = 'bg-red-900/30';
-    textColor = 'text-red-400';
-    borderColor = 'border-red-800';
+    bgColor = 'bg-error/20';
+    textColor = 'text-error';
+    borderColor = 'border-error/50';
     extraClasses = 'animate-pulse';
   } else if (isLow && isActive) {
-    bgColor = 'bg-amber-900/20';
-    textColor = 'text-amber-400';
-    borderColor = 'border-amber-800/50';
+    bgColor = 'bg-warning/20';
+    textColor = 'text-warning';
+    borderColor = 'border-warning/50';
   } else if (isActive) {
-    bgColor = 'bg-chess-accent/20';
-    textColor = 'text-white';
-    borderColor = 'border-chess-accent/50';
+    bgColor = 'bg-accent/20';
+    textColor = 'text-content-1';
+    borderColor = 'border-accent/50';
   }
 
   return (

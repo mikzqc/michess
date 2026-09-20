@@ -398,9 +398,18 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
   let gameEndReason = 'Game Over';
   if (gameData.status === 'completed') {
     if (gameData.winner) {
-      gameEndReason = `${gameData.winner === gameData.white_player ? 'White' : 'Black'} wins`;
+      if (chess.isCheckmate()) {
+        gameEndReason = `${gameData.winner === gameData.white_player ? 'White' : 'Black'} wins by Checkmate`;
+      } else if (isTimeout) {
+        gameEndReason = `${gameData.winner === gameData.white_player ? 'White' : 'Black'} wins on time`;
+      } else {
+        gameEndReason = `${gameData.winner === gameData.white_player ? 'Black' : 'White'} resigned`;
+      }
     } else {
-      gameEndReason = 'Game drawn';
+      if (chess.isStalemate()) gameEndReason = 'Draw by Stalemate';
+      else if (chess.isThreefoldRepetition()) gameEndReason = 'Draw by Repetition';
+      else if (chess.isInsufficientMaterial()) gameEndReason = 'Draw by Insufficient Material';
+      else gameEndReason = 'Game drawn';
     }
   } else if (gameData.status === 'abandoned') {
     gameEndReason = 'Game Abandoned';
@@ -418,113 +427,115 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
         />
       )}
 
-      <div className="lg:col-span-2 flex flex-col gap-3 relative">
-        {/* Top Player Info + Clock */}
-        <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${topClockActive && gameData.status === 'active' ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl ${topColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
-                {topColor === 'white' ? 'W' : 'B'}
+      <div className="lg:col-span-2 flex justify-center gap-4 relative">
+        <div className="w-full max-w-[600px] flex flex-col gap-3 relative">
+          {/* Top Player Info + Clock */}
+          <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${topClockActive && gameData.status === 'active' ? 'bg-surface-3 border-accent shadow-md' : 'bg-surface-2 border-border-1 shadow-sm'}`}>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl shadow-sm ${topColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-[#222] text-white border border-gray-600'}`}>
+                  {topColor === 'white' ? 'W' : 'B'}
+                </div>
+                <div className="font-bold text-content-1 text-lg">{topLabel}</div>
               </div>
-              <div className="font-bold text-white text-lg">{topLabel}</div>
+              <CapturedPieces pieces={topCaptured} advantage={topAdvantage} pieceSet={settings.pieceSet} />
             </div>
-            <CapturedPieces pieces={topCaptured} advantage={topAdvantage} pieceSet={settings.pieceSet} />
+            {clockState.isTimed && (
+              <ChessClock timeMs={topClockMs} isActive={topClockActive && gameData.status === 'active'} />
+            )}
           </div>
-          {clockState.isTimed && (
-            <ChessClock timeMs={topClockMs} isActive={topClockActive && gameData.status === 'active'} />
-          )}
-        </div>
-
-        <div className="relative w-full max-w-[600px] aspect-square mx-auto rounded overflow-hidden shadow-2xl">
-          <Chessboard
-            options={{
-              id: `LinkBoard-${inviteCode}`,
-              position: fen,
-              showNotation: settings.showCoordinates,
-              animationDurationInMs: settings.moveAnimations ? 200 : 0,
-              pieces: getCustomPieces(settings.pieceSet),
-              allowDrawingArrows: true,
-              arrows: arrows,
-              onArrowsChange: ({ arrows }) => setArrows(arrows),
-              arrowOptions: { color: 'rgba(255, 170, 0, 0.8)' } as any,
-              onPieceDrop: onDrop,
-              onSquareClick: (args) => {
-                if (gameData.status !== 'active') return;
-                if (handleChaosSquareClick(args.square)) return;
-                const move = handleSquareClick(args.square);
-                if (move) {
-                  if (isChaos && freeMoveActive) {
-                     const newFen = moveInFen(fen, move.from, move.to);
-                     const finalFen = ignoreTurnActive ? newFen : switchTurnInFen(newFen);
-                     chaosUpdateGame({ fen: finalFen, current_turn: finalFen.split(' ')[1] as 'w'|'b' });
-                     return;
+  
+          <div className="relative w-full aspect-square rounded overflow-hidden shadow-sm border border-border-1">
+            <Chessboard
+              options={{
+                id: `LinkBoard-${inviteCode}`,
+                position: fen,
+                showNotation: settings.showCoordinates,
+                animationDurationInMs: settings.moveAnimations ? 200 : 0,
+                pieces: getCustomPieces(settings.pieceSet),
+                allowDrawingArrows: true,
+                arrows: arrows,
+                onArrowsChange: ({ arrows }) => setArrows(arrows),
+                arrowOptions: { color: 'rgba(255, 170, 0, 0.8)' } as any,
+                onPieceDrop: onDrop,
+                onSquareClick: (args) => {
+                  if (gameData.status !== 'active') return;
+                  if (handleChaosSquareClick(args.square)) return;
+                  const move = handleSquareClick(args.square);
+                  if (move) {
+                    if (isChaos && freeMoveActive) {
+                       const newFen = moveInFen(fen, move.from, move.to);
+                       const finalFen = ignoreTurnActive ? newFen : switchTurnInFen(newFen);
+                       chaosUpdateGame({ fen: finalFen, current_turn: finalFen.split(' ')[1] as 'w'|'b' });
+                       return;
+                    }
+                    
+                    const isPawn = chess.get(move.from as any)?.type === 'p';
+                    const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
+                    if (isPromotion && !settings.autoQueen) {
+                      setPromotionState({ sourceSquare: move.from, targetSquare: move.to, color: chess.turn() });
+                    } else {
+                      doMove(move.from, move.to, 'q');
+                    }
                   }
-                  
-                  const isPawn = chess.get(move.from as any)?.type === 'p';
-                  const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
-                  if (isPromotion && !settings.autoQueen) {
-                    setPromotionState({ sourceSquare: move.from, targetSquare: move.to, color: chess.turn() });
-                  } else {
-                    doMove(move.from, move.to, 'q');
-                  }
-                }
-              },
-              onPieceDrag: handlePieceDrag,
-              onPieceDragCancel: handlePieceDropEnd,
-              squareStyles: squareStyles,
-              boardOrientation: boardOrientation as any,
-              darkSquareStyle: { backgroundColor: activeTheme.dark },
-              lightSquareStyle: { backgroundColor: activeTheme.light }
-            }}
-          />
-          {promotionState && (
-            <PromotionDialog 
-              color={promotionState.color}
-              pieceSet={settings.pieceSet}
-              onSelect={(piece) => {
-                doMove(promotionState.sourceSquare, promotionState.targetSquare, piece);
-                setPromotionState(null);
+                },
+                onPieceDrag: handlePieceDrag,
+                onPieceDragCancel: handlePieceDropEnd,
+                squareStyles: squareStyles,
+                boardOrientation: boardOrientation as any,
+                darkSquareStyle: { backgroundColor: activeTheme.dark },
+                lightSquareStyle: { backgroundColor: activeTheme.light }
               }}
             />
-          )}
-          {gameData.status === 'completed' && (
-             <GameOverModal 
-                 result={isTimeout ? 'Time Expired' : gameEndReason}
-                 onReview={isChaos ? undefined : (() => onReview?.(gameData.pgn || chess.pgn())) as any}
-                 onRematch={gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w') ? rematchGame : offerRematch}
-                 rematchOffer={{
-                   byMe: gameData.rematch_offer_by === (gameData.white_player === playerId ? 'w' : 'b'),
-                   byOpponent: gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w'),
-                   onDecline: declineRematch
-                 }}
-                 onHome={onExit}
-               />
-          )}
-        </div>
-
-        {/* Bottom Player Info + Clock */}
-        <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${bottomClockActive && gameData.status === 'active' ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl ${bottomColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
-                {bottomColor === 'white' ? 'W' : 'B'}
-              </div>
-              <div className="font-bold text-white text-lg">{bottomLabel}</div>
-            </div>
-            <CapturedPieces pieces={bottomCaptured} advantage={bottomAdvantage} pieceSet={settings.pieceSet} />
+            {promotionState && (
+              <PromotionDialog 
+                color={promotionState.color}
+                pieceSet={settings.pieceSet}
+                onSelect={(piece) => {
+                  doMove(promotionState.sourceSquare, promotionState.targetSquare, piece);
+                  setPromotionState(null);
+                }}
+              />
+            )}
+            {gameData.status === 'completed' && (
+               <GameOverModal 
+                   result={isTimeout ? 'Time Expired' : gameEndReason}
+                   onReview={isChaos ? undefined : (() => onReview?.(gameData.pgn || chess.pgn())) as any}
+                   onRematch={gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w') ? rematchGame : offerRematch}
+                   rematchOffer={{
+                     byMe: gameData.rematch_offer_by === (gameData.white_player === playerId ? 'w' : 'b'),
+                     byOpponent: gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w'),
+                     onDecline: declineRematch
+                   }}
+                   onHome={onExit}
+                 />
+            )}
           </div>
-          {clockState.isTimed && (
-            <ChessClock timeMs={bottomClockMs} isActive={bottomClockActive && gameData.status === 'active'} />
+  
+          {/* Bottom Player Info + Clock */}
+          <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${bottomClockActive && gameData.status === 'active' ? 'bg-surface-3 border-accent shadow-md' : 'bg-surface-2 border-border-1 shadow-sm'}`}>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl shadow-sm ${bottomColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-[#222] text-white border border-gray-600'}`}>
+                  {bottomColor === 'white' ? 'W' : 'B'}
+                </div>
+                <div className="font-bold text-content-1 text-lg">{bottomLabel}</div>
+              </div>
+              <CapturedPieces pieces={bottomCaptured} advantage={bottomAdvantage} pieceSet={settings.pieceSet} />
+            </div>
+            {clockState.isTimed && (
+              <ChessClock timeMs={bottomClockMs} isActive={bottomClockActive && gameData.status === 'active'} />
+            )}
+          </div>
+          
+          {arrows.length > 0 && (
+             <div className="absolute -right-4 top-1/2 -translate-y-1/2 translate-x-full z-10">
+               <button onClick={() => setArrows([])} className="bg-surface-2 hover:bg-surface-3 p-3 rounded-full shadow-lg border border-border-1 text-content-3 hover:text-warning transition-colors" title="Clear Arrows">
+                  <Eraser size={20} />
+               </button>
+             </div>
           )}
         </div>
-        
-        {arrows.length > 0 && (
-           <div className="absolute -right-4 top-1/2 -translate-y-1/2 translate-x-full z-10">
-             <button onClick={() => setArrows([])} className="bg-slate-800 hover:bg-slate-700 p-3 rounded-full shadow-lg border border-slate-700 text-slate-300 hover:text-orange-400 transition-colors" title="Clear Arrows">
-                <Eraser size={20} />
-             </button>
-           </div>
-        )}
       </div>
 
       <div className="flex flex-col gap-4 h-[400px] lg:h-auto lg:min-h-[600px]">

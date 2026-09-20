@@ -34,10 +34,10 @@ export const EvaluationBar: React.FC<EvaluationBarProps> = ({ score, orientation
 
 
   return (
-    <div className="w-6 md:w-8 h-[600px] bg-slate-800 rounded-sm overflow-hidden flex flex-col relative border border-gray-700">
+    <div className="w-6 md:w-8 h-full max-h-[600px] min-h-[300px] bg-[#2E2E2E] rounded-sm overflow-hidden flex flex-col relative border border-border-1 shadow-sm">
       {/* The bar fills from bottom to top in CSS, so a height of X% from bottom */}
       <div 
-        className="absolute bottom-0 w-full bg-slate-200 transition-all duration-200 ease-out"
+        className="absolute bottom-0 w-full bg-[#E2E8F0] transition-all duration-200 ease-out"
         style={{ height: `${fillPercent}%` }}
       />
       
@@ -46,8 +46,8 @@ export const EvaluationBar: React.FC<EvaluationBarProps> = ({ score, orientation
         <div 
           className={`absolute bottom-2 w-full text-center text-xs font-bold z-10 ${
             (orientation === 'white' && whiteAdvantage > 50) || (orientation === 'black' && whiteAdvantage < 50) 
-              ? 'text-slate-800' 
-              : 'text-slate-200'
+              ? 'text-black' 
+              : 'text-white'
           }`}
         >
           {scoreText}

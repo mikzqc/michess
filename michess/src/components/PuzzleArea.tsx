@@ -5,6 +5,7 @@ import { RefreshCw, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
 import { useBoardHighlights } from '../hooks/useBoardHighlights';
+import { Button } from './ui/Button';
 
 interface PuzzleAreaProps {
   onExit: () => void;
@@ -54,8 +55,8 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[60vh] gap-4">
-        <div className="w-8 h-8 border-4 border-chess-accent border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-400 font-medium">Loading puzzle...</p>
+        <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-content-3 font-medium">Loading puzzle...</p>
       </div>
     );
   }
@@ -63,7 +64,7 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in relative">
       <div className="lg:col-span-2 flex flex-col gap-3 relative">
-        <div className="relative w-full max-w-[600px] aspect-square mx-auto rounded overflow-hidden shadow-2xl">
+        <div className="relative w-full max-w-[600px] aspect-square mx-auto rounded overflow-hidden shadow-sm border border-border-1">
           <Chessboard
             options={{
               id: "PuzzleBoard",
@@ -85,67 +86,68 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
       </div>
 
       <div className="flex flex-col gap-4">
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">Training Puzzle</h2>
-          <p className="text-slate-400">
+        <div className="bg-surface-2 border border-border-1 rounded-xl p-6 text-center shadow-sm">
+          <h2 className="text-2xl font-bold text-content-1 mb-2">Training Puzzle</h2>
+          <p className="text-content-3">
             Find the best move for {boardOrientation === 'white' ? 'White' : 'Black'}.
           </p>
           
           {puzzle && (
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded bg-slate-900 border border-slate-700">
-              <span className="text-chess-accent font-bold">Rating:</span>
-              <span className="text-white font-mono">{puzzle.rating}</span>
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded bg-surface-3 border border-border-1">
+              <span className="text-accent font-bold">Rating:</span>
+              <span className="text-content-1 font-mono">{puzzle.rating}</span>
             </div>
           )}
         </div>
 
         {isSolved && (
-          <div className="bg-green-900/20 border border-green-500/50 rounded-xl p-6 text-center flex flex-col items-center gap-4 animate-fade-in">
-            <CheckCircle size={48} className="text-green-400" />
+          <div className="bg-success/10 border border-success/30 rounded-xl p-6 text-center flex flex-col items-center gap-4 animate-fade-in shadow-sm">
+            <CheckCircle size={48} className="text-success" />
             <div>
-              <h3 className="text-xl font-bold text-green-400 mb-1">Excellent!</h3>
-              <p className="text-green-400/80 text-sm">You found the right sequence.</p>
+              <h3 className="text-xl font-bold text-success mb-1">Excellent!</h3>
+              <p className="text-success/80 text-sm">You found the right sequence.</p>
             </div>
-            <button
+            <Button
               onClick={nextPuzzle}
-              className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+              className="w-full bg-success hover:bg-success/90 text-white"
             >
-              Next Puzzle <ArrowRight size={18} />
-            </button>
+              Next Puzzle <ArrowRight size={18} className="ml-2" />
+            </Button>
           </div>
         )}
 
         {isFailed && (
-          <div className="bg-red-900/20 border border-red-500/50 rounded-xl p-6 text-center flex flex-col items-center gap-4 animate-fade-in">
-            <XCircle size={48} className="text-red-400" />
+          <div className="bg-error/10 border border-error/30 rounded-xl p-6 text-center flex flex-col items-center gap-4 animate-fade-in shadow-sm">
+            <XCircle size={48} className="text-error" />
             <div>
-              <h3 className="text-xl font-bold text-red-400 mb-1">Incorrect</h3>
-              <p className="text-red-400/80 text-sm">That is not the best move.</p>
+              <h3 className="text-xl font-bold text-error mb-1">Incorrect</h3>
+              <p className="text-error/80 text-sm">That is not the best move.</p>
             </div>
             <div className="grid grid-cols-2 gap-2 w-full">
-              <button
+              <Button
+                variant="secondary"
                 onClick={retry}
-                className="bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
               >
-                <RefreshCw size={18} /> Retry
-              </button>
-              <button
+                <RefreshCw size={18} className="mr-2" /> Retry
+              </Button>
+              <Button
+                variant="outline"
                 onClick={nextPuzzle}
-                className="bg-transparent border border-slate-600 hover:bg-slate-800 text-slate-300 hover:text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
               >
-                Skip <ArrowRight size={18} />
-              </button>
+                Skip <ArrowRight size={18} className="ml-2" />
+              </Button>
             </div>
           </div>
         )}
 
         <div className="mt-auto">
-          <button
+          <Button
+            variant="outline"
             onClick={onExit}
-            className="w-full bg-transparent border border-slate-600 hover:bg-slate-800 py-3 rounded-lg flex items-center justify-center gap-2 font-bold text-slate-300 hover:text-white transition-colors"
+            className="w-full"
           >
             Back to Home
-          </button>
+          </Button>
         </div>
       </div>
     </div>

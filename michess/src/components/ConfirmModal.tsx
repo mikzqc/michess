@@ -1,4 +1,6 @@
 import React from 'react';
+import { Modal } from './ui/Modal';
+import { Button } from './ui/Button';
 
 interface ConfirmModalProps {
   title: string;
@@ -18,30 +20,25 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onCancel 
 }) => {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={onCancel}>
-      <div 
-        className="bg-chess-panel border border-chess-border rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden text-slate-300 relative flex flex-col animate-scale-in"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
-          <p className="text-slate-400">{message}</p>
-        </div>
-        <div className="p-4 bg-slate-900/50 flex justify-end gap-3 border-t border-chess-border">
-          <button 
+    <Modal isOpen={true} onClose={onCancel} title={title} maxWidth="sm">
+      <div className="flex flex-col gap-6 p-5">
+        <p className="text-content-2 text-sm">{message}</p>
+        
+        <div className="flex justify-end gap-3 mt-2">
+          <Button 
+            variant="ghost" 
             onClick={onCancel}
-            className="px-4 py-2 rounded font-medium text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
           >
             {cancelText}
-          </button>
-          <button 
+          </Button>
+          <Button 
+            variant="destructive" 
             onClick={onConfirm}
-            className="px-4 py-2 rounded font-medium text-white bg-red-600 hover:bg-red-500 transition-colors shadow-lg"
           >
             {confirmText}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

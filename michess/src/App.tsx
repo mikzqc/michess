@@ -146,74 +146,74 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <header className="bg-chess-panel border-b border-chess-border px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 relative z-50">
+      <header className="bg-surface-2 border-b border-border-1 px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 relative z-50">
         <h1 
-          className="text-2xl font-bold tracking-wider text-white cursor-pointer flex items-center gap-2 active:scale-95 transition-transform shrink-0"
+          className="text-2xl font-bold tracking-wider text-content-1 cursor-pointer flex items-center gap-2 active:scale-95 transition-transform shrink-0"
           onClick={() => handleSetView('home')}
         >
-          <Swords className="text-chess-accent" />
-          <span>Mi<span className="text-chess-accent">chess</span></span>
+          <Swords className="text-accent" />
+          <span>Mi<span className="text-accent">chess</span></span>
         </h1>
         <nav className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar flex-nowrap w-full sm:w-auto">
           <button 
             onClick={() => setShowSettings(true)}
-            className="text-gray-400 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors flex items-center justify-center active:scale-95"
+            className="text-content-3 hover:text-content-1 hover:bg-surface-3 p-2 rounded-lg transition-colors flex items-center justify-center active:scale-95"
             title="Settings"
             aria-label="Open Settings"
           >
             <SettingsIcon size={20} />
           </button>
 
-          <div className="h-6 w-px bg-slate-700 hidden md:block"></div>
+          <div className="h-6 w-px bg-border-1 hidden md:block"></div>
 
           <button 
             onClick={() => handleSetView('puzzles')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'puzzles' ? 'text-chess-accent bg-chess-accent/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
+            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'puzzles' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
           >
             <PuzzleIcon size={18} /> Puzzles
           </button>
 
           <button 
             onClick={() => handleSetView('history')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'history' ? 'text-chess-accent bg-chess-accent/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
+            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'history' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
           >
             <Clock size={18} /> History
           </button>
 
           <button 
             onClick={() => setSetupMode('computer')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'play-computer' ? 'text-chess-accent bg-chess-accent/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
+            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'play-computer' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
           >
             <Bot size={18} /> Play vs Computer
           </button>
           
           <button 
             onClick={() => setSetupMode('local')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'local' ? 'text-chess-accent bg-chess-accent/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
+            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'local' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
           >
             <Swords size={18} /> Local Play
           </button>
 
           <button 
             onClick={() => handleSetView('social')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'social' ? 'text-chess-accent bg-chess-accent/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
+            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'social' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
           >
             <Users size={18} /> Social
           </button>
 
           {!authLoading && (
-            <div className="ml-1 sm:ml-2 pl-3 sm:pl-6 border-l border-slate-700 shrink-0">
+            <div className="ml-1 sm:ml-2 pl-3 sm:pl-6 border-l border-border-1 shrink-0">
               {user ? (
                 <button 
                   onClick={() => handleSetView('profile')}
-                  className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 ${view === 'profile' ? 'bg-chess-accent border-chess-accent text-white' : 'bg-slate-800 border-slate-600 hover:bg-slate-700 text-chess-accent'}`}
+                  className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 ${view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1'}`}
                 >
                   {profile?.username || user.email?.split('@')[0] || 'Profile'}
                 </button>
               ) : (
                 <button 
                   onClick={() => setShowAuth(true)}
-                  className="bg-chess-accent hover:bg-indigo-500 px-5 py-2 rounded-lg transition-colors font-bold text-sm text-white active:scale-95 shadow-md"
+                  className="bg-accent hover:bg-accent-hover px-5 py-2 rounded-lg transition-colors font-bold text-sm text-white active:scale-95 shadow-md"
                 >
                   Log In
                 </button>
@@ -224,18 +224,17 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 py-8">
+      <main className="flex-1 overflow-y-auto">
         {view === 'home' && (
-          <div className="max-w-4xl mx-auto px-6 h-full flex flex-col justify-center min-h-[calc(100vh-120px)] animate-fade-in">
+          <div className="max-w-4xl mx-auto px-6 py-12 flex flex-col justify-center min-h-full animate-fade-in">
             <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center p-4 bg-chess-panel border border-chess-border rounded-2xl mb-6 shadow-2xl relative">
-                <div className="absolute inset-0 bg-chess-accent blur-xl opacity-20 rounded-2xl"></div>
-                <Swords size={48} className="text-chess-accent relative z-10" />
+              <div className="inline-flex items-center justify-center p-4 bg-surface-2 border border-border-1 rounded-2xl mb-6 shadow-md relative">
+                <Swords size={48} className="text-accent relative z-10" />
               </div>
-              <h2 className="text-5xl md:text-6xl font-black text-white tracking-tight mb-4">
-                Mi<span className="text-chess-accent">chess</span>
+              <h2 className="text-5xl md:text-6xl font-black text-content-1 tracking-tight mb-4">
+                Mi<span className="text-accent">chess</span>
               </h2>
-              <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto font-medium">
+              <p className="text-content-2 text-lg md:text-xl max-w-2xl mx-auto font-medium">
                 Play against Stockfish, challenge friends via link, or analyze your games with powerful engine review.
               </p>
             </div>
@@ -244,57 +243,56 @@ function App() {
               {/* Card 1: Bot */}
               <button 
                 onClick={() => setSetupMode('computer')}
-                className="bg-chess-panel border border-chess-border hover:border-chess-accent p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.4)] group"
+                className="bg-surface-2 border border-border-1 hover:border-accent hover:bg-surface-3 p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 shadow-sm group cursor-pointer"
               >
-                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Bot size={32} className="text-chess-accent" />
+                <div className="w-16 h-16 bg-surface-3 border border-border-1 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                  <Bot size={32} className="text-accent" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Play vs Computer</h3>
-                <p className="text-slate-400 text-sm">Challenge Stockfish bots from Beginner to Grandmaster.</p>
+                <h3 className="text-xl font-bold text-content-1 mb-2">Play vs Computer</h3>
+                <p className="text-content-3 text-sm">Challenge Stockfish bots from Beginner to Grandmaster.</p>
               </button>
               
               {/* Card 2: Link */}
               <button 
                 onClick={() => setSetupMode('link')}
-                className="bg-chess-panel border border-chess-border hover:border-chess-accent p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.4)] group"
+                className="bg-surface-2 border border-border-1 hover:border-accent hover:bg-surface-3 p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 shadow-sm group cursor-pointer"
               >
-                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform relative overflow-hidden">
-                  <div className="absolute inset-0 bg-chess-accent/20"></div>
-                  <Link size={32} className="text-indigo-400 relative z-10" />
+                <div className="w-16 h-16 bg-surface-3 border border-border-1 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                  <Link size={32} className="text-accent" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Play a Friend</h3>
-                <p className="text-slate-400 text-sm">Create a link and play multiplayer instantly, no login required.</p>
+                <h3 className="text-xl font-bold text-content-1 mb-2">Play a Friend</h3>
+                <p className="text-content-3 text-sm">Create a link and play multiplayer instantly, no login required.</p>
               </button>
 
               {/* Card 3: Local */}
               <button 
                 onClick={() => setSetupMode('local')}
-                className="bg-chess-panel border border-chess-border hover:border-chess-accent p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.4)] group"
+                className="bg-surface-2 border border-border-1 hover:border-accent hover:bg-surface-3 p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 shadow-sm group cursor-pointer"
               >
-                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Swords size={32} className="text-slate-300 group-hover:text-white transition-colors" />
+                <div className="w-16 h-16 bg-surface-3 border border-border-1 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                  <Swords size={32} className="text-accent" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Local Match</h3>
-                <p className="text-slate-400 text-sm">Play a game with a friend on the same device.</p>
+                <h3 className="text-xl font-bold text-content-1 mb-2">Local Match</h3>
+                <p className="text-content-3 text-sm">Play a game with a friend on the same device.</p>
               </button>
 
               {/* Card 4: Puzzles */}
               <button 
                 onClick={() => handleSetView('puzzles')}
-                className="bg-chess-panel border border-chess-border hover:border-chess-accent p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.4)] group"
+                className="bg-surface-2 border border-border-1 hover:border-accent hover:bg-surface-3 p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 shadow-sm group cursor-pointer"
               >
-                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <PuzzleIcon size={32} className="text-emerald-400" />
+                <div className="w-16 h-16 bg-surface-3 border border-border-1 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                  <PuzzleIcon size={32} className="text-accent" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Free Puzzles</h3>
-                <p className="text-slate-400 text-sm">Improve your tactics with unlimited random puzzles.</p>
+                <h3 className="text-xl font-bold text-content-1 mb-2">Free Puzzles</h3>
+                <p className="text-content-3 text-sm">Improve your tactics with unlimited random puzzles.</p>
               </button>
             </div>
             
             <div className="flex justify-center mt-12 animate-slide-up" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
               <button 
                 onClick={() => handleSetView('import')}
-                className="px-6 py-3 bg-transparent border border-slate-700 hover:border-slate-500 hover:bg-slate-800 rounded-full font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2 text-sm"
+                className="px-6 py-3 bg-transparent border border-border-2 hover:border-border-1 hover:bg-surface-2 rounded-full font-bold text-content-2 hover:text-content-1 transition-all flex items-center gap-2 text-sm cursor-pointer"
               >
                 <Upload size={16} />
                 Import Game / PGN

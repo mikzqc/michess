@@ -33,9 +33,9 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             key={toast.id}
             className={`
               px-4 py-3 rounded-lg shadow-xl font-medium text-sm text-white animate-slide-up
-              ${toast.type === 'success' ? 'bg-emerald-600' : ''}
-              ${toast.type === 'error' ? 'bg-red-600' : ''}
-              ${toast.type === 'info' ? 'bg-slate-800 border border-slate-700' : ''}
+              ${toast.type === 'success' ? 'bg-success' : ''}
+              ${toast.type === 'error' ? 'bg-error' : ''}
+              ${toast.type === 'info' ? 'bg-surface-2 border border-border-1 text-content-1' : ''}
             `}
           >
             {toast.message}

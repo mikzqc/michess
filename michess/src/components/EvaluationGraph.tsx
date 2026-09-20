@@ -88,8 +88,8 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({ analyzedMoves,
   };
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 flex flex-col gap-2 relative group overflow-x-auto overflow-y-hidden hide-scrollbar">
-      <div className="flex justify-between items-center text-xs text-slate-400 font-bold px-1">
+    <div className="bg-surface-2 border border-border-1 rounded-lg p-3 flex flex-col gap-2 relative group overflow-x-auto overflow-y-hidden hide-scrollbar shadow-sm">
+      <div className="flex justify-between items-center text-xs text-content-3 font-bold px-1">
         <span>Game Evaluation</span>
       </div>
       
@@ -97,7 +97,7 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({ analyzedMoves,
         <div style={{ width: `${width}px`, height: `${height}px` }} className="relative">
           <svg viewBox={viewBox} className="w-full h-full">
             {/* Center line */}
-            <line x1="0" y1={centerY} x2={width} y2={centerY} stroke="#475569" strokeWidth="1" strokeDasharray="4 4" />
+            <line x1="0" y1={centerY} x2={width} y2={centerY} stroke="var(--border-2)" strokeWidth="1" strokeDasharray="4 4" />
             
             {/* Areas */}
             <clipPath id="whiteClip">
@@ -111,11 +111,11 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({ analyzedMoves,
             <path d={blackAreaD} fill="rgba(0, 0, 0, 0.4)" clipPath="url(#blackClip)" />
             
             {/* Main line */}
-            <path d={pathD} fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinejoin="round" />
+            <path d={pathD} fill="none" stroke="var(--content-2)" strokeWidth="2" strokeLinejoin="round" />
 
             {/* Active indicator line */}
-            <line x1={activeX} y1={0} x2={activeX} y2={height} stroke="#38bdf8" strokeWidth="2" opacity="0.5" />
-            <circle cx={activeX} cy={activePoint?.y || centerY} r="4" fill="#38bdf8" />
+            <line x1={activeX} y1={0} x2={activeX} y2={height} stroke="var(--accent-primary)" strokeWidth="2" opacity="0.5" />
+            <circle cx={activeX} cy={activePoint?.y || centerY} r="4" fill="var(--accent-primary)" />
 
             {/* Click areas */}
             {points.map((p, i) => {
@@ -128,7 +128,7 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({ analyzedMoves,
                   width={xStep}
                   height={height}
                   fill="transparent"
-                  className="cursor-pointer hover:bg-white/5 transition-colors"
+                  className="cursor-pointer hover:bg-content-1/5 transition-colors"
                   onClick={() => onMoveSelect(p.index)}
                 />
               );
@@ -141,18 +141,23 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({ analyzedMoves,
               const interesting = ['brilliant', 'great', 'best', 'inaccuracy', 'mistake', 'blunder', 'miss'];
               if (!interesting.includes(p.move.classification)) return null;
               
-              const x = i * xStep;
-              let color = '#94a3b8';
-              if (p.move.classification === 'brilliant') color = '#2dd4bf';
-              if (p.move.classification === 'great') color = '#818cf8';
-              if (p.move.classification === 'best') color = '#4ade80';
-              if (p.move.classification === 'inaccuracy') color = '#facc15';
-              if (p.move.classification === 'mistake') color = '#fb923c';
-              if (p.move.classification === 'miss') color = '#f43f5e';
-              if (p.move.classification === 'blunder') color = '#ef4444';
+              const classificationStr = p.move.classification as any as MoveClassificationType;
+              const classification = CLASSIFICATIONS[classificationStr];
+              
+              if (!classification) return null;
 
+              let color = '#94a3b8'; // Default
+              if (classificationStr === 'brilliant') color = '#2dd4bf'; // teal-400
+              else if (classificationStr === 'great') color = '#3b82f6'; // blue-500
+              else if (classificationStr === 'best') color = '#22c55e'; // green-500
+              else if (classificationStr === 'inaccuracy') color = '#eab308'; // yellow-500
+              else if (classificationStr === 'mistake') color = '#f97316'; // orange-500
+              else if (classificationStr === 'miss') color = '#f87171'; // red-400
+              else if (classificationStr === 'blunder') color = '#ef4444'; // red-500
+
+              const x = i * xStep;
               return (
-                <circle key={`marker-${p.index}`} cx={x} cy={p.y} r="3" fill={color} stroke="#1e293b" strokeWidth="1" className="pointer-events-none" />
+                <circle key={`marker-${p.index}`} cx={x} cy={p.y} r="3" fill={color} stroke="var(--bg-surface-2)" strokeWidth="1" className="pointer-events-none" />
               );
             })}
           </svg>
@@ -160,22 +165,22 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({ analyzedMoves,
       </div>
 
       {/* Custom Tooltip */}
-      <div className="absolute top-2 left-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 border border-slate-700 text-white text-xs p-2 rounded shadow-xl z-10 flex flex-col gap-1">
+      <div className="absolute top-2 left-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-surface-3 border border-border-1 text-content-1 text-xs p-2 rounded shadow-xl z-10 flex flex-col gap-1">
         {activePoint && activePoint.move ? (
           <>
             <div className="font-bold flex items-center gap-1">
               Move {activePoint.move.moveNumber}{activePoint.move.color === 'b' ? '...' : '.'} {activePoint.move.san}
               {activePoint.move.classification && (
-                <MoveClassificationBadge classification={activePoint.move.classification} />
+                <MoveClassificationBadge classification={activePoint.move.classification as any} />
               )}
             </div>
-            <div className="text-slate-300">Eval: <span className="font-mono">{formatEval(activePoint.move)}</span></div>
+            <div className="text-content-2">Eval: <span className="font-mono text-content-1">{formatEval(activePoint.move)}</span></div>
             {activePoint.move.accuracy !== undefined && (
-              <div className="text-slate-300">Accuracy: <span className="font-mono">{activePoint.move.accuracy.toFixed(1)}%</span></div>
+              <div className="text-content-2">Accuracy: <span className="font-mono text-content-1">{activePoint.move.accuracy.toFixed(1)}%</span></div>
             )}
-              {activePoint.move.classification && (
-                <div className="text-slate-300">Class: <span className="font-bold">{CLASSIFICATIONS[activePoint.move.classification as any as MoveClassificationType]?.name || activePoint.move.classification}</span></div>
-              )}
+            {activePoint.move.classification && (
+              <div className="text-content-2">Class: <span className="font-bold text-content-1">{CLASSIFICATIONS[activePoint.move.classification as any as MoveClassificationType]?.name || activePoint.move.classification}</span></div>
+            )}
           </>
         ) : (
           <div className="font-bold">Starting Position</div>

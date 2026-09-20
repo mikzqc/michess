@@ -16,7 +16,7 @@ export const PromotionDialog: React.FC<PromotionDialogProps> = ({ color, pieceSe
       const PieceComp = pieces[key];
       return (
         <button 
-          className="w-16 h-16 bg-white/10 hover:bg-white/20 rounded flex items-center justify-center p-2 transition-colors cursor-pointer"
+          className="w-16 h-16 bg-surface-3 hover:bg-border-1 rounded-lg flex items-center justify-center p-2 transition-colors cursor-pointer"
           onClick={() => onSelect(internalName)}
         >
           <PieceComp squareWidth="100%" />
@@ -31,7 +31,7 @@ export const PromotionDialog: React.FC<PromotionDialogProps> = ({ color, pieceSe
     };
     return (
       <button 
-        className="w-16 h-16 bg-white/10 hover:bg-white/20 rounded flex items-center justify-center text-4xl transition-colors cursor-pointer text-white"
+        className="w-16 h-16 bg-surface-3 hover:bg-border-1 rounded-lg flex items-center justify-center text-4xl transition-colors cursor-pointer text-content-1"
         onClick={() => onSelect(internalName)}
       >
         {unicodeMap[key]}
@@ -41,7 +41,7 @@ export const PromotionDialog: React.FC<PromotionDialogProps> = ({ color, pieceSe
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg animate-fade-in">
-      <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl shadow-2xl flex gap-2 animate-scale-in">
+      <div className="bg-surface-2 border border-border-1 p-4 rounded-xl shadow-2xl flex gap-2 animate-scale-in">
         {renderPiece('Q', 'q')}
         {renderPiece('N', 'n')}
         {renderPiece('R', 'r')}

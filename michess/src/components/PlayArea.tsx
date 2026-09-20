@@ -243,100 +243,102 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
       )}
       
       {/* Left Column: Board */}
-      <div className="lg:col-span-2 flex flex-col gap-3 relative">
-        {/* Top Player Info + Clock */}
-        <div className={`flex justify-between items-center border p-3 rounded-lg w-full max-w-[600px] mx-auto transition-colors ${topClockActive && !isGameOver ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl ${topColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
-                {topColor === 'white' ? 'W' : 'B'}
+      <div className="lg:col-span-2 flex justify-center gap-4 relative">
+        <div className="w-full max-w-[600px] flex flex-col gap-3 relative">
+          {/* Top Player Info + Clock */}
+          <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${topClockActive && !isGameOver ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl ${topColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
+                  {topColor === 'white' ? 'W' : 'B'}
+                </div>
+                <div className="font-bold text-white text-lg">Player 2</div>
               </div>
-              <div className="font-bold text-white text-lg">Player 2</div>
+              <CapturedPieces pieces={topCaptured} advantage={topAdvantage} pieceSet={settings.pieceSet} />
             </div>
-            <CapturedPieces pieces={topCaptured} advantage={topAdvantage} pieceSet={settings.pieceSet} />
+            {clock.isTimed && (
+              <ChessClock timeMs={topClockMs} isActive={topClockActive && !isGameOver} />
+            )}
           </div>
-          {clock.isTimed && (
-            <ChessClock timeMs={topClockMs} isActive={topClockActive && !isGameOver} />
-          )}
-        </div>
 
-        <div className="w-full max-w-[600px] aspect-square mx-auto rounded-lg overflow-hidden shadow-2xl relative">
-          <Chessboard 
-            options={{
-              id: "LocalBoard",
-              position: fen,
-              showNotation: settings.showCoordinates,
-              animationDurationInMs: settings.moveAnimations ? 200 : 0,
-              pieces: getCustomPieces(settings.pieceSet),
-              allowDrawingArrows: true,
-              arrows: arrows,
-              onArrowsChange: ({ arrows }) => setArrows(arrows),
-              arrowOptions: { color: 'rgba(255, 170, 0, 0.8)' } as any,
-              onPieceDrop: onDrop,
-              onSquareClick: (args) => {
-                if (isGameOver) return;
-                const move = handleSquareClick(args.square);
-                if (move) {
-                  const isPawn = game.get(move.from as any)?.type === 'p';
-                  const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
-                  if (isPromotion && !settings.autoQueen) {
-                    setPromotionState({ sourceSquare: move.from, targetSquare: move.to, color: game.turn() });
-                  } else {
-                    doMove(move.from, move.to, 'q');
+          <div className="w-full aspect-square rounded-lg overflow-hidden shadow-2xl relative">
+            <Chessboard 
+              options={{
+                id: "LocalBoard",
+                position: fen,
+                showNotation: settings.showCoordinates,
+                animationDurationInMs: settings.moveAnimations ? 200 : 0,
+                pieces: getCustomPieces(settings.pieceSet),
+                allowDrawingArrows: true,
+                arrows: arrows,
+                onArrowsChange: ({ arrows }) => setArrows(arrows),
+                arrowOptions: { color: 'rgba(255, 170, 0, 0.8)' } as any,
+                onPieceDrop: onDrop,
+                onSquareClick: (args) => {
+                  if (isGameOver) return;
+                  const move = handleSquareClick(args.square);
+                  if (move) {
+                    const isPawn = game.get(move.from as any)?.type === 'p';
+                    const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
+                    if (isPromotion && !settings.autoQueen) {
+                      setPromotionState({ sourceSquare: move.from, targetSquare: move.to, color: game.turn() });
+                    } else {
+                      doMove(move.from, move.to, 'q');
+                    }
                   }
-                }
-              },
-              onPieceDrag: handlePieceDrag,
-              onPieceDragCancel: handlePieceDropEnd,
-              squareStyles: squareStyles,
-              boardOrientation: boardOrientation,
-              darkSquareStyle: { backgroundColor: activeTheme.dark },
-              lightSquareStyle: { backgroundColor: activeTheme.light }
-            }}
-          />
-          {promotionState && (
-            <PromotionDialog 
-              color={promotionState.color}
-              pieceSet={settings.pieceSet}
-              onSelect={(piece) => {
-                doMove(promotionState.sourceSquare, promotionState.targetSquare, piece);
-                setPromotionState(null);
+                },
+                onPieceDrag: handlePieceDrag,
+                onPieceDragCancel: handlePieceDropEnd,
+                squareStyles: squareStyles,
+                boardOrientation: boardOrientation,
+                darkSquareStyle: { backgroundColor: activeTheme.dark },
+                lightSquareStyle: { backgroundColor: activeTheme.light }
               }}
             />
-          )}
-          {isGameOver && (
-             <GameOverModal 
-               result={getStatusText()}
-               onReview={() => onReview?.(getFinalPgn())}
-               onRematch={handleResetGame}
-               onHome={onHome}
-             />
-          )}
-        </div>
-
-        {/* Bottom Player Info + Clock */}
-        <div className={`flex justify-between items-center border p-3 rounded-lg w-full max-w-[600px] mx-auto transition-colors ${bottomClockActive && !isGameOver ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl ${bottomColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
-                {bottomColor === 'white' ? 'W' : 'B'}
-              </div>
-              <div className="font-bold text-white text-lg">Player 1</div>
-            </div>
-            <CapturedPieces pieces={bottomCaptured} advantage={bottomAdvantage} pieceSet={settings.pieceSet} />
+            {promotionState && (
+              <PromotionDialog 
+                color={promotionState.color}
+                pieceSet={settings.pieceSet}
+                onSelect={(piece) => {
+                  doMove(promotionState.sourceSquare, promotionState.targetSquare, piece);
+                  setPromotionState(null);
+                }}
+              />
+            )}
+            {isGameOver && (
+               <GameOverModal 
+                 result={getStatusText()}
+                 onReview={() => onReview?.(getFinalPgn())}
+                 onRematch={handleResetGame}
+                 onHome={onHome}
+               />
+            )}
           </div>
-          {clock.isTimed && (
-            <ChessClock timeMs={bottomClockMs} isActive={bottomClockActive && !isGameOver} />
+
+          {/* Bottom Player Info + Clock */}
+          <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${bottomClockActive && !isGameOver ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl ${bottomColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
+                  {bottomColor === 'white' ? 'W' : 'B'}
+                </div>
+                <div className="font-bold text-white text-lg">Player 1</div>
+              </div>
+              <CapturedPieces pieces={bottomCaptured} advantage={bottomAdvantage} pieceSet={settings.pieceSet} />
+            </div>
+            {clock.isTimed && (
+              <ChessClock timeMs={bottomClockMs} isActive={bottomClockActive && !isGameOver} />
+            )}
+          </div>
+          
+          {arrows.length > 0 && (
+             <div className="absolute -right-4 top-1/2 -translate-y-1/2 translate-x-full">
+               <button onClick={() => setArrows([])} className="bg-slate-800 hover:bg-slate-700 p-3 rounded-full shadow-lg border border-slate-700 text-slate-300 hover:text-orange-400 transition-colors" title="Clear Arrows">
+                  <Eraser size={20} />
+               </button>
+             </div>
           )}
         </div>
-        
-        {arrows.length > 0 && (
-           <div className="absolute -right-4 top-1/2 -translate-y-1/2 translate-x-full">
-             <button onClick={() => setArrows([])} className="bg-slate-800 hover:bg-slate-700 p-3 rounded-full shadow-lg border border-slate-700 text-slate-300 hover:text-orange-400 transition-colors" title="Clear Arrows">
-                <Eraser size={20} />
-             </button>
-           </div>
-        )}
       </div>
 
       {/* Right Column: Controls & History */}

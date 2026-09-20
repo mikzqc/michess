@@ -212,7 +212,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
         <div className="w-full max-w-[600px] flex flex-col relative">
           <div className="flex justify-between items-center mb-2 px-1">
             <div className="flex flex-col gap-1">
-              <div className="font-bold text-gray-300 flex items-center gap-2">
+              <div className="font-bold text-content-2 flex items-center gap-2">
                 {boardOrientation === 'white' ? (
                   <>{gameMeta.black === 'Stockfish' ? <Bot size={20} /> : <User size={20} />} {gameMeta.black}</>
                 ) : (
@@ -245,7 +245,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
           
           <div className="flex justify-between items-center mt-2 px-1">
             <div className="flex flex-col gap-1">
-              <div className="font-bold text-gray-300 flex items-center gap-2">
+              <div className="font-bold text-content-2 flex items-center gap-2">
                 {boardOrientation === 'white' ? (
                   <>{gameMeta.white === 'Stockfish' ? <Bot size={20} /> : <User size={20} />} {gameMeta.white}</>
                 ) : (
@@ -262,11 +262,11 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
 
           {/* Controls */}
           <div className="flex flex-col gap-2 mt-6">
-            <div className="flex justify-center items-center gap-4 bg-slate-800 p-3 rounded-lg border border-slate-700">
-              <button onClick={goToFirst} disabled={currentMoveIndex === -1} className="p-2 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 text-slate-300 hover:text-white" title="Go to First Move (Home)" aria-label="Go to First Move"><ChevronsLeft /></button>
-              <button onClick={goToPrev} disabled={currentMoveIndex === -1} className="p-2 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 text-slate-300 hover:text-white" title="Previous Move (Left Arrow)" aria-label="Previous Move"><ChevronLeft /></button>
-              <button onClick={goToNext} disabled={currentMoveIndex >= analyzedMoves.length - 1} className="p-2 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 text-slate-300 hover:text-white" title="Next Move (Right Arrow)" aria-label="Next Move"><ChevronRight /></button>
-              <button onClick={goToLast} disabled={currentMoveIndex >= analyzedMoves.length - 1} className="p-2 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 text-slate-300 hover:text-white" title="Go to Last Move (End)" aria-label="Go to Last Move"><ChevronsRight /></button>
+            <div className="flex justify-center items-center gap-4 bg-surface-2 p-3 rounded-lg border border-border-1">
+              <button onClick={goToFirst} disabled={currentMoveIndex === -1} className="p-2 hover:bg-surface-3 rounded transition-colors disabled:opacity-50 text-content-2 hover:text-content-1" title="Go to First Move (Home)" aria-label="Go to First Move"><ChevronsLeft /></button>
+              <button onClick={goToPrev} disabled={currentMoveIndex === -1} className="p-2 hover:bg-surface-3 rounded transition-colors disabled:opacity-50 text-content-2 hover:text-content-1" title="Previous Move (Left Arrow)" aria-label="Previous Move"><ChevronLeft /></button>
+              <button onClick={goToNext} disabled={currentMoveIndex >= analyzedMoves.length - 1} className="p-2 hover:bg-surface-3 rounded transition-colors disabled:opacity-50 text-content-2 hover:text-content-1" title="Next Move (Right Arrow)" aria-label="Next Move"><ChevronRight /></button>
+              <button onClick={goToLast} disabled={currentMoveIndex >= analyzedMoves.length - 1} className="p-2 hover:bg-surface-3 rounded transition-colors disabled:opacity-50 text-content-2 hover:text-content-1" title="Go to Last Move (End)" aria-label="Go to Last Move"><ChevronsRight /></button>
             </div>
             
             <div className="flex justify-between items-center gap-2">
@@ -276,7 +276,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
                   setBoardOrientation(newOrientation);
                   updateSettings({ boardOrientation: newOrientation });
                 }} 
-                className="flex-1 flex items-center justify-center gap-2 bg-slate-800 p-3 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold text-sm text-gray-300 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 bg-surface-2 p-3 rounded-lg border border-border-1 hover:bg-surface-3 font-bold text-sm text-content-2 transition-colors"
                 title="Flip Board"
                 aria-label="Flip Board"
               >
@@ -285,24 +285,24 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
               <button onClick={async () => {
                 await copyToClipboard(pgn);
                 addToast("PGN copied to clipboard!", "success");
-              }} className="flex-1 flex items-center justify-center gap-2 bg-slate-800 p-3 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold text-sm text-gray-300 transition-colors" title="Copy PGN" aria-label="Copy PGN">
+              }} className="flex-1 flex items-center justify-center gap-2 bg-surface-2 p-3 rounded-lg border border-border-1 hover:bg-surface-3 font-bold text-sm text-content-2 transition-colors" title="Copy PGN" aria-label="Copy PGN">
                 <Copy size={16} /> Copy PGN
               </button>
             </div>
           </div>
           
           {/* Legend */}
-          <div className="bg-slate-800 border border-slate-700 p-4 rounded-lg text-xs flex flex-col gap-2 mt-2 mb-8">
-            <h4 className="font-bold text-slate-400 mb-1">Classification Legend</h4>
+          <div className="bg-surface-2 border border-border-1 p-4 rounded-lg text-xs flex flex-col gap-2 mt-2 mb-8">
+            <h4 className="font-bold text-content-3 mb-1">Classification Legend</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-2">
               {Object.values(CLASSIFICATIONS).filter(c => c.id !== 'unclassified').map(c => (
                 <div key={c.id} className="flex items-center gap-2">
                   <MoveClassificationBadge classification={c.id as MoveClassificationType} />
-                  <span className="text-gray-300">{c.name}</span>
+                  <span className="text-content-2">{c.name}</span>
                 </div>
               ))}
             </div>
-            <p className="text-slate-500 mt-2 italic text-[10px]">
+            <p className="text-content-3 mt-2 italic text-[10px]">
               * Michess classifications are engine-based estimates and are not official Chess.com or Lichess labels.
             </p>
           </div>
@@ -312,29 +312,29 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
       {/* RIGHT COLUMN: Review Queue, Move List & Details */}
       <div className="flex flex-col gap-4 h-full lg:h-[800px]">
         {/* Header / Queue Status */}
-        <div className="bg-chess-panel border border-chess-border p-4 rounded-lg flex flex-col justify-between shrink-0">
+        <div className="bg-surface-2 border border-border-1 p-4 rounded-lg flex flex-col justify-between shrink-0">
           <div className="flex justify-between items-start mb-2">
-            <h2 className="font-bold text-lg text-white flex items-center gap-2"><Info size={18} className="text-chess-accent" /> Game Review</h2>
-            <button onClick={onExit} className="text-xs font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white px-3 py-1.5 rounded transition-colors" title="Press Esc to exit">Exit (Esc)</button>
+            <h2 className="font-bold text-lg text-content-1 flex items-center gap-2"><Info size={18} className="text-accent" /> Game Review</h2>
+            <button onClick={onExit} className="text-xs font-bold bg-surface-3 hover:bg-surface-3 text-content-2 hover:text-content-1 px-3 py-1.5 rounded transition-colors" title="Press Esc to exit">Exit (Esc)</button>
           </div>
           
           {isAnalyzing ? (
             <div className="flex flex-col gap-2">
-              <div className="flex justify-between text-sm text-yellow-400 font-bold">
+              <div className="flex justify-between text-sm text-warning font-bold">
                 <span>Analyzing game...</span>
                 <span>{progress} / {totalPositions}</span>
               </div>
-              <div className="w-full bg-slate-700 h-2 rounded overflow-hidden">
-                <div className="bg-yellow-400 h-full transition-all duration-300" style={{ width: `${(progress / totalPositions) * 100}%` }}></div>
+              <div className="w-full bg-surface-3 h-2 rounded overflow-hidden">
+                <div className="bg-warning h-full transition-all duration-300" style={{ width: `${(progress / totalPositions) * 100}%` }}></div>
               </div>
-              <button onClick={cancelAnalysis} className="text-xs text-slate-400 hover:text-white mt-1 self-start font-bold">Cancel Analysis</button>
+              <button onClick={cancelAnalysis} className="text-xs text-content-3 hover:text-content-1 mt-1 self-start font-bold">Cancel Analysis</button>
             </div>
           ) : error ? (
-            <div className="flex items-center gap-2 text-red-400 text-sm font-bold bg-red-900/20 p-2 rounded">
+            <div className="flex items-center gap-2 text-error text-sm font-bold bg-error/10 p-2 rounded">
               <AlertTriangle size={16} /> {error}
             </div>
           ) : (
-            <div className="text-sm text-emerald-400 font-bold flex items-center gap-2 bg-emerald-900/20 p-2 rounded">
+            <div className="text-sm text-success font-bold flex items-center gap-2 bg-success/10 p-2 rounded">
               Analysis Complete
             </div>
           )}
@@ -362,14 +362,14 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
 
         {/* Move Details Pane */}
         {currentMoveIndex >= 0 && analyzedMoves[currentMoveIndex] && (
-          <div className="bg-slate-800 border border-slate-700 p-4 rounded-lg flex flex-col gap-3 shrink-0 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-chess-accent/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
-            <div className="flex justify-between items-start border-b border-slate-700 pb-2 relative z-10">
-              <h3 className="font-bold flex items-center gap-2 text-white">
-                <Info size={16} className="text-chess-accent" /> Move Details
+          <div className="bg-surface-2 border border-border-1 p-4 rounded-lg flex flex-col gap-3 shrink-0 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+            <div className="flex justify-between items-start border-b border-border-1 pb-2 relative z-10">
+              <h3 className="font-bold flex items-center gap-2 text-content-1">
+                <Info size={16} className="text-accent" /> Move Details
               </h3>
               {analyzedMoves[currentMoveIndex].classification && (
-                <div className="flex items-center gap-2 text-sm font-bold text-white bg-slate-700 px-2 py-1 rounded shadow-md">
+                <div className="flex items-center gap-2 text-sm font-bold text-content-1 bg-surface-3 px-2 py-1 rounded shadow-md">
                   <MoveClassificationBadge classification={analyzedMoves[currentMoveIndex].classification} />
                   <span>{CLASSIFICATIONS[analyzedMoves[currentMoveIndex].classification].name}</span>
                 </div>
@@ -377,31 +377,31 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
             </div>
 
             {analyzedMoves[currentMoveIndex].classification && analyzedMoves[currentMoveIndex].classification !== 'unclassified' && (
-              <div className="text-sm text-gray-300 italic mb-1 relative z-10">
+              <div className="text-sm text-content-2 italic mb-1 relative z-10">
                 {getClassificationExplanation(analyzedMoves[currentMoveIndex].classification)}
               </div>
             )}
             
             <div className="grid grid-cols-2 gap-y-2 text-sm relative z-10">
-              <div className="text-slate-400">Move:</div>
-              <div className="font-bold text-white text-base">{analyzedMoves[currentMoveIndex].moveNumber}. {analyzedMoves[currentMoveIndex].color === 'b' && '...'} {analyzedMoves[currentMoveIndex].san}</div>
+              <div className="text-content-3">Move:</div>
+              <div className="font-bold text-content-1 text-base">{analyzedMoves[currentMoveIndex].moveNumber}. {analyzedMoves[currentMoveIndex].color === 'b' && '...'} {analyzedMoves[currentMoveIndex].san}</div>
               
-              <div className="text-slate-400">Evaluation:</div>
-              <div className="font-bold text-white">
+              <div className="text-content-3">Evaluation:</div>
+              <div className="font-bold text-content-1">
                 {analyzedMoves[currentMoveIndex].evalAfter.score?.type === 'mate' 
                   ? `M${Math.abs(analyzedMoves[currentMoveIndex].evalAfter.score!.value)}` 
                   : `${((analyzedMoves[currentMoveIndex].evalAfter.score?.value || 0) / 100).toFixed(2)}`}
               </div>
 
-              <div className="text-slate-400">Eval Loss:</div>
-              <div className={`font-bold ${analyzedMoves[currentMoveIndex].evalLoss > 50 ? 'text-red-400' : 'text-gray-300'}`}>
+              <div className="text-content-3">Eval Loss:</div>
+              <div className={`font-bold ${analyzedMoves[currentMoveIndex].evalLoss > 50 ? 'text-error' : 'text-content-2'}`}>
                 {(analyzedMoves[currentMoveIndex].evalLoss / 100).toFixed(2)}
               </div>
               
               {analyzedMoves[currentMoveIndex].accuracy !== undefined && (
                 <>
-                  <div className="text-slate-400">Accuracy:</div>
-                  <div className="font-bold text-white">
+                  <div className="text-content-3">Accuracy:</div>
+                  <div className="font-bold text-content-1">
                     {analyzedMoves[currentMoveIndex].accuracy?.toFixed(1)}%
                   </div>
                 </>
@@ -409,16 +409,16 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
               
               {analyzedMoves[currentMoveIndex].bestMove && (
                 <>
-                  <div className="text-slate-400">Engine Best:</div>
-                  <div className="font-mono text-emerald-400 text-xs flex items-center bg-emerald-900/20 px-2 py-0.5 rounded">{analyzedMoves[currentMoveIndex].bestMove}</div>
+                  <div className="text-content-3">Engine Best:</div>
+                  <div className="font-mono text-success text-xs flex items-center bg-success/10 px-2 py-0.5 rounded">{analyzedMoves[currentMoveIndex].bestMove}</div>
                 </>
               )}
             </div>
             
             {analyzedMoves[currentMoveIndex].pv && (
               <div className="mt-2 text-xs relative z-10">
-                <div className="text-slate-400 mb-1">Engine Line (Depth {analyzedMoves[currentMoveIndex].depth}):</div>
-                <div className="font-mono text-gray-300 break-words leading-relaxed opacity-70 bg-slate-900/50 p-2 rounded">
+                <div className="text-content-3 mb-1">Engine Line (Depth {analyzedMoves[currentMoveIndex].depth}):</div>
+                <div className="font-mono text-content-2 break-words leading-relaxed opacity-70 bg-surface-1/50 p-2 rounded">
                   {analyzedMoves[currentMoveIndex].pv}
                 </div>
               </div>
@@ -427,8 +427,8 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
         )}
 
         {/* Move List */}
-        <details className="bg-chess-panel border border-chess-border rounded-lg group flex-1 overflow-hidden flex flex-col" open>
-          <summary className="font-bold text-white p-4 cursor-pointer select-none list-none flex justify-between items-center outline-none bg-slate-800/50 border-b border-chess-border shrink-0">
+        <details className="bg-surface-2 border border-border-1 rounded-lg group flex-1 overflow-hidden flex flex-col" open>
+          <summary className="font-bold text-content-1 p-4 cursor-pointer select-none list-none flex justify-between items-center outline-none bg-surface-2/50 border-b border-border-1 shrink-0">
             <span>Moves Played</span>
             <ChevronDown size={18} className="group-open:rotate-180 transition-transform" />
           </summary>
@@ -440,11 +440,11 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
                 
                 return (
                   <React.Fragment key={pair.moveNumber}>
-                    <div className="py-2.5 text-slate-500 font-bold text-right pr-3 bg-slate-800/30 border-r border-slate-700/50 my-0.5 rounded-l">{pair.moveNumber}.</div>
+                    <div className="py-2.5 text-content-3 font-bold text-right pr-3 bg-slate-800/30 border-r border-border-1/50 my-0.5 rounded-l">{pair.moveNumber}.</div>
                     
                     <div 
                       onClick={() => pair.white && setCurrentMoveIndex(whiteIndex)}
-                      className={`py-2 px-3 cursor-pointer font-bold flex justify-start items-center gap-2 my-0.5 transition-colors ${currentMoveIndex === whiteIndex ? 'bg-chess-accent text-white shadow-md z-10' : 'text-gray-300 hover:bg-slate-700'}`}
+                      className={`py-2 px-3 cursor-pointer font-bold flex justify-start items-center gap-2 my-0.5 transition-colors ${currentMoveIndex === whiteIndex ? 'bg-accent text-content-1 shadow-md z-10' : 'text-content-2 hover:bg-surface-3'}`}
                     >
                       <span>{pair.white?.san}</span>
                       {settings.showHistoryClassifications && pair.white?.classification && <MoveClassificationBadge classification={pair.white.classification} />}
@@ -452,7 +452,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
                     
                     <div 
                       onClick={() => pair.black && setCurrentMoveIndex(blackIndex)}
-                      className={`py-2 px-3 cursor-pointer font-bold flex justify-start items-center gap-2 my-0.5 rounded-r transition-colors ${!pair.black ? '' : currentMoveIndex === blackIndex ? 'bg-chess-accent text-white shadow-md z-10' : 'text-gray-300 hover:bg-slate-700'}`}
+                      className={`py-2 px-3 cursor-pointer font-bold flex justify-start items-center gap-2 my-0.5 rounded-r transition-colors ${!pair.black ? '' : currentMoveIndex === blackIndex ? 'bg-accent text-content-1 shadow-md z-10' : 'text-content-2 hover:bg-surface-3'}`}
                     >
                       <span>{pair.black?.san}</span>
                       {settings.showHistoryClassifications && pair.black?.classification && <MoveClassificationBadge classification={pair.black.classification} />}

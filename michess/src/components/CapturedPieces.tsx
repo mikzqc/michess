@@ -45,7 +45,7 @@ export const CapturedPieces: React.FC<CapturedPiecesProps> = ({ pieces, advantag
       })}
       
       {advantage > 0 && (
-        <span className="text-xs md:text-sm font-bold text-slate-300 ml-1.5 opacity-90 transition-opacity">
+        <span className="text-xs md:text-sm font-bold text-content-2 ml-1.5 opacity-90 transition-opacity">
           +{advantage}
         </span>
       )}
