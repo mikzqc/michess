@@ -53,8 +53,70 @@ class AudioService {
     // We will lazy-initialize them in play().
   }
 
+  private audioCtx: AudioContext | null = null;
+
+  private initWebAudio() {
+    if (!this.audioCtx) {
+      try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        this.audioCtx = new AudioContext();
+      } catch (e) {
+        console.warn('Web Audio API not supported', e);
+      }
+    }
+    if (this.audioCtx?.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+  }
+
+  private playTone(freq: number, type: OscillatorType, duration: number, vol: number = 0.1) {
+    if (!this.enabled) return;
+    this.initWebAudio();
+    if (!this.audioCtx) return;
+    try {
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+      
+      gain.gain.setValueAtTime(vol, this.audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
+      
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      
+      osc.start();
+      osc.stop(this.audioCtx.currentTime + duration);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  public playNotify() {
+    this.playTone(600, 'sine', 0.1, 0.1);
+    setTimeout(() => this.playTone(800, 'sine', 0.2, 0.1), 100);
+  }
+  
+  public playVictory() {
+    this.playTone(400, 'triangle', 0.1, 0.1);
+    setTimeout(() => this.playTone(500, 'triangle', 0.1, 0.1), 100);
+    setTimeout(() => this.playTone(600, 'triangle', 0.3, 0.15), 200);
+  }
+
+  public playDefeat() {
+    this.playTone(300, 'sawtooth', 0.2, 0.05);
+    setTimeout(() => this.playTone(250, 'sawtooth', 0.4, 0.05), 200);
+  }
+  
+  public playDraw() {
+    this.playTone(400, 'sine', 0.3, 0.1);
+    setTimeout(() => this.playTone(400, 'sine', 0.3, 0.1), 300);
+  }
+
   public play(sound: 'move' | 'capture' | 'check' | 'castle' | 'promote' | 'checkmate' | 'stalemate' | 'gameEnd' | 'newGame') {
     if (!this.enabled) return;
+    this.initWebAudio();
 
     let soundKey = sound;
     if (sound === 'checkmate' || sound === 'stalemate') soundKey = 'gameEnd';
@@ -76,6 +138,15 @@ class AudioService {
         console.warn('Audio playback prevented by browser:', err);
       });
     }
+  }
+  public playMove(moveInfo: { san: string, flags: string }, isCheckmate: boolean, isStalemate: boolean) {
+    if (isCheckmate) this.play('checkmate');
+    else if (isStalemate) this.play('stalemate');
+    else if (moveInfo.san.includes('+')) this.play('check');
+    else if (moveInfo.san.includes('x')) this.play('capture');
+    else if (moveInfo.flags.includes('p')) this.play('promote');
+    else if (moveInfo.flags.includes('k') || moveInfo.flags.includes('q')) this.play('castle');
+    else this.play('move');
   }
 }
 

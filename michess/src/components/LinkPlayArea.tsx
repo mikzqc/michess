@@ -13,6 +13,7 @@ import { useToast } from './Toast';
 import { useSettings } from '../hooks/useSettings';
 import { calculateMaterial } from '../utils/material';
 import { CapturedPieces } from './CapturedPieces';
+import { audioService } from '../services/audio';
 import { ConfirmModal } from './ConfirmModal';
 import { PromotionDialog } from './PromotionDialog';
 import { GameOverModal } from './GameOverModal';
@@ -231,6 +232,34 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
       claimTimeout(isDraw);
     }
   }, [clockState.whiteTimeMs, clockState.blackTimeMs, clockState.isWhiteActive, clockState.isTimed, gameData?.status, chess, claimTimeout]);
+
+  // Audio Effects
+  const prevStatus = useRef(gameData?.status);
+  useEffect(() => {
+    if (gameData?.status === 'completed' && prevStatus.current === 'active') {
+      if (gameData.winner === playerId) audioService.playVictory();
+      else if (gameData.winner) audioService.playDefeat();
+      else audioService.playDraw();
+    }
+    prevStatus.current = gameData?.status;
+  }, [gameData?.status, gameData?.winner, playerId]);
+
+  const prevRematchOffer = useRef(gameData?.rematch_offer_by);
+  const prevDrawOffer = useRef(gameData?.draw_offer_by);
+  useEffect(() => {
+    if (gameData?.rematch_offer_by && gameData.rematch_offer_by !== prevRematchOffer.current) {
+      if (gameData.rematch_offer_by !== (gameData.white_player === playerId ? 'w' : 'b')) {
+        audioService.playNotify();
+      }
+    }
+    if (gameData?.draw_offer_by && gameData.draw_offer_by !== prevDrawOffer.current) {
+      if (gameData.draw_offer_by !== (gameData.white_player === playerId ? 'w' : 'b')) {
+        audioService.playNotify();
+      }
+    }
+    prevRematchOffer.current = gameData?.rematch_offer_by;
+    prevDrawOffer.current = gameData?.draw_offer_by;
+  }, [gameData?.rematch_offer_by, gameData?.draw_offer_by, gameData?.white_player, playerId]);
 
   // Auto-save when game completes
   useEffect(() => {

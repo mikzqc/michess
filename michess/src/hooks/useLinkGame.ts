@@ -3,6 +3,7 @@ import { Chess } from 'chess.js';
 import { supabase } from '../services/supabase';
 import type { LinkGame } from '../types/linkGame';
 import { generateUUID } from '../utils/uuid';
+import { audioService } from '../services/audio';
 
 export function useLinkGame(inviteCode: string | null, userId: string | undefined) {
   const [gameData, setGameData] = useState<LinkGame | null>(null);
@@ -81,6 +82,13 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
             try { chess.load(newGame.fen); } catch {}
           } else if (newGame.pgn !== lastProcessedPgn.current) {
             chess.loadPgn(newGame.pgn || '');
+            
+            const history = chess.history({ verbose: true });
+            const lastMove = history[history.length - 1];
+            if (lastMove) {
+               audioService.playMove(lastMove, chess.isCheckmate(), chess.isStalemate() || chess.isDraw());
+            }
+
             setFen(chess.fen());
             lastProcessedPgn.current = newGame.pgn;
           }
@@ -146,6 +154,7 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
       
       const moveResult = chess.move(move);
       if (moveResult) {
+        audioService.playMove(moveResult, chess.isCheckmate(), chess.isStalemate() || chess.isDraw());
         setFen(chess.fen());
         lastProcessedPgn.current = chess.pgn();
         
