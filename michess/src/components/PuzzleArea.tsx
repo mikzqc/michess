@@ -1,24 +1,34 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Chessboard } from 'react-chessboard';
 import { usePuzzle } from '../hooks/usePuzzle';
 import { RefreshCw, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
+import { useBoardHighlights } from '../hooks/useBoardHighlights';
 
 interface PuzzleAreaProps {
   onExit: () => void;
 }
 
 export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
-  const { fen, puzzle, isSolved, isFailed, isLoading, makeMove, nextPuzzle, retry, orientation } = usePuzzle();
+  const { fen, puzzle, isSolved, isFailed, isLoading, makeMove, nextPuzzle, retry, orientation, chess } = usePuzzle();
   const { settings } = useSettings();
   
-  const [sourceSquare, setSourceSquare] = useState<string | null>(null);
+  const {
+    squareStyles,
+    handlePieceDrag,
+    handlePieceDropEnd,
+    handleSquareClick: highlightSquareClick
+  } = useBoardHighlights({
+    game: chess,
+    history: chess.history({ verbose: true }) as any
+  });
 
   const activeTheme = BOARD_THEMES[settings.boardTheme] || BOARD_THEMES.slate;
   const boardOrientation = orientation === 'w' ? 'white' : 'black';
 
   const onDrop = (args: any) => {
+    handlePieceDropEnd();
     if (!args.targetSquare) return false;
     const pieceStr = typeof args.piece === 'string' ? args.piece : 'wP';
     const promotion = pieceStr[1].toLowerCase() ?? 'q';
@@ -31,19 +41,14 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
 
   const onSquareClick = (square: string | null) => {
     if (isSolved || isFailed || !square) return;
-    
-    if (!sourceSquare) {
-      setSourceSquare(square);
-      return;
+    const move = highlightSquareClick(square as any);
+    if (move) {
+      makeMove({
+        from: move.from,
+        to: move.to,
+        promotion: 'q'
+      });
     }
-
-    makeMove({
-      from: sourceSquare,
-      to: square,
-      promotion: 'q' // Default to queen, handled by makeMove internally for puzzles
-    });
-
-    setSourceSquare(null);
   };
 
   if (isLoading) {
@@ -67,8 +72,11 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
               animationDurationInMs: settings.moveAnimations ? 200 : 0,
               pieces: getCustomPieces(settings.pieceSet),
               onPieceDrop: onDrop,
+              onPieceDrag: handlePieceDrag,
+              onPieceDragCancel: handlePieceDropEnd,
               onSquareClick: (args: any) => onSquareClick(args.square),
               boardOrientation: boardOrientation as any,
+              squareStyles: squareStyles,
               darkSquareStyle: { backgroundColor: activeTheme.dark },
               lightSquareStyle: { backgroundColor: activeTheme.light }
             }}

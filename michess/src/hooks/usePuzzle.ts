@@ -122,6 +122,7 @@ export function usePuzzle() {
     makeMove,
     nextPuzzle: loadRandomPuzzle,
     retry,
-    orientation: chess.turn() // if it's white's turn now, user plays white, so orientation is white
+    orientation: chess.turn(), // if it's white's turn now, user plays white, so orientation is white
+    chess
   };
 }
