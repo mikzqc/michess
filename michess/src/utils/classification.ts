@@ -128,6 +128,22 @@ export function classifyMove(move: AnalyzedMove): MoveClassificationType {
       const promotion = uci.length === 5 ? uci[4] : undefined;
       chess.move({ from, to, promotion });
 
+      // Determine if the piece we just moved was left en prise (can be captured)
+      // This covers cases where the opponent CAN capture but PV avoids it (e.g. forced mate)
+      let leftEnPrise = false;
+      const opponentMoves = chess.moves({ verbose: true });
+      for (const opMove of opponentMoves) {
+        if (opMove.to === to) { // opponent can capture on 'to'
+           const capturedPieceValue = materialValue[chess.get(to)?.type || 'p'] || 0;
+           const capturingPieceValue = materialValue[opMove.piece] || 0;
+           
+           if (capturedPieceValue > capturingPieceValue || capturedPieceValue >= 3) {
+             leftEnPrise = true;
+             break;
+           }
+        }
+      }
+
       // Apply PV
       if (move.pv) {
         let pvMoves = move.pv.split(' ');
@@ -159,11 +175,11 @@ export function classifyMove(move: AnalyzedMove): MoveClassificationType {
 
       const sacValue = initialMaterial - finalMaterial;
 
-      // If we sacrificed material but the evaluation is still equal or better for us
-      if (sacValue >= 3 && playerScoreAfter >= -100) {
+      // If we sacrificed material in PV, OR left a valuable piece en prise for a winning continuation
+      if ((sacValue >= 3 || leftEnPrise) && playerScoreAfter >= -100) {
         return 'brilliant';
       }
-      if (sacValue > 0 && sacValue < 3 && playerScoreAfter >= -50) {
+      if ((sacValue > 0 && sacValue < 3) && playerScoreAfter >= -50) {
         return 'great';
       }
       
