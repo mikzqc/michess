@@ -1,6 +1,7 @@
 import type { AnalyzedMove } from '../types/review';
 import type { MoveClassificationType } from '../types/classification';
 import { isBookMove } from './openingBook';
+import { Chess } from 'chess.js';
 
 // Thresholds in centipawn (cp) equivalent loss from the player's perspective.
 export const CLASSIFICATION_THRESHOLDS = {
@@ -100,7 +101,81 @@ export function classifyMove(move: AnalyzedMove): MoveClassificationType {
   if (effectiveLoss > CLASSIFICATION_THRESHOLDS.INACCURACY) return 'inaccuracy';
   if (effectiveLoss > CLASSIFICATION_THRESHOLDS.GOOD) return 'good';
 
-  if (isBestMove || effectiveLoss <= 0) {
+  // For Best, Excellent, Great, Brilliant
+  const isExcellentOrBest = isBestMove || effectiveLoss <= 5;
+  
+  if (isExcellentOrBest) {
+    // Determine tactical Brilliance or Greatness
+    // We check if the PV involves a material sacrifice that is objectively sound.
+    try {
+      const chess = new Chess(fenBefore);
+      const materialValue = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+      
+      let initialMaterial = 0;
+      const boardBefore = chess.board();
+      for (const row of boardBefore) {
+        for (const piece of row) {
+          if (piece) {
+            if (piece.color === move.color) initialMaterial += materialValue[piece.type];
+            else initialMaterial -= materialValue[piece.type];
+          }
+        }
+      }
+
+      // Apply our move
+      const from = uci.substring(0, 2);
+      const to = uci.substring(2, 4);
+      const promotion = uci.length === 5 ? uci[4] : undefined;
+      chess.move({ from, to, promotion });
+
+      // Apply PV
+      if (move.pv) {
+        let pvMoves = move.pv.split(' ');
+        if (pvMoves[0] === uci) pvMoves = pvMoves.slice(1);
+        
+        // Only look ahead a few moves (e.g. 5 plies) to see immediate material resolution
+        const lookahead = Math.min(pvMoves.length, 5);
+        for (let i = 0; i < lookahead; i++) {
+          const m = pvMoves[i];
+          if (!m) continue;
+          try {
+            chess.move({ from: m.substring(0, 2), to: m.substring(2, 4), promotion: m.length === 5 ? m[4] : undefined });
+          } catch (e) {
+            break;
+          }
+        }
+      }
+
+      let finalMaterial = 0;
+      const boardAfter = chess.board();
+      for (const row of boardAfter) {
+        for (const piece of row) {
+          if (piece) {
+            if (piece.color === move.color) finalMaterial += materialValue[piece.type];
+            else finalMaterial -= materialValue[piece.type];
+          }
+        }
+      }
+
+      const sacValue = initialMaterial - finalMaterial;
+
+      // If we sacrificed material but the evaluation is still equal or better for us
+      if (sacValue >= 3 && playerScoreAfter >= -100) {
+        return 'brilliant';
+      }
+      if (sacValue > 0 && sacValue < 3 && playerScoreAfter >= -50) {
+        return 'great';
+      }
+      
+      // Additional criteria for Great Move:
+      // Finding the only winning/drawing move in a very bad position
+      if (playerScoreBefore <= -200 && playerScoreAfter > -100) {
+         return 'great'; // Saved the game
+      }
+    } catch (e) {
+      console.warn("Error calculating brilliant move", e);
+    }
+
     if (effectiveLoss <= 5) return 'best';
     return 'excellent';
   }
