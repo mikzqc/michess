@@ -299,6 +299,30 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
     }
   };
 
+  const offerRematch = async () => {
+    if (!supabase || !gameData) return;
+    try {
+      await supabase.rpc('offer_rematch', {
+        p_game_id: gameData.id,
+        p_player_id: playerId
+      });
+    } catch (err) {
+      console.error('Failed to offer rematch:', err);
+    }
+  };
+
+  const declineRematch = async () => {
+    if (!supabase || !gameData) return;
+    try {
+      await supabase.rpc('decline_rematch', {
+        p_game_id: gameData.id,
+        p_player_id: playerId
+      });
+    } catch (err) {
+      console.error('Failed to decline rematch:', err);
+    }
+  };
+
   const activateChaosMode = async () => {
     if (!supabase || !gameData) return;
     try {
@@ -410,6 +434,8 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
     abortGame,
     claimTimeout,
     rematchGame,
+    offerRematch,
+    declineRematch,
     activateChaosMode,
     chaosUpdateGame,
     chaosClockAction,

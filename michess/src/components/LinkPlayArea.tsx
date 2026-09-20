@@ -57,7 +57,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
   const { user } = useAuth();
   const { 
     gameData, fen, chess, error, loading, makeMove, joinGame, resign, 
-    cancelGame, abortGame, claimTimeout, playerId, rematchGame, 
+    cancelGame, abortGame, claimTimeout, playerId, rematchGame, offerRematch, declineRematch, 
     activateChaosMode, chaosUpdateGame, chaosClockAction,
     offerDraw, acceptDraw, declineDraw, isReconnecting
   } = useLinkGame(inviteCode, user?.id);
@@ -460,11 +460,16 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
           )}
           {gameData.status === 'completed' && (
              <GameOverModal 
-               result={isTimeout ? 'Time Expired' : gameEndReason}
-               onReview={isChaos ? undefined : (() => onReview?.(gameData.pgn || chess.pgn())) as any}
-               onRematch={rematchGame}
-               onHome={onExit}
-             />
+                 result={isTimeout ? 'Time Expired' : gameEndReason}
+                 onReview={isChaos ? undefined : (() => onReview?.(gameData.pgn || chess.pgn())) as any}
+                 onRematch={gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w') ? rematchGame : offerRematch}
+                 rematchOffer={{
+                   byMe: gameData.rematch_offer_by === (gameData.white_player === playerId ? 'w' : 'b'),
+                   byOpponent: gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w'),
+                   onDecline: declineRematch
+                 }}
+                 onHome={onExit}
+               />
           )}
         </div>
 

@@ -9,14 +9,15 @@ export interface LinkGame {
   current_turn: 'w' | 'b';
   winner: string | null;
   // Phase 12: Time control fields
-  time_control: string | null;
-  initial_time_ms: number | null;
-  increment_ms: number;
-  white_time_ms: number | null;
-  black_time_ms: number | null;
-  last_move_at: string | null;
-  draw_offer_by?: 'w' | 'b' | null;
+  time_control?: string | null;
+  initial_time_ms?: number | null;
+  increment_ms?: number | null;
+  white_time_ms?: number | null;
+  black_time_ms?: number | null;
+  last_move_at?: string | null;
   is_chaos?: boolean;
+  draw_offer_by?: 'w' | 'b' | null;
+  rematch_offer_by?: 'w' | 'b' | null;
   created_at: string;
   updated_at: string;
 }

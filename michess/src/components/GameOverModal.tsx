@@ -1,14 +1,19 @@
 import React from 'react';
-import { BarChart2, Home, RotateCcw } from 'lucide-react';
+import { BarChart2, Home, RotateCcw, Check, X } from 'lucide-react';
 
 interface GameOverModalProps {
   result: string;
-  onReview: () => void;
+  onReview?: () => void;
   onHome?: () => void;
   onRematch?: () => void;
+  rematchOffer?: {
+    byMe: boolean;
+    byOpponent: boolean;
+    onDecline: () => void;
+  };
 }
 
-export const GameOverModal: React.FC<GameOverModalProps> = ({ result, onReview, onHome, onRematch }) => {
+export const GameOverModal: React.FC<GameOverModalProps> = ({ result, onReview, onHome, onRematch, rematchOffer }) => {
   let mainText = 'Game Over';
   let subText = result;
   
@@ -35,20 +40,48 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ result, onReview, 
         </div>
 
         <div className="flex flex-col gap-3 w-full">
-          <button 
-            onClick={onReview}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-lg flex items-center justify-center gap-2 font-bold text-white transition-colors cursor-pointer shadow-lg"
-          >
-            <BarChart2 size={18} /> Review Game
-          </button>
+          {onReview && (
+            <button 
+              onClick={onReview}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-lg flex items-center justify-center gap-2 font-bold text-white transition-colors cursor-pointer shadow-lg"
+            >
+              <BarChart2 size={18} /> Review Game
+            </button>
+          )}
           
-          {onRematch && (
-              <button 
+          {onRematch && !rematchOffer?.byMe && !rematchOffer?.byOpponent && (
+            <button 
               onClick={onRematch}
               className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-lg flex items-center justify-center gap-2 font-bold text-white transition-all active:scale-[0.98] cursor-pointer shadow-lg"
             >
               <RotateCcw size={18} /> Play Again
             </button>
+          )}
+
+          {rematchOffer?.byMe && (
+            <button 
+              disabled
+              className="w-full bg-slate-700/50 py-3 rounded-lg flex items-center justify-center gap-2 font-bold text-slate-400 cursor-not-allowed shadow-lg border border-slate-600"
+            >
+              <RotateCcw size={18} /> Offer Sent...
+            </button>
+          )}
+
+          {rematchOffer?.byOpponent && (
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <button 
+                onClick={onRematch}
+                className="w-full bg-green-600 hover:bg-green-500 py-3 rounded-lg flex items-center justify-center gap-2 font-bold text-white transition-all active:scale-[0.98] cursor-pointer shadow-lg"
+              >
+                <Check size={18} /> Accept
+              </button>
+              <button 
+                onClick={rematchOffer.onDecline}
+                className="w-full bg-red-900/50 hover:bg-red-800 py-3 rounded-lg flex items-center justify-center gap-2 font-bold text-white transition-all active:scale-[0.98] cursor-pointer shadow-lg"
+              >
+                <X size={18} /> Decline
+              </button>
+            </div>
           )}
 
           {onHome && (
