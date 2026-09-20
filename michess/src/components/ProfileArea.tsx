@@ -11,7 +11,7 @@ interface ProfileAreaProps {
 
 export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit }) => {
   const { user } = useAuth();
-  const { profile, loading, updateUsername } = useProfile();
+  const { profile, loading, updateUsername, updateAvatar } = useProfile();
   const { addToast } = useToast();
   
   const [newUsername, setNewUsername] = useState('');
@@ -76,8 +76,12 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit }) => {
 
         <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center border-2 border-slate-700">
-              <User size={32} className="text-slate-400" />
+            <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center border-2 border-slate-700 overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <User size={32} className="text-slate-400" />
+              )}
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white mb-1">
@@ -97,9 +101,33 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit }) => {
         </div>
 
         <div className="space-y-8 pt-6 border-t border-slate-700/50">
-          {/* Username Section */}
+          {/* Avatar Section */}
           <div className="pt-2">
-            <h2 className="text-xl font-bold text-white mb-4">Username</h2>
+            <h2 className="text-xl font-bold text-white mb-4">Avatar URL</h2>
+            <div className="flex flex-col gap-2">
+              <input 
+                type="text" 
+                defaultValue={profile?.avatar_url || ''}
+                placeholder="https://example.com/avatar.png"
+                onBlur={async (e) => {
+                  const url = e.target.value.trim();
+                  if (url !== profile?.avatar_url) {
+                    setSaving(true);
+                    const { success, error } = await updateAvatar(url);
+                    if (success) addToast('Avatar updated', 'success');
+                    else addToast(`Error: ${error}`, 'error');
+                    setSaving(false);
+                  }
+                }}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-chess-accent font-medium"
+              />
+              <p className="text-xs text-slate-500">Paste an image URL to update your avatar.</p>
+            </div>
+          </div>
+
+          {/* Username Section */}
+          <div className="pt-2 border-t border-slate-700/50">
+            <h2 className="text-xl font-bold text-white mb-4 mt-4">Username</h2>
             
             {isEditing ? (
               <div className="space-y-4 animate-fade-in">
@@ -161,8 +189,29 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit }) => {
             )}
           </div>
 
-          {/* Account Details */}
-          <div className="flex flex-col gap-4">
+          {/* Account Details & Stats */}
+          <div className="flex flex-col gap-4 pt-4 border-t border-slate-700/50">
+            <h2 className="text-xl font-bold text-white mb-2">Statistics</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50 flex flex-col items-center">
+                <span className="text-slate-400 text-sm font-bold">Rating</span>
+                <span className="text-2xl text-white font-bold">{profile?.rating || 1200}</span>
+              </div>
+              <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50 flex flex-col items-center">
+                <span className="text-slate-400 text-sm font-bold">Highest</span>
+                <span className="text-2xl text-amber-400 font-bold">{profile?.highest_rating || 1200}</span>
+              </div>
+              <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50 flex flex-col items-center">
+                <span className="text-slate-400 text-sm font-bold">Games</span>
+                <span className="text-2xl text-white font-bold">{profile?.games_played || 0}</span>
+              </div>
+              <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50 flex flex-col items-center">
+                <span className="text-slate-400 text-sm font-bold">Streak</span>
+                <span className="text-2xl text-emerald-400 font-bold">{profile?.current_streak || 0}</span>
+              </div>
+            </div>
+            
+            <h2 className="text-xl font-bold text-white mt-6 mb-2">Account</h2>
             <div className="flex justify-between items-center p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
               <div className="flex items-center gap-3">
                 <ShieldCheck className="text-emerald-500" size={20} />

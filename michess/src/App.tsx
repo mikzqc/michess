@@ -18,14 +18,17 @@ import { useProfile } from './hooks/useProfile';
 import { supabase } from './services/supabase';
 import { generateUUID } from './utils/uuid';
 import { useEffect } from 'react';
-import { Link } from 'lucide-react';
+import { Link, Users } from 'lucide-react';
 import { useToast } from './components/Toast';
+import { PublicProfile } from './components/PublicProfile';
+import { SocialArea } from './components/SocialArea';
 
-type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game';
+type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile';
 
 function App() {
   const [view, setView] = useState<ViewState>('home');
   const [previousView, setPreviousView] = useState<ViewState>('home');
+  const [targetUsername, setTargetUsername] = useState<string | null>(null);
   const [computerConfig, setComputerConfig] = useState<{ color: PlayerColor, difficulty: Difficulty } | null>(null);
   const [gameTimeControl, setGameTimeControl] = useState<TimeControl | null>(null);
   const [reviewPgn, setReviewPgn] = useState<string | null>(null);
@@ -109,6 +112,12 @@ function App() {
     setView('review');
   };
 
+  const handleViewProfile = (username: string) => {
+    setTargetUsername(username);
+    setPreviousView(view);
+    setView('public-profile');
+  };
+
   const handleReviewComplete = useCallback((pgn: string, stats: any) => {
     updateGameReviewStats(pgn, stats);
   }, [updateGameReviewStats]);
@@ -170,6 +179,13 @@ function App() {
             className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'local' ? 'text-chess-accent bg-chess-accent/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
           >
             <Swords size={18} /> Local Play
+          </button>
+
+          <button 
+            onClick={() => handleSetView('social')} 
+            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'social' ? 'text-chess-accent bg-chess-accent/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
+          >
+            <Users size={18} /> Social
           </button>
 
           {!authLoading && (
@@ -297,6 +313,7 @@ function App() {
             onRemove={removeGame}
             onClear={clearHistory}
             onClose={() => handleSetView('home')}
+            onViewProfile={handleViewProfile}
           />
         )}
 
@@ -320,6 +337,26 @@ function App() {
 
         {view === 'profile' && (
           <ProfileArea onExit={() => handleSetView('home')} />
+        )}
+
+        {view === 'public-profile' && targetUsername && (
+          <PublicProfile 
+            username={targetUsername} 
+            onExit={() => {
+              setView(previousView);
+              setTargetUsername(null);
+            }} 
+            onChallenge={() => {
+              // TODO: Implement challenge
+              addToast('Challenges coming soon!', 'info');
+            }} 
+          />
+        )}
+        {view === 'social' && (
+          <SocialArea 
+            onExit={() => handleSetView('home')} 
+            onViewProfile={handleViewProfile} 
+          />
         )}
       </main>
 

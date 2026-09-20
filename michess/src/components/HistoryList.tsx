@@ -8,9 +8,10 @@ interface HistoryListProps {
   onRemove: (id: string) => void;
   onClear: () => void;
   onClose: () => void;
+  onViewProfile?: (username: string) => void;
 }
 
-export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onRemove, onClear, onClose }) => {
+export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onRemove, onClear, onClose, onViewProfile }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -144,14 +145,22 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onR
                   </div>
                   
                   <div className="flex items-center gap-4 text-lg">
-                    <div className="font-bold text-white truncate min-w-0" title={game.white}>
-                      <span className="inline-block w-3 h-3 bg-white border border-gray-400 rounded-sm mr-2"></span>
-                      {game.white}
+                    <div 
+                      className={`font-bold text-white truncate min-w-0 flex items-center ${onViewProfile && game.white !== 'Stockfish' && game.white !== 'Local Player' ? 'cursor-pointer hover:text-indigo-400 hover:underline' : ''}`}
+                      onClick={() => onViewProfile && game.white !== 'Stockfish' && game.white !== 'Local Player' && onViewProfile(game.white)}
+                      title={game.white}
+                    >
+                      <span className="inline-block w-3 h-3 bg-white border border-gray-400 rounded-sm mr-2 shrink-0"></span>
+                      <span className="truncate">{game.white}</span>
                     </div>
                     <span className="font-bold text-slate-500 text-sm flex-shrink-0">vs</span>
-                    <div className="font-bold text-slate-300 truncate min-w-0" title={game.black}>
-                      <span className="inline-block w-3 h-3 bg-black border border-gray-600 rounded-sm mr-2 mt-1"></span>
-                      {game.black}
+                    <div 
+                      className={`font-bold text-slate-300 truncate min-w-0 flex items-center ${onViewProfile && game.black !== 'Stockfish' && game.black !== 'Local Player' ? 'cursor-pointer hover:text-indigo-400 hover:underline' : ''}`}
+                      onClick={() => onViewProfile && game.black !== 'Stockfish' && game.black !== 'Local Player' && onViewProfile(game.black)}
+                      title={game.black}
+                    >
+                      <span className="inline-block w-3 h-3 bg-black border border-gray-600 rounded-sm mr-2 mt-1 shrink-0"></span>
+                      <span className="truncate">{game.black}</span>
                     </div>
                   </div>
                   

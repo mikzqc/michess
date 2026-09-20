@@ -5,6 +5,14 @@ import { useAuth } from './useAuth';
 export interface UserProfile {
   id: string;
   username: string;
+  avatar_url?: string;
+  rating: number;
+  highest_rating: number;
+  games_played: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  current_streak: number;
   created_at: string;
   updated_at: string;
   last_username_change: string | null;
@@ -61,10 +69,26 @@ export function useProfile() {
     }
   };
 
+  const updateAvatar = async (avatarUrl: string) => {
+    if (!supabase || !user) return { success: false, error: 'Not authenticated.' };
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user.id).select().single();
+      if (error) throw error;
+      if (data) setProfile(data as UserProfile);
+      return { success: true, error: null };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     profile,
     loading,
     updateUsername,
+    updateAvatar,
     refreshProfile: fetchProfile,
     isOwner: profile?.username?.toLowerCase() === 'mikzqc',
   };
