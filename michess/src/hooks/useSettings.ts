@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 
+export type PieceSet = 'default' | 'alpha' | 'california' | 'chess7' | 'chessnut' | 'companion' | 'dubrovnik' | 'fantasy' | 'fresca' | 'gioco' | 'governor' | 'horsey' | 'icpieces' | 'kosal' | 'leipzig' | 'letter' | 'libra' | 'maestro' | 'merida' | 'mono' | 'mpchess' | 'pirouetti' | 'pixel' | 'reillycraig' | 'riohacha' | 'shapes' | 'spatial' | 'staunty' | 'tatiana';
+
 export interface AppSettings {
   soundEnabled: boolean;
   showLegalMoves: boolean;
@@ -8,7 +10,7 @@ export interface AppSettings {
   showHistoryClassifications: boolean;
   showBoardAnnotation: boolean;
   boardOrientation: 'white' | 'black';
-  pieceSet: 'default' | 'alpha' | 'merida';
+  pieceSet: PieceSet;
   boardTheme: 'slate' | 'purple' | 'wood' | 'green' | 'darkKnight';
   moveAnimations: boolean;
   confirmResignation: boolean;

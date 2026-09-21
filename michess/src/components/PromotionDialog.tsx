@@ -3,7 +3,7 @@ import { getCustomPieces } from '../utils/themes';
 
 interface PromotionDialogProps {
   color: 'w' | 'b';
-  pieceSet: 'default' | 'alpha' | 'merida';
+  pieceSet: string;
   onSelect: (piece: 'q' | 'r' | 'n' | 'b') => void;
 }
 

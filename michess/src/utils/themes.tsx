@@ -25,7 +25,7 @@ export const BOARD_THEMES = {
 
 const PIECES = ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK', 'bP', 'bN', 'bB', 'bR', 'bQ', 'bK'];
 
-export function getCustomPieces(pieceSet: 'default' | 'alpha' | 'merida') {
+export function getCustomPieces(pieceSet: string) {
   const fetchSet = pieceSet === 'default' ? 'cburnett' : pieceSet;
   
   const pieceComponents: Record<string, (props: any) => any> = {};

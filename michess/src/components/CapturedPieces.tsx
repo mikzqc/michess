@@ -4,7 +4,7 @@ import { getCustomPieces } from '../utils/themes';
 interface CapturedPiecesProps {
   pieces: string[]; // e.g., ['q', 'p', 'p'] or ['Q', 'P', 'P']
   advantage: number; // e.g. +3
-  pieceSet: 'default' | 'alpha' | 'merida';
+  pieceSet: string;
 }
 
 const PIECE_MAP: Record<string, string> = {
