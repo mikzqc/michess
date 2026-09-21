@@ -139,13 +139,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
               className="bg-surface-1 border border-border-1 rounded-md px-3 py-1.5 text-sm text-content-1 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
               value={settings.boardTheme}
               onChange={e => updateSettings({ boardTheme: e.target.value as any })}
-            >
-              <option value="slate">Slate</option>
-              <option value="purple">Michess Purple</option>
-              <option value="wood">Classic Wood</option>
-              <option value="green">Chess.com Green</option>
-              <option value="darkKnight">Dark Knight</option>
-            </select>
+              >
+                <option value="slate">Slate</option>
+                <option value="purple">Michess Purple</option>
+                <option value="wood">Classic Wood</option>
+                <option value="green">Chess.com Green</option>
+                <option value="darkKnight">Dark Knight</option>
+                <option value="blue">Blue</option>
+                <option value="walnut">Walnut</option>
+                <option value="mint">Mint</option>
+                <option value="icy">Icy</option>
+                <option value="cherry">Cherry</option>
+                <option value="lavender">Lavender</option>
+                <option value="monochrome">Monochrome</option>
+                <option value="neon">Neon</option>
+                <option value="sand">Sand</option>
+                <option value="coral">Coral</option>
+              </select>
           </div>
 
           <label className="flex items-center justify-between cursor-pointer">

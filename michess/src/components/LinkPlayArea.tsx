@@ -484,7 +484,9 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                 squareStyles: squareStyles,
                 boardOrientation: boardOrientation as any,
                 darkSquareStyle: { backgroundColor: activeTheme.dark },
-                lightSquareStyle: { backgroundColor: activeTheme.light }
+                lightSquareStyle: { backgroundColor: activeTheme.light },
+                darkSquareNotationStyle: { color: activeTheme.light },
+                lightSquareNotationStyle: { color: activeTheme.dark }
               }}
             />
             {promotionState && (

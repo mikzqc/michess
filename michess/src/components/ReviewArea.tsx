@@ -231,14 +231,16 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
           <div className="relative aspect-square rounded-lg shadow-2xl pointer-events-none">
             <Chessboard 
               options={{
-                position: currentFen,
-                showNotation: settings.showCoordinates,
-                boardOrientation: boardOrientation,
-                darkSquareStyle: { backgroundColor: activeTheme.dark },
-                lightSquareStyle: { backgroundColor: activeTheme.light },
-                animationDurationInMs: settings.moveAnimations ? 200 : 0,
-                pieces: getCustomPieces(settings.pieceSet),
-              }}
+                  position: currentFen,
+                  showNotation: settings.showCoordinates,
+                  boardOrientation: boardOrientation,
+                  darkSquareStyle: { backgroundColor: activeTheme.dark },
+                  lightSquareStyle: { backgroundColor: activeTheme.light },
+                  darkSquareNotationStyle: { color: activeTheme.light },
+                  lightSquareNotationStyle: { color: activeTheme.dark },
+                  animationDurationInMs: settings.moveAnimations ? 200 : 0,
+                  pieces: getCustomPieces(settings.pieceSet),
+                }}
             />
             {settings.showBoardAnnotation && renderBoardAnnotation()}
           </div>

@@ -11,7 +11,7 @@ export interface AppSettings {
   showBoardAnnotation: boolean;
   boardOrientation: 'white' | 'black';
   pieceSet: PieceSet;
-  boardTheme: 'slate' | 'purple' | 'wood' | 'green' | 'darkKnight';
+  boardTheme: string;
   moveAnimations: boolean;
   confirmResignation: boolean;
   autoQueen: boolean;

@@ -282,7 +282,9 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
                 squareStyles: squareStyles,
                 boardOrientation: boardOrientation,
                 darkSquareStyle: { backgroundColor: activeTheme.dark },
-                lightSquareStyle: { backgroundColor: activeTheme.light }
+                lightSquareStyle: { backgroundColor: activeTheme.light },
+                darkSquareNotationStyle: { color: activeTheme.light },
+                lightSquareNotationStyle: { color: activeTheme.dark }
               }}
             />
             {promotionState && (

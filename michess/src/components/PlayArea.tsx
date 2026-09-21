@@ -292,7 +292,9 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
                 squareStyles: squareStyles,
                 boardOrientation: boardOrientation,
                 darkSquareStyle: { backgroundColor: activeTheme.dark },
-                lightSquareStyle: { backgroundColor: activeTheme.light }
+                lightSquareStyle: { backgroundColor: activeTheme.light },
+                darkSquareNotationStyle: { color: activeTheme.light },
+                lightSquareNotationStyle: { color: activeTheme.dark }
               }}
             />
             {promotionState && (

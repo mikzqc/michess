@@ -79,7 +79,9 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
               boardOrientation: boardOrientation as any,
               squareStyles: squareStyles,
               darkSquareStyle: { backgroundColor: activeTheme.dark },
-              lightSquareStyle: { backgroundColor: activeTheme.light }
+              lightSquareStyle: { backgroundColor: activeTheme.light },
+              darkSquareNotationStyle: { color: activeTheme.light },
+              lightSquareNotationStyle: { color: activeTheme.dark }
             }}
           />
         </div>
