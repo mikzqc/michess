@@ -120,8 +120,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             </div>
             
             {showPiecePreview && (
-              <div className="flex justify-center items-center gap-1 bg-surface-3 p-3 rounded-md border border-border-2 animate-fade-in mt-1">
-                {['wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bN'].map(p => {
+              <div className="flex flex-wrap justify-center items-center gap-1 bg-surface-3 p-3 rounded-md border border-border-2 animate-fade-in mt-1">
+                {['wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bQ', 'bR', 'bB', 'bN', 'bP'].map(p => {
                   const Piece = currentPieces[p];
                   return (
                     <div key={p} className="w-8 h-8 flex items-center justify-center">
