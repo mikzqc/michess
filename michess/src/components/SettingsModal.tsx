@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Trash2, CheckCircle2 } from 'lucide-react';
+import { Trash2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { reviewCache } from '../services/reviewCache';
 import { audioService } from '../services/audio';
 import type { AppTheme } from '../hooks/useAppTheme';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { getCustomPieces } from '../utils/themes';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 
@@ -17,6 +18,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   const { theme, setTheme } = useAppTheme();
   const [cleared, setCleared] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [showPiecePreview, setShowPiecePreview] = useState(false);
+  
+  const currentPieces = getCustomPieces(settings.pieceSet);
 
   const handleToggle = (key: keyof typeof settings) => {
     const newValue = !settings[key];
@@ -66,43 +70,67 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             </select>
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-content-1 font-medium">Piece Set</span>
-            <select 
-              className="bg-surface-1 border border-border-1 rounded-md px-3 py-1.5 text-sm text-content-1 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
-              value={settings.pieceSet}
-              onChange={e => updateSettings({ pieceSet: e.target.value as any })}
-              >
-                <option value="default">Default</option>
-                <option value="alpha">Alpha</option>
-                <option value="california">California</option>
-                <option value="chess7">Chess7</option>
-                <option value="chessnut">Chessnut</option>
-                <option value="companion">Companion</option>
-                <option value="dubrovnik">Dubrovnik</option>
-                <option value="fantasy">Fantasy</option>
-                <option value="fresca">Fresca</option>
-                <option value="gioco">Gioco</option>
-                <option value="governor">Governor</option>
-                <option value="horsey">Horsey</option>
-                <option value="icpieces">IcPpieces</option>
-                <option value="kosal">Kosal</option>
-                <option value="leipzig">Leipzig</option>
-                <option value="letter">Letter</option>
-                <option value="libra">Libra</option>
-                <option value="maestro">Maestro</option>
-                <option value="merida">Merida</option>
-                <option value="mono">Mono</option>
-                <option value="mpchess">Mpchess</option>
-                <option value="pirouetti">Pirouetti</option>
-                <option value="pixel">Pixel</option>
-                <option value="reillycraig">Reillycraig</option>
-                <option value="riohacha">Riohacha</option>
-                <option value="shapes">Shapes</option>
-                <option value="spatial">Spatial</option>
-                <option value="staunty">Staunty</option>
-                <option value="tatiana">Tatiana</option>
-              </select>
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-content-1 font-medium">Piece Set</span>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowPiecePreview(!showPiecePreview)}
+                  className="p-1.5 rounded-md hover:bg-surface-3 text-content-2 hover:text-content-1 transition-colors"
+                  title="Preview Piece Set"
+                >
+                  {showPiecePreview ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+                <select 
+                  className="bg-surface-1 border border-border-1 rounded-md px-3 py-1.5 text-sm text-content-1 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
+                  value={settings.pieceSet}
+                  onChange={e => updateSettings({ pieceSet: e.target.value as any })}
+                  >
+                    <option value="default">Default</option>
+                    <option value="alpha">Alpha</option>
+                    <option value="california">California</option>
+                    <option value="chess7">Chess7</option>
+                    <option value="chessnut">Chessnut</option>
+                    <option value="companion">Companion</option>
+                    <option value="dubrovnik">Dubrovnik</option>
+                    <option value="fantasy">Fantasy</option>
+                    <option value="fresca">Fresca</option>
+                    <option value="gioco">Gioco</option>
+                    <option value="governor">Governor</option>
+                    <option value="horsey">Horsey</option>
+                    <option value="icpieces">IcPpieces</option>
+                    <option value="kosal">Kosal</option>
+                    <option value="leipzig">Leipzig</option>
+                    <option value="letter">Letter</option>
+                    <option value="libra">Libra</option>
+                    <option value="maestro">Maestro</option>
+                    <option value="merida">Merida</option>
+                    <option value="mono">Mono</option>
+                    <option value="mpchess">Mpchess</option>
+                    <option value="pirouetti">Pirouetti</option>
+                    <option value="pixel">Pixel</option>
+                    <option value="reillycraig">Reillycraig</option>
+                    <option value="riohacha">Riohacha</option>
+                    <option value="shapes">Shapes</option>
+                    <option value="spatial">Spatial</option>
+                    <option value="staunty">Staunty</option>
+                    <option value="tatiana">Tatiana</option>
+                  </select>
+              </div>
+            </div>
+            
+            {showPiecePreview && (
+              <div className="flex justify-center items-center gap-1 bg-surface-3 p-3 rounded-md border border-border-2 animate-fade-in mt-1">
+                {['wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bN'].map(p => {
+                  const Piece = currentPieces[p];
+                  return (
+                    <div key={p} className="w-8 h-8 flex items-center justify-center">
+                      <Piece squareWidth={32} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between items-center">
