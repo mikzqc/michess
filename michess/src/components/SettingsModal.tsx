@@ -60,6 +60,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
               <option value="dark">Dark</option>
               <option value="midnight">Midnight</option>
               <option value="light">Light</option>
+              <option value="mocha">Mocha</option>
+              <option value="ocean">Ocean</option>
+              <option value="forest">Forest</option>
             </select>
           </div>
 

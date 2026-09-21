@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 
-export type AppTheme = 'dark-blue' | 'dark' | 'midnight' | 'light';
+export type AppTheme = 'dark-blue' | 'dark' | 'midnight' | 'light' | 'mocha' | 'ocean' | 'forest';
 
 interface ThemeContextType {
   theme: AppTheme;
