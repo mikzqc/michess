@@ -46,10 +46,15 @@ function App() {
 
   useEffect(() => {
     const path = window.location.pathname;
-    const match = path.match(/^\/play\/link\/([a-zA-Z0-9_-]+)$/);
-    if (match) {
-      setLinkInviteCode(match[1]);
+    const linkMatch = path.match(/^\/play\/link\/([a-zA-Z0-9_-]+)$/);
+    const playerMatch = path.match(/^\/player\/([a-zA-Z0-9_-]+)$/);
+    
+    if (linkMatch) {
+      setLinkInviteCode(linkMatch[1]);
       setView('link-game');
+    } else if (playerMatch) {
+      setTargetUsername(playerMatch[1]);
+      setView('public-profile');
     } else if (path === '/puzzles') {
       setView('puzzles');
     }
@@ -122,6 +127,7 @@ function App() {
     setTargetUsername(username);
     setPreviousView(view);
     setView('public-profile');
+    window.history.pushState({}, '', `/player/${username}`);
   };
 
   const handleReviewComplete = useCallback((pgn: string, stats: any) => {
@@ -368,6 +374,14 @@ function App() {
             onExit={() => {
               setView(previousView);
               setTargetUsername(null);
+              
+              if (previousView === 'home') {
+                window.history.pushState({}, '', '/');
+              } else if (previousView === 'puzzles') {
+                window.history.pushState({}, '', '/puzzles');
+              } else {
+                window.history.pushState({}, '', '/');
+              }
             }} 
             onChallenge={() => {
               // TODO: Implement challenge
