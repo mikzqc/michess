@@ -12,9 +12,13 @@ interface GameOverModalProps {
     byOpponent: boolean;
     onDecline: () => void;
   };
+  ratingChange?: {
+    diff: number;
+    newRating: number;
+  };
 }
 
-export const GameOverModal: React.FC<GameOverModalProps> = ({ result, onReview, onHome, onRematch, rematchOffer }) => {
+export const GameOverModal: React.FC<GameOverModalProps> = ({ result, onReview, onHome, onRematch, rematchOffer, ratingChange }) => {
   let mainText = 'Game Over';
   let subText = result;
   
@@ -38,6 +42,19 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ result, onReview, 
         <div className="text-center">
           <h2 className="text-3xl font-black text-content-1 tracking-tight">{mainText}</h2>
           <p className="text-content-3 mt-1 font-medium">{subText}</p>
+          
+          {ratingChange && (
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <span className="text-xl font-bold text-content-1">{ratingChange.newRating}</span>
+              <span className={`text-sm font-bold px-2 py-0.5 rounded ${
+                ratingChange.diff > 0 ? 'bg-success/20 text-success' : 
+                ratingChange.diff < 0 ? 'bg-error/20 text-error' : 
+                'bg-surface-3 text-content-3'
+              }`}>
+                {ratingChange.diff > 0 ? '+' : ''}{ratingChange.diff}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 w-full">

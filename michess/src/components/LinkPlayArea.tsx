@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
+import { supabase } from '../services/supabase';
 import { useLinkGame } from '../hooks/useLinkGame';
 import { useAuth } from '../hooks/useAuth';
 import { useChessClock } from '../hooks/useChessClock';
@@ -85,6 +86,23 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
   const [arrows, setArrows] = useState<any[]>([]);
   const [promotionState, setPromotionState] = useState<{ sourceSquare: string, targetSquare: string, color: 'w' | 'b' } | null>(null);
   const [showConfirmResign, setShowConfirmResign] = useState(false);
+  const [ratingChange, setRatingChange] = useState<{ diff: number, newRating: number } | undefined>(undefined);
+
+  useEffect(() => {
+    if (gameData?.status === 'completed' && user && gameData.id) {
+      if (supabase) {
+        supabase.from('rating_history')
+          .select('change, rating_after')
+          .eq('game_id', gameData.id)
+          .eq('user_id', user.id)
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              setRatingChange({ diff: data[0].change, newRating: data[0].rating_after });
+            }
+          });
+      }
+    }
+  }, [gameData?.status, gameData?.id, user]);
   
   // Chaos State
   const [chaosAction, setChaosAction] = useState<'none'|'spawn'|'remove'|'replace'>('none');
@@ -509,6 +527,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                      byOpponent: gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w'),
                      onDecline: declineRematch
                    }}
+                   ratingChange={ratingChange}
                    onHome={onExit}
                  />
             )}

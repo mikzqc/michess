@@ -9,9 +9,10 @@ import { Input } from './ui/Input';
 
 interface ProfileAreaProps {
   onExit: () => void;
+  onViewProfile?: (username: string) => void;
 }
 
-export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit }) => {
+export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile }) => {
   const { user } = useAuth();
   const { profile, loading, updateUsername, updateAvatar } = useProfile();
   const { addToast } = useToast();
@@ -96,13 +97,24 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit }) => {
               </p>
             </div>
           </div>
-          <Button 
-            variant="destructive"
-            onClick={handleSignOut}
-            className="w-full md:w-auto"
-          >
-            <LogOut size={16} className="mr-2" /> Log Out
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            {onViewProfile && profile?.username && (
+              <Button 
+                variant="primary"
+                onClick={() => onViewProfile(profile.username)}
+                className="w-full sm:w-auto"
+              >
+                <User size={16} className="mr-2" /> View Public Profile
+              </Button>
+            )}
+            <Button 
+              variant="destructive"
+              onClick={handleSignOut}
+              className="w-full sm:w-auto"
+            >
+              <LogOut size={16} className="mr-2" /> Log Out
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-8 pt-6 border-t border-border-1">
@@ -199,20 +211,36 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit }) => {
             <h2 className="text-xl font-bold text-content-1 mb-2">Statistics</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
-                <span className="text-content-3 text-sm font-bold">Rating</span>
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Overall Rating</span>
                 <span className="text-2xl text-content-1 font-bold">{profile?.rating || 1200}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
-                <span className="text-content-3 text-sm font-bold">Highest</span>
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Bullet</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating_bullet || 1200}</span>
+              </div>
+              <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Blitz</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating_blitz || 1200}</span>
+              </div>
+              <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Rapid</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating_rapid || 1200}</span>
+              </div>
+              <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Highest Overall</span>
                 <span className="text-2xl text-warning font-bold">{profile?.highest_rating || 1200}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
-                <span className="text-content-3 text-sm font-bold">Games</span>
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Games</span>
                 <span className="text-2xl text-content-1 font-bold">{profile?.games_played || 0}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
-                <span className="text-content-3 text-sm font-bold">Streak</span>
-                <span className="text-2xl text-success font-bold">{profile?.current_streak || 0}</span>
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Longest Streak</span>
+                <span className="text-2xl text-success font-bold">{profile?.longest_win_streak || 0}</span>
+              </div>
+              <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Puzzles</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.puzzle_rating || 1200}</span>
               </div>
             </div>
             

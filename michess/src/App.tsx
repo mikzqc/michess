@@ -365,7 +365,10 @@ function App() {
         )}
 
         {view === 'profile' && (
-          <ProfileArea onExit={() => handleSetView('home')} />
+          <ProfileArea 
+            onExit={() => handleSetView('home')} 
+            onViewProfile={handleViewProfile}
+          />
         )}
 
         {view === 'public-profile' && targetUsername && (
