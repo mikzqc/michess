@@ -31,12 +31,14 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
   const onDrop = (args: any) => {
     handlePieceDropEnd();
     if (!args.targetSquare) return false;
-    const pieceStr = typeof args.piece === 'string' ? args.piece : 'wP';
-    const promotion = pieceStr[1].toLowerCase() ?? 'q';
+    
+    const isPawn = typeof args.piece === 'string' && args.piece[1].toLowerCase() === 'p';
+    const isPromotion = isPawn && (args.targetSquare[1] === '8' || args.targetSquare[1] === '1');
+    
     return makeMove({
       from: args.sourceSquare,
       to: args.targetSquare,
-      promotion: promotion !== 'p' && promotion !== 'k' ? promotion : undefined
+      promotion: isPromotion ? 'q' : undefined
     });
   };
 
@@ -44,10 +46,13 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
     if (isSolved || isFailed || !square) return;
     const move = highlightSquareClick(square as any);
     if (move) {
+      const isPawn = chess.get(move.from as any)?.type === 'p';
+      const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
+      
       makeMove({
         from: move.from,
         to: move.to,
-        promotion: 'q'
+        promotion: isPromotion ? 'q' : undefined
       });
     }
   };
