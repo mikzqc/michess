@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { useGameReview } from '../hooks/useGameReview';
 import { EvaluationBar } from './EvaluationBar';
-import { Bot, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Info, AlertTriangle, User, Copy } from 'lucide-react';
+import { Bot, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Info, AlertTriangle, User, Copy, Sparkles, Eraser } from 'lucide-react';
 import { CLASSIFICATIONS, type MoveClassificationType } from '../types/classification';
 import { getClassificationExplanation } from '../utils/classification';
 import { EvaluationGraph } from './EvaluationGraph';
@@ -31,6 +32,16 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>(settings.boardOrientation);
   const [openingName, setOpeningName] = useState<string | null>(null);
   const [openingEco, setOpeningEco] = useState<string | null>(null);
+  
+  // Best moves indicator and arrow states
+  const [showBestMoveArrow, setShowBestMoveArrow] = useState(true);
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [userArrows, setUserArrows] = useState<any[]>([]);
+
+  useEffect(() => {
+    setSelectedSquare(null);
+    setUserArrows([]);
+  }, [currentMoveIndex]);
 
   useEffect(() => {
     startAnalysis();
@@ -196,6 +207,118 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
     );
   };
 
+  // Helper to format UCI move to SAN
+  const getMoveSan = (fenBefore?: string, uciMove?: string): string => {
+    if (!fenBefore || !uciMove || uciMove.length < 4) return uciMove || '';
+    try {
+      const c = new Chess(fenBefore);
+      const m = c.move({
+        from: uciMove.substring(0, 2),
+        to: uciMove.substring(2, 4),
+        promotion: uciMove.length === 5 ? uciMove[4] : undefined
+      });
+      return m ? m.san : uciMove;
+    } catch {
+      return uciMove;
+    }
+  };
+
+  // Calculate arrows for Best Move and clicked Piece candidate moves
+  const boardArrows = useMemo(() => {
+    const list: any[] = [...userArrows];
+
+    // 1. Engine Best Move Indicator
+    if (showBestMoveArrow) {
+      if (currentMoveIndex >= 0 && analyzedMoves[currentMoveIndex]) {
+        const move = analyzedMoves[currentMoveIndex];
+        const best = move.bestMove;
+
+        if (best && best.length >= 4) {
+          const bestFrom = best.substring(0, 2);
+          const bestTo = best.substring(2, 4);
+
+          const isUserBest = move.uci === best;
+
+          if (isUserBest) {
+            // Player found the best move!
+            list.push({
+              startSquare: bestFrom,
+              endSquare: bestTo,
+              color: 'rgba(34, 197, 94, 0.85)' // Emerald green
+            });
+          } else {
+            // Best move in vibrant green
+            list.push({
+              startSquare: bestFrom,
+              endSquare: bestTo,
+              color: 'rgba(34, 197, 94, 0.9)'
+            });
+
+            // If player played an inaccuracy/mistake/blunder, show what they played
+            if (move.uci && move.uci.length >= 4) {
+              const playedFrom = move.uci.substring(0, 2);
+              const playedTo = move.uci.substring(2, 4);
+              const isSevere = move.classification === 'blunder' || move.classification === 'mistake';
+              list.push({
+                startSquare: playedFrom,
+                endSquare: playedTo,
+                color: isSevere ? 'rgba(239, 68, 68, 0.75)' : 'rgba(245, 158, 11, 0.75)'
+              });
+            }
+          }
+        }
+      } else if (currentMoveIndex === -1 && analyzedMoves[0]?.bestMove) {
+        // Initial position best move (e.g. e4)
+        const initialBest = analyzedMoves[0].bestMove;
+        if (initialBest.length >= 4) {
+          list.push({
+            startSquare: initialBest.substring(0, 2),
+            endSquare: initialBest.substring(2, 4),
+            color: 'rgba(34, 197, 94, 0.85)'
+          });
+        }
+      }
+    }
+
+    // 2. Candidate moves for clicked piece (matching screenshot with yellow arrows)
+    if (selectedSquare) {
+      try {
+        const tempChess = new Chess(currentFen);
+        const piece = tempChess.get(selectedSquare as any);
+        if (piece) {
+          // Temporarily ensure turn matches piece to generate its candidate moves
+          const fenTokens = currentFen.split(' ');
+          fenTokens[1] = piece.color;
+          const pieceChess = new Chess(fenTokens.join(' '));
+          const pMoves = pieceChess.moves({ square: selectedSquare as any, verbose: true });
+          
+          pMoves.forEach((pm: any) => {
+            list.push({
+              startSquare: pm.from,
+              endSquare: pm.to,
+              color: 'rgba(245, 158, 11, 0.85)' // Warm amber/yellow arrow like in screenshot
+            });
+          });
+        }
+      } catch (err) {
+        console.warn("Error calculating candidate arrows", err);
+      }
+    }
+
+    return list;
+  }, [userArrows, showBestMoveArrow, currentMoveIndex, analyzedMoves, selectedSquare, currentFen]);
+
+  const squareStyles = useMemo(() => {
+    const styles: Record<string, React.CSSProperties> = {};
+    if (selectedSquare) {
+      styles[selectedSquare] = {
+        backgroundColor: 'rgba(245, 158, 11, 0.35)',
+        boxShadow: 'inset 0 0 0 2px rgba(245, 158, 11, 0.85)'
+      };
+    }
+    return styles;
+  }, [selectedSquare]);
+
   const activeTheme = BOARD_THEMES[settings.boardTheme] || BOARD_THEMES.slate;
   const material = calculateMaterial(currentFen);
 
@@ -228,7 +351,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
             <div className="text-sm text-gray-400 font-bold tracking-widest">{gameMeta.result}</div>
           </div>
           
-          <div className="relative aspect-square rounded-lg shadow-2xl pointer-events-none">
+          <div className="relative aspect-square rounded-lg shadow-2xl">
             <Chessboard 
               options={{
                   position: currentFen,
@@ -240,6 +363,28 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
                   lightSquareNotationStyle: { color: activeTheme.dark },
                   animationDurationInMs: settings.moveAnimations ? 200 : 0,
                   pieces: getCustomPieces(settings.pieceSet),
+                  allowDragging: false,
+                  canDragPiece: () => false,
+                  allowDrawingArrows: true,
+                  arrows: boardArrows,
+                  onArrowsChange: ({ arrows }) => setUserArrows(arrows),
+                  arrowOptions: { color: 'rgba(245, 158, 11, 0.85)' } as any,
+                  squareStyles: squareStyles,
+                  onSquareClick: (args: any) => {
+                    const square = args?.square;
+                    if (!square) return;
+                    if (selectedSquare === square) {
+                      setSelectedSquare(null);
+                    } else {
+                      const tempChess = new Chess(currentFen);
+                      const piece = tempChess.get(square as any);
+                      if (piece) {
+                        setSelectedSquare(square);
+                      } else {
+                        setSelectedSquare(null);
+                      }
+                    }
+                  }
                 }}
             />
             {settings.showBoardAnnotation && renderBoardAnnotation()}
@@ -271,26 +416,51 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
               <button onClick={goToLast} disabled={currentMoveIndex >= analyzedMoves.length - 1} className="p-2 hover:bg-surface-3 rounded transition-colors disabled:opacity-50 text-content-2 hover:text-content-1" title="Go to Last Move (End)" aria-label="Go to Last Move"><ChevronsRight /></button>
             </div>
             
-            <div className="flex justify-between items-center gap-2">
+            <div className="grid grid-cols-3 gap-2">
+              <button 
+                onClick={() => setShowBestMoveArrow(prev => !prev)}
+                className={`flex items-center justify-center gap-1.5 p-3 rounded-lg border font-bold text-xs sm:text-sm transition-all ${
+                  showBestMoveArrow 
+                    ? 'bg-accent/20 border-accent text-accent shadow-sm' 
+                    : 'bg-surface-2 border-border-1 text-content-2 hover:bg-surface-3'
+                }`}
+                title="Toggle Engine Best Move Indicator Arrow"
+              >
+                <Sparkles size={16} className={showBestMoveArrow ? "text-accent animate-pulse" : ""} /> 
+                <span className="hidden sm:inline">Best Move</span>
+                <span>{showBestMoveArrow ? 'ON' : 'OFF'}</span>
+              </button>
               <button 
                 onClick={() => {
                   const newOrientation = boardOrientation === 'white' ? 'black' : 'white';
                   setBoardOrientation(newOrientation);
                   updateSettings({ boardOrientation: newOrientation });
                 }} 
-                className="flex-1 flex items-center justify-center gap-2 bg-surface-2 p-3 rounded-lg border border-border-1 hover:bg-surface-3 font-bold text-sm text-content-2 transition-colors"
+                className="flex items-center justify-center gap-1.5 bg-surface-2 p-3 rounded-lg border border-border-1 hover:bg-surface-3 font-bold text-xs sm:text-sm text-content-2 transition-colors"
                 title="Flip Board"
                 aria-label="Flip Board"
               >
-                <RotateCcw size={16} /> Flip Board
+                <RotateCcw size={16} /> Flip
               </button>
               <button onClick={async () => {
                 await copyToClipboard(pgn);
                 addToast("PGN copied to clipboard!", "success");
-              }} className="flex-1 flex items-center justify-center gap-2 bg-surface-2 p-3 rounded-lg border border-border-1 hover:bg-surface-3 font-bold text-sm text-content-2 transition-colors" title="Copy PGN" aria-label="Copy PGN">
-                <Copy size={16} /> Copy PGN
+              }} className="flex items-center justify-center gap-1.5 bg-surface-2 p-3 rounded-lg border border-border-1 hover:bg-surface-3 font-bold text-xs sm:text-sm text-content-2 transition-colors" title="Copy PGN" aria-label="Copy PGN">
+                <Copy size={16} /> PGN
               </button>
             </div>
+
+            {(userArrows.length > 0 || selectedSquare) && (
+              <button
+                onClick={() => {
+                  setUserArrows([]);
+                  setSelectedSquare(null);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2 bg-surface-3 hover:bg-border-1 text-content-2 rounded-lg text-xs font-semibold transition-colors mt-1"
+              >
+                <Eraser size={14} /> Clear Selection & Custom Arrows
+              </button>
+            )}
           </div>
           
           {/* Legend */}
@@ -412,7 +582,11 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
               {analyzedMoves[currentMoveIndex].bestMove && (
                 <>
                   <div className="text-content-3">Engine Best:</div>
-                  <div className="font-mono text-success text-xs flex items-center bg-success/10 px-2 py-0.5 rounded">{analyzedMoves[currentMoveIndex].bestMove}</div>
+                  <div className="font-mono text-success text-xs flex items-center bg-success/10 px-2 py-0.5 rounded gap-1.5 font-bold">
+                    <Sparkles size={12} className="text-success shrink-0" />
+                    <span>{getMoveSan(analyzedMoves[currentMoveIndex].fenBefore, analyzedMoves[currentMoveIndex].bestMove)}</span>
+                    <span className="text-[10px] opacity-60 font-sans font-normal">({analyzedMoves[currentMoveIndex].bestMove})</span>
+                  </div>
                 </>
               )}
             </div>
