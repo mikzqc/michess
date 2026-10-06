@@ -1,14 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
 import { useSettings } from './useSettings';
 import { useToast } from '../components/Toast';
+import { useAuth } from './useAuth';
+import { supabase } from '../services/supabase';
 import type { PuzzleData } from '../types/puzzle';
 
-let cachedPuzzles: PuzzleData[] | null = null;
+let cachedSortedPuzzles: PuzzleData[] | null = null;
+
+const PUZZLE_INDEX_KEY = 'michess_puzzle_progress_index';
 
 export function usePuzzle() {
   const { settings } = useSettings();
   const { addToast } = useToast();
+  const { user } = useAuth();
+
   const [chess] = useState(new Chess());
   const [fen, setFen] = useState(chess.fen());
   const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
@@ -18,57 +24,85 @@ export function usePuzzle() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOpponentMoving, setIsOpponentMoving] = useState(false);
 
-  const loadRandomPuzzle = useCallback(async () => {
+  // Player's perspective locked per puzzle so board doesn't flip on move
+  const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
+
+  // Track incremental puzzle index (starts at lowest Elo 399)
+  const [puzzleIndex, setPuzzleIndex] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem(PUZZLE_INDEX_KEY);
+      if (stored !== null) {
+        const parsed = parseInt(stored, 10);
+        return isNaN(parsed) ? 0 : Math.max(0, parsed);
+      }
+    } catch {
+      // ignore
+    }
+    return 0;
+  });
+
+  const puzzleIndexRef = useRef(puzzleIndex);
+  puzzleIndexRef.current = puzzleIndex;
+
+  const loadPuzzleAtIndex = useCallback(async (targetIndex: number) => {
     setIsLoading(true);
     setIsSolved(false);
     setIsFailed(false);
     setIsOpponentMoving(false);
+
     try {
-      let puzzles = cachedPuzzles;
+      let puzzles = cachedSortedPuzzles;
       if (!puzzles) {
         const res = await fetch('/puzzles.json');
-        puzzles = await res.json();
-        cachedPuzzles = puzzles;
+        const raw: PuzzleData[] = await res.json();
+        // Sort puzzles from lowest to highest Elo
+        puzzles = raw.sort((a, b) => a.rating - b.rating);
+        cachedSortedPuzzles = puzzles;
       }
-      
-      if (!puzzles || puzzles.length === 0) throw new Error("No puzzles found");
-      const randomPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      
-      setPuzzle(randomPuzzle);
-      chess.load(randomPuzzle.fen);
-      
+
+      if (!puzzles || puzzles.length === 0) throw new Error('No puzzles found');
+
+      const safeIndex = Math.min(Math.max(0, targetIndex), puzzles.length - 1);
+      const currentPuzzle = puzzles[safeIndex];
+
+      setPuzzle(currentPuzzle);
+      chess.load(currentPuzzle.fen);
+
       // Play the first move (opponent's move)
-      const firstMove = randomPuzzle.moves[0];
+      const firstMove = currentPuzzle.moves[0];
       chess.move({
         from: firstMove.substring(0, 2),
         to: firstMove.substring(2, 4),
         promotion: firstMove.length === 5 ? firstMove[4] : undefined
       });
-      
+
+      // Freeze player's color for this puzzle so the board doesn't flip when moves are made
+      const activeColor = chess.turn();
+      setPlayerColor(activeColor);
+
       setFen(chess.fen());
       setMoveIndex(1); // User needs to find moves[1]
     } catch (e) {
       console.error(e);
+      addToast('Failed to load puzzle', 'error');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, [chess]);
+  }, [chess, addToast]);
 
   useEffect(() => {
-    loadRandomPuzzle();
-  }, [loadRandomPuzzle]);
+    loadPuzzleAtIndex(puzzleIndexRef.current);
+  }, [loadPuzzleAtIndex]);
 
-  const makeMove = (move: { from: string, to: string, promotion?: string }) => {
+  const makeMove = (move: { from: string; to: string; promotion?: string }) => {
     if (!puzzle || isSolved || isFailed || isOpponentMoving) return false;
 
     // Build UCI string to compare
     let uci = `${move.from}${move.to}`;
-    
-    // In chess.js, if promotion is not provided but the move is a promotion, it fails.
-    // However, if we just want to check UCI, we can assume 'q' if not provided but expected.
-    // Our puzzle moves always include promotion if it's one.
+
     const expectedMove = puzzle.moves[moveIndex];
     if (expectedMove.length === 5 && !move.promotion) {
-       move.promotion = expectedMove[4];
+      move.promotion = expectedMove[4];
     }
     uci = `${move.from}${move.to}${move.promotion || ''}`;
 
@@ -77,14 +111,22 @@ export function usePuzzle() {
       try {
         chess.move(move);
         setFen(chess.fen());
-        
+
         if (moveIndex + 1 >= puzzle.moves.length) {
           setIsSolved(true);
+          // Sync puzzle rating to profile if authenticated
+          if (user && supabase && puzzle) {
+            supabase
+              .from('profiles')
+              .update({ puzzle_rating: puzzle.rating })
+              .eq('id', user.id)
+              .then(() => {});
+          }
         } else {
           // Play opponent's response after a short delay
           const nextMoveIndex = moveIndex + 1;
           setIsOpponentMoving(true);
-          
+
           setTimeout(() => {
             const oppMove = puzzle.moves[nextMoveIndex];
             chess.move({
@@ -95,21 +137,27 @@ export function usePuzzle() {
             setFen(chess.fen());
             setMoveIndex(nextMoveIndex + 1);
             setIsOpponentMoving(false);
-            
+
             if (nextMoveIndex + 1 >= puzzle.moves.length) {
               setIsSolved(true);
+              if (user && supabase && puzzle) {
+                supabase
+                  .from('profiles')
+                  .update({ puzzle_rating: puzzle.rating })
+                  .eq('id', user.id)
+                  .then(() => {});
+              }
             }
           }, 400);
         }
         return true;
       } catch (e) {
-        console.error("Invalid move caught by chess.js", e);
+        console.error('Invalid move caught by chess.js', e);
         return false;
       }
     } else {
       // Incorrect move
       if (settings.autoRetryPuzzles) {
-        // Just return false so the piece snaps back immediately
         addToast('Incorrect move! Try again.', 'error');
         return false;
       }
@@ -118,7 +166,24 @@ export function usePuzzle() {
     }
   };
 
-  const retry = () => {
+  const nextPuzzle = useCallback(() => {
+    const nextIdx = puzzleIndexRef.current + 1;
+    setPuzzleIndex(nextIdx);
+    try {
+      localStorage.setItem(PUZZLE_INDEX_KEY, nextIdx.toString());
+    } catch {}
+    loadPuzzleAtIndex(nextIdx);
+  }, [loadPuzzleAtIndex]);
+
+  const resetProgress = useCallback(() => {
+    setPuzzleIndex(0);
+    try {
+      localStorage.setItem(PUZZLE_INDEX_KEY, '0');
+    } catch {}
+    loadPuzzleAtIndex(0);
+  }, [loadPuzzleAtIndex]);
+
+  const retry = useCallback(() => {
     if (puzzle) {
       setIsFailed(false);
       setIsSolved(false);
@@ -130,21 +195,27 @@ export function usePuzzle() {
         to: firstMove.substring(2, 4),
         promotion: firstMove.length === 5 ? firstMove[4] : undefined
       });
+      setPlayerColor(chess.turn());
       setFen(chess.fen());
       setMoveIndex(1);
     }
-  };
+  }, [chess, puzzle]);
 
   return {
     fen,
     puzzle,
+    puzzleIndex,
+    puzzleNumber: puzzleIndex + 1,
+    totalPuzzles: cachedSortedPuzzles?.length || 10000,
     isSolved,
     isFailed,
     isLoading,
     makeMove,
-    nextPuzzle: loadRandomPuzzle,
+    nextPuzzle,
+    skipPuzzle: nextPuzzle,
+    resetProgress,
     retry,
-    orientation: chess.turn(), // if it's white's turn now, user plays white, so orientation is white
+    orientation: playerColor, // Stays fixed to the player's side throughout puzzle moves!
     chess
   };
 }

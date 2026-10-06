@@ -1,7 +1,7 @@
 import React from 'react';
 import { Chessboard } from 'react-chessboard';
 import { usePuzzle } from '../hooks/usePuzzle';
-import { RefreshCw, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, ArrowRight, RotateCcw } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
 import { useBoardHighlights } from '../hooks/useBoardHighlights';
@@ -12,7 +12,20 @@ interface PuzzleAreaProps {
 }
 
 export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
-  const { fen, puzzle, isSolved, isFailed, isLoading, makeMove, nextPuzzle, retry, orientation, chess } = usePuzzle();
+  const {
+    fen,
+    puzzle,
+    puzzleNumber,
+    isSolved,
+    isFailed,
+    isLoading,
+    makeMove,
+    nextPuzzle,
+    resetProgress,
+    retry,
+    orientation,
+    chess
+  } = usePuzzle();
   const { settings } = useSettings();
   
   const {
@@ -94,18 +107,50 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
 
       <div className="flex flex-col gap-4">
         <div className="bg-surface-2 border border-border-1 rounded-xl p-6 text-center shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-accent uppercase tracking-wider">
+              Puzzle #{puzzleNumber}
+            </span>
+            <span className="text-xs text-content-3 font-medium">
+              Incremental Elo
+            </span>
+          </div>
           <h2 className="text-2xl font-bold text-content-1 mb-2">Training Puzzle</h2>
-          <p className="text-content-3">
+          <p className="text-content-3 text-sm">
             Find the best move for {boardOrientation === 'white' ? 'White' : 'Black'}.
           </p>
           
           {puzzle && (
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded bg-surface-3 border border-border-1">
-              <span className="text-accent font-bold">Rating:</span>
-              <span className="text-content-1 font-mono">{puzzle.rating}</span>
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-surface-3 border border-border-1">
+                <span className="text-content-3 text-xs font-semibold uppercase">Rating:</span>
+                <span className="text-accent font-bold font-mono">{puzzle.rating}</span>
+              </div>
             </div>
           )}
         </div>
+
+        {!isSolved && !isFailed && (
+          <div className="flex items-center justify-between gap-2 px-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetProgress}
+              className="text-xs text-content-3 hover:text-content-1"
+              title="Reset progress to Puzzle #1 (Lowest Elo)"
+            >
+              <RotateCcw size={14} className="mr-1" /> Reset to #1
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={nextPuzzle}
+              className="text-xs"
+            >
+              Skip <ArrowRight size={14} className="ml-1" />
+            </Button>
+          </div>
+        )}
 
         {isSolved && (
           <div className="bg-success/10 border border-success/30 rounded-xl p-6 text-center flex flex-col items-center gap-4 animate-fade-in shadow-sm">
