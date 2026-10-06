@@ -217,6 +217,18 @@
   background-clip: text;
 }
 
+/* 10x Better Chessboard Arrows: 3D floating effect */
+div[id$="-board"] + svg {
+  z-index: 10 !important;
+  pointer-events: none;
+}
+div[id$="-board"] + svg path, 
+div[id$="-board"] + svg polygon {
+  filter: drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.6)) drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.4));
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
 /* Custom scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

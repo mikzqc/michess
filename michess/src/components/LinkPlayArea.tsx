@@ -21,6 +21,7 @@ import { GameOverModal } from './GameOverModal';
 import { Chess } from 'chess.js';
 import { OwnerPanel } from './OwnerPanel';
 import { moveInFen, removeInFen, putInFen, switchTurnInFen, type PieceSymbol } from '../utils/fenUtils';
+import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
 
 interface LinkPlayAreaProps {
   inviteCode: string;
@@ -473,6 +474,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                 pieces: getCustomPieces(settings.pieceSet),
                 allowDrawingArrows: true,
                 arrows: arrows,
+                arrowOptions: PREMIUM_ARROW_OPTIONS as any,
                 onArrowsChange: ({ arrows }) => setArrows(arrows),
                 onPieceDrop: onDrop,
                 onSquareClick: (args) => {

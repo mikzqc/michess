@@ -16,6 +16,7 @@ import { PromotionDialog } from './PromotionDialog';
 import { ConfirmModal } from './ConfirmModal';
 import { GameOverModal } from './GameOverModal';
 import { useToast } from './Toast';
+import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
 
 interface PlayAreaProps {
   onReview?: (pgn: string) => void;
@@ -271,6 +272,7 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
                 pieces: getCustomPieces(settings.pieceSet),
                 allowDrawingArrows: true,
                 arrows: arrows,
+                arrowOptions: PREMIUM_ARROW_OPTIONS as any,
                 onArrowsChange: ({ arrows }) => setArrows(arrows),
                 onPieceDrop: onDrop,
                 onSquareClick: (args) => {

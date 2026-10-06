@@ -16,6 +16,7 @@ import { calculateMaterial } from '../utils/material';
 import { CapturedPieces } from './CapturedPieces';
 import { useToast } from './Toast';
 import { getOpeningsDB, findOpening } from '../utils/openings';
+import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
 
 interface ReviewAreaProps {
   pgn: string;
@@ -371,6 +372,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
                   canDragPiece: () => false,
                   allowDrawingArrows: true,
                   arrows: boardArrows,
+                  arrowOptions: PREMIUM_ARROW_OPTIONS as any,
                   onArrowsChange: ({ arrows }) => setUserArrows(arrows),
                   squareStyles: squareStyles,
                   onSquareClick: (args: any) => {

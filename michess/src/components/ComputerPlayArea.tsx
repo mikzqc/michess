@@ -17,6 +17,7 @@ import { ChessClock } from './ChessClock';
 import { ConfirmModal } from './ConfirmModal';
 import { PromotionDialog } from './PromotionDialog';
 import { GameOverModal } from './GameOverModal';
+import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
 
 interface ComputerPlayAreaProps {
   difficulty: Difficulty;
@@ -262,6 +263,7 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
                 pieces: getCustomPieces(settings.pieceSet),
                 allowDrawingArrows: true,
                 arrows: arrows,
+                arrowOptions: PREMIUM_ARROW_OPTIONS as any,
                 onArrowsChange: ({ arrows }) => setArrows(arrows),
                 onPieceDrop: onDrop,
                 onSquareClick: (args) => {

@@ -6,6 +6,7 @@ import { useSettings } from '../hooks/useSettings';
 import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
 import { useBoardHighlights } from '../hooks/useBoardHighlights';
 import { Button } from './ui/Button';
+import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
 
 interface PuzzleAreaProps {
   onExit: () => void;
@@ -94,6 +95,7 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
               onPieceDrag: handlePieceDrag,
               onPieceDragCancel: handlePieceDropEnd,
               onSquareClick: (args: any) => onSquareClick(args.square),
+              arrowOptions: PREMIUM_ARROW_OPTIONS as any,
               boardOrientation: boardOrientation as any,
               squareStyles: squareStyles,
               darkSquareStyle: { backgroundColor: activeTheme.dark },
