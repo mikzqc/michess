@@ -16,6 +16,7 @@ export interface AppSettings {
   confirmResignation: boolean;
   autoQueen: boolean;
   autoRetryPuzzles: boolean;
+  showBestMoveArrow: boolean;
 }
 
 const defaultSettings: AppSettings = {
@@ -31,6 +32,7 @@ const defaultSettings: AppSettings = {
   confirmResignation: true,
   autoQueen: false,
   autoRetryPuzzles: false,
+  showBestMoveArrow: true,
 };
 
 export const useSettings = () => {

@@ -258,6 +258,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             />
           </label>
 
+          <label className="flex items-center justify-between cursor-pointer">
+            <span className="text-content-1 font-medium">Show Best Move Indicator (Arrow)</span>
+            <input 
+              type="checkbox"
+              checked={settings.showBestMoveArrow}
+              onChange={() => handleToggle('showBestMoveArrow')}
+              className="w-4 h-4 cursor-pointer accent-accent"
+            />
+          </label>
+
           <div className="pt-2">
             <Button 
               variant={cleared ? 'primary' : confirmClear ? 'destructive' : 'secondary'}

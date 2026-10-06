@@ -34,9 +34,13 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
   const [openingEco, setOpeningEco] = useState<string | null>(null);
   
   // Best moves indicator and arrow states
-  const [showBestMoveArrow, setShowBestMoveArrow] = useState(true);
+  const [showBestMoveArrow, setShowBestMoveArrow] = useState(settings.showBestMoveArrow ?? true);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [userArrows, setUserArrows] = useState<any[]>([]);
+
+  useEffect(() => {
+    setShowBestMoveArrow(settings.showBestMoveArrow ?? true);
+  }, [settings.showBestMoveArrow]);
 
   useEffect(() => {
     setSelectedSquare(null);
@@ -418,7 +422,11 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
             
             <div className="grid grid-cols-3 gap-2">
               <button 
-                onClick={() => setShowBestMoveArrow(prev => !prev)}
+                onClick={() => {
+                  const nextVal = !showBestMoveArrow;
+                  setShowBestMoveArrow(nextVal);
+                  updateSettings({ showBestMoveArrow: nextVal });
+                }}
                 className={`flex items-center justify-center gap-1.5 p-3 rounded-lg border font-bold text-xs sm:text-sm transition-all ${
                   showBestMoveArrow 
                     ? 'bg-accent/20 border-accent text-accent shadow-sm' 
