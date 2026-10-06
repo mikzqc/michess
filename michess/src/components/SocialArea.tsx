@@ -76,7 +76,7 @@ export const SocialArea: React.FC<SocialAreaProps> = ({ onExit, onViewProfile })
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Left Column: Friends */}
-          <div className="bg-surface-2 border border-border-1 rounded-xl p-6 shadow-2xl">
+          <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-6 shadow-2xl">
             <h2 className="text-2xl font-bold text-content-1 mb-6 flex items-center gap-2">
               <Users className="text-accent" /> Friends
             </h2>
@@ -147,7 +147,7 @@ export const SocialArea: React.FC<SocialAreaProps> = ({ onExit, onViewProfile })
           </div>
 
           {/* Right Column: Search */}
-          <div className="bg-surface-2 border border-border-1 rounded-xl p-6 shadow-2xl">
+          <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-6 shadow-2xl">
             <h2 className="text-2xl font-bold text-content-1 mb-6 flex items-center gap-2">
               <Search className="text-accent" /> Find Players
             </h2>
@@ -217,7 +217,7 @@ export const SocialArea: React.FC<SocialAreaProps> = ({ onExit, onViewProfile })
       )}
 
       {activeTab === 'leaderboard' && (
-        <div className="bg-surface-2 border border-border-1 rounded-xl p-6 shadow-2xl">
+        <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-6 shadow-2xl">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h2 className="text-2xl font-bold text-content-1 flex items-center gap-2">
               🏆 Leaderboard

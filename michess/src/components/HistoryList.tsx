@@ -69,7 +69,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onR
         </Button>
       </div>
 
-      <div className="bg-surface-2 border border-border-1 rounded-xl p-6 shadow-sm mb-6 animate-slide-up">
+      <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-6 shadow-sm mb-6 animate-slide-up">
         
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-8">

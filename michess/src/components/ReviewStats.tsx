@@ -39,7 +39,7 @@ export const ReviewStats: React.FC<ReviewStatsProps> = ({ analyzedMoves, whiteAc
   }, [analyzedMoves]);
 
   return (
-    <div className="bg-surface-2 border border-border-1 p-4 rounded-lg flex flex-col gap-4">
+    <div className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-lg flex flex-col gap-4">
       {openingName && (
         <div className="text-center bg-surface-1/50 p-2 rounded border border-border-1/50">
           <div className="text-xs text-content-3 uppercase tracking-wider font-bold mb-1">Opening</div>

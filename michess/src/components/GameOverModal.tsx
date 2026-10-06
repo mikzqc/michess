@@ -38,7 +38,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ result, onReview, 
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg animate-fade-in">
-      <div className="bg-surface-2 border border-border-1 p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-6 max-w-[90%] w-[320px] animate-scale-in">
+      <div className="glass-panel border-none ring-1 ring-border-1/50 p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-6 max-w-[90%] w-[320px] animate-scale-in">
         <div className="text-center">
           <h2 className="text-3xl font-black text-content-1 tracking-tight">{mainText}</h2>
           <p className="text-content-3 mt-1 font-medium">{subText}</p>

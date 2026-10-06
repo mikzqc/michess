@@ -75,7 +75,7 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile 
         <div className="w-20"></div> {/* Spacer for centering */}
       </div>
 
-      <div className="bg-surface-2 border border-border-1 rounded-xl p-8 relative overflow-hidden shadow-sm animate-slide-up">
+      <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-8 relative overflow-hidden shadow-sm animate-slide-up">
         {/* Background decorative element */}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-accent/20 to-surface-2/0 z-0"></div>
 

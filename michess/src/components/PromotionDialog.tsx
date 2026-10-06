@@ -41,7 +41,7 @@ export const PromotionDialog: React.FC<PromotionDialogProps> = ({ color, pieceSe
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg animate-fade-in">
-      <div className="bg-surface-2 border border-border-1 p-4 rounded-xl shadow-2xl flex gap-2 animate-scale-in">
+      <div className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-xl shadow-2xl flex gap-2 animate-scale-in">
         {renderPiece('Q', 'q')}
         {renderPiece('N', 'n')}
         {renderPiece('R', 'r')}

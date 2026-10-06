@@ -232,76 +232,92 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         {view === 'home' && (
-          <div className="max-w-4xl mx-auto px-6 py-12 flex flex-col justify-center min-h-full animate-fade-in">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center p-4 bg-surface-2 border border-border-1 rounded-2xl mb-6 shadow-md relative">
-                <Swords size={48} className="text-accent relative z-10" />
+          <div className="max-w-6xl mx-auto px-6 py-12 lg:py-24 flex flex-col justify-center min-h-full animate-fade-in relative">
+            {/* Background decorative elements */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[400px] bg-accent/20 blur-[120px] rounded-full pointer-events-none -z-10"></div>
+            
+            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 mb-16">
+              <div className="flex-1 text-center lg:text-left z-10">
+                <div className="inline-flex items-center justify-center p-3 glass-panel rounded-2xl mb-6 text-accent animate-slide-up shadow-xl shadow-accent/10 border-accent/20">
+                  <Swords size={32} />
+                </div>
+                <h2 className="text-6xl md:text-8xl font-black tracking-tighter mb-6 leading-tight animate-slide-up" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
+                  Next-Gen <br className="hidden lg:block"/>
+                  <span className="text-gradient">Chess</span>
+                </h2>
+                <p className="text-content-2 text-lg md:text-xl max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed mb-8 animate-slide-up" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
+                  Experience the ultimate chess platform. Play Stockfish, challenge friends instantly, and master your skills with pro-level engine analysis.
+                </p>
+                <div className="flex flex-wrap justify-center lg:justify-start gap-4 animate-slide-up" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
+                  <button 
+                    onClick={() => setSetupMode('computer')}
+                    className="px-8 py-4 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all flex items-center gap-3 active:scale-95"
+                  >
+                    <Bot size={24} /> Play Stockfish
+                  </button>
+                  <button 
+                    onClick={() => setSetupMode('link')}
+                    className="px-8 py-4 glass-panel hover:bg-surface-3 text-content-1 rounded-xl font-bold text-lg transition-all flex items-center gap-3 active:scale-95"
+                  >
+                    <Link size={24} /> Play a Friend
+                  </button>
+                </div>
               </div>
-              <h2 className="text-5xl md:text-6xl font-black text-content-1 tracking-tight mb-4">
-                Mi<span className="text-accent">chess</span>
-              </h2>
-              <p className="text-content-2 text-lg md:text-xl max-w-2xl mx-auto font-medium">
-                Play against Stockfish, challenge friends via link, or analyze your games with powerful engine review.
-              </p>
+              
+              <div className="flex-1 w-full max-w-md lg:max-w-none animate-slide-in-right relative">
+                <div className="absolute inset-0 bg-gradient-to-tr from-accent/20 to-info/20 rounded-3xl blur-3xl -z-10 transform rotate-6 scale-105"></div>
+                <img 
+                  src="/src/assets/hero.png" 
+                  alt="Chess Board" 
+                  className="w-full h-auto drop-shadow-2xl rounded-3xl border border-white/10"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto w-full animate-slide-up">
-              {/* Card 1: Bot */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full animate-slide-up" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
               <button 
                 onClick={() => setSetupMode('computer')}
-                className="bg-surface-2 border border-border-1 hover:border-accent hover:bg-surface-3 p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 shadow-sm group cursor-pointer"
+                className="glass-panel p-6 rounded-2xl flex flex-col items-start text-left transition-all hover:-translate-y-2 hover:shadow-xl hover:border-accent/50 group cursor-pointer"
               >
-                <div className="w-16 h-16 bg-surface-3 border border-border-1 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <Bot size={32} className="text-accent" />
+                <div className="w-12 h-12 bg-accent/10 border border-accent/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-accent">
+                  <Bot size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-content-1 mb-2">Play vs Computer</h3>
-                <p className="text-content-3 text-sm">Challenge Stockfish bots from Beginner to Grandmaster.</p>
+                <h3 className="text-xl font-bold text-content-1 mb-2">Vs Computer</h3>
+                <p className="text-content-3 text-sm">Challenge Stockfish bots from Beginner to GM.</p>
               </button>
               
-              {/* Card 2: Link */}
               <button 
                 onClick={() => setSetupMode('link')}
-                className="bg-surface-2 border border-border-1 hover:border-accent hover:bg-surface-3 p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 shadow-sm group cursor-pointer"
+                className="glass-panel p-6 rounded-2xl flex flex-col items-start text-left transition-all hover:-translate-y-2 hover:shadow-xl hover:border-info/50 group cursor-pointer"
               >
-                <div className="w-16 h-16 bg-surface-3 border border-border-1 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <Link size={32} className="text-accent" />
+                <div className="w-12 h-12 bg-info/10 border border-info/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-info">
+                  <Link size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-content-1 mb-2">Play a Friend</h3>
-                <p className="text-content-3 text-sm">Create a link and play multiplayer instantly, no login required.</p>
+                <h3 className="text-xl font-bold text-content-1 mb-2">Play Online</h3>
+                <p className="text-content-3 text-sm">Share a link and play multiplayer instantly.</p>
               </button>
 
-              {/* Card 3: Local */}
-              <button 
-                onClick={() => setSetupMode('local')}
-                className="bg-surface-2 border border-border-1 hover:border-accent hover:bg-surface-3 p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 shadow-sm group cursor-pointer"
-              >
-                <div className="w-16 h-16 bg-surface-3 border border-border-1 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <Swords size={32} className="text-accent" />
-                </div>
-                <h3 className="text-xl font-bold text-content-1 mb-2">Local Match</h3>
-                <p className="text-content-3 text-sm">Play a game with a friend on the same device.</p>
-              </button>
-
-              {/* Card 4: Puzzles */}
               <button 
                 onClick={() => handleSetView('puzzles')}
-                className="bg-surface-2 border border-border-1 hover:border-accent hover:bg-surface-3 p-6 rounded-2xl flex flex-col items-center text-center transition-all hover:-translate-y-1 shadow-sm group cursor-pointer"
+                className="glass-panel p-6 rounded-2xl flex flex-col items-start text-left transition-all hover:-translate-y-2 hover:shadow-xl hover:border-warning/50 group cursor-pointer"
               >
-                <div className="w-16 h-16 bg-surface-3 border border-border-1 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <PuzzleIcon size={32} className="text-accent" />
+                <div className="w-12 h-12 bg-warning/10 border border-warning/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-warning">
+                  <PuzzleIcon size={24} />
                 </div>
                 <h3 className="text-xl font-bold text-content-1 mb-2">Free Puzzles</h3>
-                <p className="text-content-3 text-sm">Improve your tactics with unlimited random puzzles.</p>
+                <p className="text-content-3 text-sm">Improve tactics with unlimited puzzles.</p>
               </button>
-            </div>
-            
-            <div className="flex justify-center mt-12 animate-slide-up" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
+
               <button 
                 onClick={() => handleSetView('import')}
-                className="px-6 py-3 bg-transparent border border-border-2 hover:border-border-1 hover:bg-surface-2 rounded-full font-bold text-content-2 hover:text-content-1 transition-all flex items-center gap-2 text-sm cursor-pointer"
+                className="glass-panel p-6 rounded-2xl flex flex-col items-start text-left transition-all hover:-translate-y-2 hover:shadow-xl hover:border-success/50 group cursor-pointer"
               >
-                <Upload size={16} />
-                Import Game / PGN
+                <div className="w-12 h-12 bg-success/10 border border-success/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-success">
+                  <Upload size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-content-1 mb-2">Review Game</h3>
+                <p className="text-content-3 text-sm">Analyze your PGNs with powerful engine review.</p>
               </button>
             </div>
           </div>

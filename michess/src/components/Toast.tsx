@@ -35,7 +35,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               px-4 py-3 rounded-lg shadow-xl font-medium text-sm text-white animate-slide-up
               ${toast.type === 'success' ? 'bg-success' : ''}
               ${toast.type === 'error' ? 'bg-error' : ''}
-              ${toast.type === 'info' ? 'bg-surface-2 border border-border-1 text-content-1' : ''}
+              ${toast.type === 'info' ? 'glass-panel border-none ring-1 ring-border-1/50 text-content-1' : ''}
             `}
           >
             {toast.message}

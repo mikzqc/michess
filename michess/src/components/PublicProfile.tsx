@@ -50,7 +50,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ username, onExit, 
         <ArrowLeft size={20} className="mr-2" /> Back
       </Button>
 
-      <div className="bg-surface-2 border border-border-1 rounded-xl p-8 relative overflow-hidden shadow-sm animate-slide-up mb-6">
+      <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-8 relative overflow-hidden shadow-sm animate-slide-up mb-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-6 relative z-10">
           <div className="flex items-center gap-6">
             <div className="w-24 h-24 bg-surface-3 rounded-full flex items-center justify-center border-4 border-border-2 overflow-hidden shadow-sm shrink-0">

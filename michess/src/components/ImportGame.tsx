@@ -138,7 +138,7 @@ export const ImportGame: React.FC<ImportGameProps> = ({ onCancel, onReview }) =>
 
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto h-full px-4 pb-20 animate-fade-in mt-6 md:mt-10">
-      <div className="w-full bg-surface-2 border border-border-1 rounded-xl p-6 md:p-8 relative overflow-hidden shadow-2xl animate-slide-up mb-6">
+      <div className="w-full glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-6 md:p-8 relative overflow-hidden shadow-2xl animate-slide-up mb-6">
         <div className="flex justify-between items-center mb-6 relative z-10">
           <div className="flex gap-4">
             <button
@@ -272,7 +272,7 @@ export const ImportGame: React.FC<ImportGameProps> = ({ onCancel, onReview }) =>
 
       {/* --- IMPORT QUEUE --- */}
       {queue.length > 0 && (
-        <div className="w-full bg-surface-2 border border-border-1 rounded-xl p-6 shadow-2xl animate-fade-in">
+        <div className="w-full glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-6 shadow-2xl animate-fade-in">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold text-success flex items-center gap-2"><CheckCircle2 size={20} /> Ready to Review ({queue.length})</h3>
             <button onClick={clearQueue} className="text-sm text-error hover:text-red-300 font-bold flex items-center gap-1 transition-colors"><Trash2 size={14} /> Clear All</button>
@@ -280,7 +280,7 @@ export const ImportGame: React.FC<ImportGameProps> = ({ onCancel, onReview }) =>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {queue.map((game, idx) => (
-              <div key={game.id + idx} className="bg-surface-2 border border-border-1 p-4 rounded-lg flex flex-col gap-3 group hover:border-slate-500 transition-colors">
+              <div key={game.id + idx} className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-lg flex flex-col gap-3 group hover:border-slate-500 transition-colors">
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-content-1 truncate text-sm mb-1" title={game.white}>⚪ {game.white}</div>

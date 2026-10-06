@@ -88,7 +88,7 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({ analyzedMoves,
   };
 
   return (
-    <div className="bg-surface-2 border border-border-1 rounded-lg p-3 flex flex-col gap-2 relative group overflow-x-auto overflow-y-hidden hide-scrollbar shadow-sm">
+    <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-lg p-3 flex flex-col gap-2 relative group overflow-x-auto overflow-y-hidden hide-scrollbar shadow-sm">
       <div className="flex justify-between items-center text-xs text-content-3 font-bold px-1">
         <span>Game Evaluation</span>
       </div>

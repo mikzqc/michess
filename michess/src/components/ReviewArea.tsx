@@ -454,7 +454,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
           </div>
           
           {/* Legend */}
-          <div className="bg-surface-2 border border-border-1 p-4 rounded-lg text-xs flex flex-col gap-2 mt-2 mb-8">
+          <div className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-lg text-xs flex flex-col gap-2 mt-2 mb-8">
             <h4 className="font-bold text-content-3 mb-1">Classification Legend</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-2">
               {Object.values(CLASSIFICATIONS).filter(c => c.id !== 'unclassified').map(c => (
@@ -474,7 +474,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
       {/* RIGHT COLUMN: Review Queue, Move List & Details */}
       <div className="flex flex-col gap-4 h-full lg:h-[800px]">
         {/* Header / Queue Status */}
-        <div className="bg-surface-2 border border-border-1 p-4 rounded-lg flex flex-col justify-between shrink-0">
+        <div className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-lg flex flex-col justify-between shrink-0">
           <div className="flex justify-between items-start mb-2">
             <h2 className="font-bold text-lg text-content-1 flex items-center gap-2"><Info size={18} className="text-accent" /> Game Review</h2>
             <button onClick={onExit} className="text-xs font-bold bg-surface-3 hover:bg-surface-3 text-content-2 hover:text-content-1 px-3 py-1.5 rounded transition-colors" title="Press Esc to exit">Exit (Esc)</button>
@@ -524,7 +524,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
 
         {/* Move Details Pane */}
         {currentMoveIndex >= 0 && analyzedMoves[currentMoveIndex] && (
-          <div className="bg-surface-2 border border-border-1 p-4 rounded-lg flex flex-col gap-3 shrink-0 relative overflow-hidden">
+          <div className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-lg flex flex-col gap-3 shrink-0 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
             <div className="flex justify-between items-start border-b border-border-1 pb-2 relative z-10">
               <h3 className="font-bold flex items-center gap-2 text-content-1">
@@ -593,7 +593,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
         )}
 
         {/* Move List */}
-        <details className="bg-surface-2 border border-border-1 rounded-lg group flex-1 overflow-hidden flex flex-col" open>
+        <details className="glass-panel border-none ring-1 ring-border-1/50 rounded-lg group flex-1 overflow-hidden flex flex-col" open>
           <summary className="font-bold text-content-1 p-4 cursor-pointer select-none list-none flex justify-between items-center outline-none bg-surface-2/50 border-b border-border-1 shrink-0">
             <span>Moves Played</span>
             <ChevronDown size={18} className="group-open:rotate-180 transition-transform" />

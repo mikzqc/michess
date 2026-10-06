@@ -106,7 +106,7 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
       </div>
 
       <div className="flex flex-col gap-4">
-        <div className="bg-surface-2 border border-border-1 rounded-xl p-6 text-center shadow-sm">
+        <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-6 text-center shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-accent uppercase tracking-wider">
               Puzzle #{puzzleNumber}
