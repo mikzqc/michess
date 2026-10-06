@@ -30,7 +30,7 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
 
   const onDrop = (args: any) => {
     handlePieceDropEnd();
-    if (!args.targetSquare) return false;
+    if (!args.targetSquare || args.sourceSquare === args.targetSquare) return false;
     
     const isPawn = typeof args.piece === 'string' && args.piece[1].toLowerCase() === 'p';
     const isPromotion = isPawn && (args.targetSquare[1] === '8' || args.targetSquare[1] === '1');
