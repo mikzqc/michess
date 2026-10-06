@@ -372,7 +372,6 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
                   allowDrawingArrows: true,
                   arrows: boardArrows,
                   onArrowsChange: ({ arrows }) => setUserArrows(arrows),
-                  arrowOptions: { color: 'rgba(245, 158, 11, 0.85)' } as any,
                   squareStyles: squareStyles,
                   onSquareClick: (args: any) => {
                     const square = args?.square;
@@ -420,24 +419,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
               <button onClick={goToLast} disabled={currentMoveIndex >= analyzedMoves.length - 1} className="p-2 hover:bg-surface-3 rounded transition-colors disabled:opacity-50 text-content-2 hover:text-content-1" title="Go to Last Move (End)" aria-label="Go to Last Move"><ChevronsRight /></button>
             </div>
             
-            <div className="grid grid-cols-3 gap-2">
-              <button 
-                onClick={() => {
-                  const nextVal = !showBestMoveArrow;
-                  setShowBestMoveArrow(nextVal);
-                  updateSettings({ showBestMoveArrow: nextVal });
-                }}
-                className={`flex items-center justify-center gap-1.5 p-3 rounded-lg border font-bold text-xs sm:text-sm transition-all ${
-                  showBestMoveArrow 
-                    ? 'bg-accent/20 border-accent text-accent shadow-sm' 
-                    : 'bg-surface-2 border-border-1 text-content-2 hover:bg-surface-3'
-                }`}
-                title="Toggle Engine Best Move Indicator Arrow"
-              >
-                <Sparkles size={16} className={showBestMoveArrow ? "text-accent animate-pulse" : ""} /> 
-                <span className="hidden sm:inline">Best Move</span>
-                <span>{showBestMoveArrow ? 'ON' : 'OFF'}</span>
-              </button>
+            <div className="grid grid-cols-2 gap-2">
               <button 
                 onClick={() => {
                   const newOrientation = boardOrientation === 'white' ? 'black' : 'white';

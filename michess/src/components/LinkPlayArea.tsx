@@ -474,7 +474,6 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                 allowDrawingArrows: true,
                 arrows: arrows,
                 onArrowsChange: ({ arrows }) => setArrows(arrows),
-                arrowOptions: { color: 'rgba(255, 170, 0, 0.8)' } as any,
                 onPieceDrop: onDrop,
                 onSquareClick: (args) => {
                   if (gameData.status !== 'active') return;

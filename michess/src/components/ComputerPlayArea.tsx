@@ -263,7 +263,6 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
                 allowDrawingArrows: true,
                 arrows: arrows,
                 onArrowsChange: ({ arrows }) => setArrows(arrows),
-                arrowOptions: { color: 'rgba(255, 170, 0, 0.8)' } as any,
                 onPieceDrop: onDrop,
                 onSquareClick: (args) => {
                   const move = handleSquareClick(args.square);
