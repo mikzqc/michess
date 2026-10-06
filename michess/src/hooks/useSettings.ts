@@ -15,6 +15,7 @@ export interface AppSettings {
   moveAnimations: boolean;
   confirmResignation: boolean;
   autoQueen: boolean;
+  autoRetryPuzzles: boolean;
 }
 
 const defaultSettings: AppSettings = {
@@ -29,6 +30,7 @@ const defaultSettings: AppSettings = {
   moveAnimations: true,
   confirmResignation: true,
   autoQueen: false,
+  autoRetryPuzzles: false,
 };
 
 export const useSettings = () => {

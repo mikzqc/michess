@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Chess } from 'chess.js';
+import { useSettings } from './useSettings';
+import { useToast } from '../components/Toast';
 import type { PuzzleData } from '../types/puzzle';
 
 let cachedPuzzles: PuzzleData[] | null = null;
 
 export function usePuzzle() {
+  const { settings } = useSettings();
+  const { addToast } = useToast();
   const [chess] = useState(new Chess());
   const [fen, setFen] = useState(chess.fen());
   const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
@@ -104,6 +108,11 @@ export function usePuzzle() {
       }
     } else {
       // Incorrect move
+      if (settings.autoRetryPuzzles) {
+        // Just return false so the piece snaps back immediately
+        addToast('Incorrect move! Try again.', 'error');
+        return false;
+      }
       setIsFailed(true);
       return false;
     }

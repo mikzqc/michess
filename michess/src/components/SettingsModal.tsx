@@ -173,6 +173,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
           <h3 className="text-xs font-bold tracking-widest text-content-3 uppercase">Gameplay</h3>
           
           <label className="flex items-center justify-between cursor-pointer">
+            <span className="text-content-1 font-medium">Auto-retry Puzzles</span>
+            <input 
+              type="checkbox"
+              checked={settings.autoRetryPuzzles}
+              onChange={() => handleToggle('autoRetryPuzzles')}
+              className="w-4 h-4 cursor-pointer accent-accent"
+            />
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer">
             <span className="text-content-1 font-medium">Sound Effects</span>
             <input 
               type="checkbox"
