@@ -5,13 +5,153 @@ import { Chess } from 'chess.js';
 
 // Thresholds in centipawn (cp) equivalent loss from the player's perspective.
 export const CLASSIFICATION_THRESHOLDS = {
-  EXCELLENT: 15,
-  GOOD: 40,
-  INACCURACY: 100,
-  MISTAKE: 250,
-  BLUNDER: 250, // > 250 is blunder
+  BEST: 8,
+  EXCELLENT: 22,
+  GOOD: 45,
+  INACCURACY: 110,
+  MISTAKE: 220,
+  BLUNDER: 220, // > 220 is blunder
   WINNING_MARGIN: 250, // Advantage size where we start forgiving evaluation drops
 };
+
+function checkBrilliantOrGreat(
+  move: AnalyzedMove,
+  isBestMove: boolean,
+  effectiveLoss: number,
+  playerScoreBefore: number,
+  playerScoreAfter: number
+): 'brilliant' | 'great' | null {
+  // Only the engine's best move (or virtually tied with best move) can be Brilliant or Great
+  if (!isBestMove && effectiveLoss > 5) return null;
+
+  // Don't award brilliant if the player was already completely crushing (e.g. +600 cp)
+  // or in a losing position (playerScoreAfter < -30)
+  if (playerScoreBefore >= 600 || playerScoreAfter < -30) {
+    if (playerScoreBefore <= -150 && playerScoreAfter >= -50) {
+      return 'great'; // Game-saving defensive resource
+    }
+    return null;
+  }
+
+  try {
+    const { fenBefore, uci, color, pv } = move;
+    const chess = new Chess(fenBefore);
+
+    const from = uci.substring(0, 2);
+    const to = uci.substring(2, 4);
+    const promotion = uci.length === 5 ? uci[4] : undefined;
+
+    const pieceBefore = chess.get(from as any);
+    // Pawns and Kings are not piece sacrifices
+    if (!pieceBefore || pieceBefore.type === 'p' || pieceBefore.type === 'k') {
+      if (playerScoreBefore <= -150 && playerScoreAfter >= -50) {
+        return 'great';
+      }
+      return null;
+    }
+
+    const materialValue: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+    const movedPieceValue = materialValue[pieceBefore.type] || 0;
+
+    // Check what was captured on 'to'
+    const capturedTarget = chess.get(to as any);
+    const capturedValue = capturedTarget ? (materialValue[capturedTarget.type] || 0) : 0;
+
+    // If the move captured equal or higher value, it's a trade or material win, NOT a sacrifice!
+    // E.g. Rook takes Rook (5 for 5) or Knight takes Knight (3 for 3) is a trade, never Brilliant.
+    if (capturedValue >= movedPieceValue) {
+      if (playerScoreBefore <= -150 && playerScoreAfter >= -50) {
+        return 'great';
+      }
+      return null;
+    }
+
+    // Material balance before the move
+    let initialMaterialDiff = 0;
+    for (const row of chess.board()) {
+      for (const piece of row) {
+        if (piece) {
+          if (piece.color === color) initialMaterialDiff += materialValue[piece.type];
+          else initialMaterialDiff -= materialValue[piece.type];
+        }
+      }
+    }
+
+    // Execute the move
+    chess.move({ from, to, promotion });
+
+    // Check if the piece is attacked by opponent
+    const opponentMoves = chess.moves({ verbose: true });
+    let isAttackedByOpponent = false;
+    for (const opMove of opponentMoves) {
+      if (opMove.to === to) {
+        isAttackedByOpponent = true;
+        break;
+      }
+    }
+
+    // Follow the engine PV to see if the piece was genuinely surrendered without immediate recapture
+    let pvMaterialDiff = initialMaterialDiff;
+    if (pv) {
+      const pvTokens = pv.trim().split(/\s+/);
+      const pvMoves = pvTokens[0] === uci ? pvTokens.slice(1) : pvTokens;
+      const lookahead = Math.min(pvMoves.length, 4);
+
+      for (let i = 0; i < lookahead; i++) {
+        const m = pvMoves[i];
+        if (!m || m.length < 4) break;
+        try {
+          chess.move({
+            from: m.substring(0, 2),
+            to: m.substring(2, 4),
+            promotion: m.length === 5 ? m[4] : undefined
+          });
+        } catch {
+          break;
+        }
+      }
+
+      let afterDiff = 0;
+      for (const row of chess.board()) {
+        for (const piece of row) {
+          if (piece) {
+            if (piece.color === color) afterDiff += materialValue[piece.type];
+            else afterDiff -= materialValue[piece.type];
+          }
+        }
+      }
+      pvMaterialDiff = afterDiff;
+    }
+
+    // Net material sacrificed in PV
+    const materialSacrificed = initialMaterialDiff - pvMaterialDiff;
+
+    // A true Brilliant Move requires:
+    // 1. The player is genuinely down at least 2 points of material in the resulting PV (e.g. piece for pawn, piece for nothing, exchange sacrifice).
+    // 2. The position is sound/winning (playerScoreAfter >= -30).
+    // 3. The move was the best move.
+    if (materialSacrificed >= 2 && playerScoreAfter >= -30 && effectiveLoss <= 4) {
+      return 'brilliant';
+    }
+
+    // If an attacked piece was left hanging (sacrificed) and evaluation is winning/clear
+    if (isAttackedByOpponent && movedPieceValue >= 3 && materialSacrificed >= 1 && playerScoreAfter >= 0 && effectiveLoss <= 3) {
+      return 'brilliant';
+    }
+
+    // Great move: minor tactical resource or finding the only defense in a bad position
+    if (materialSacrificed >= 1 && playerScoreAfter >= -50) {
+      return 'great';
+    }
+    if (playerScoreBefore <= -150 && playerScoreAfter >= -50) {
+      return 'great';
+    }
+  } catch (err) {
+    console.warn("Error checking brilliant/great move", err);
+  }
+
+  return null;
+}
 
 export function classifyMove(move: AnalyzedMove): MoveClassificationType {
   const { uci, bestMove, san, fenBefore } = move;
@@ -94,113 +234,26 @@ export function classifyMove(move: AnalyzedMove): MoveClassificationType {
     }
   }
 
-  if (playerScoreBefore >= 300 && playerScoreAfter < 100 && effectiveLoss >= 200) return 'miss';
-
-  if (effectiveLoss > CLASSIFICATION_THRESHOLDS.BLUNDER) return 'blunder';
-  if (effectiveLoss > CLASSIFICATION_THRESHOLDS.MISTAKE) return 'mistake';
-  if (effectiveLoss > CLASSIFICATION_THRESHOLDS.INACCURACY) return 'inaccuracy';
-  if (effectiveLoss > CLASSIFICATION_THRESHOLDS.GOOD) return 'good';
-
-  // For Best, Excellent, Great, Brilliant
-  const isExcellentOrBest = isBestMove || effectiveLoss <= 5;
-  
-  if (isExcellentOrBest) {
-    // Determine tactical Brilliance or Greatness
-    // We check if the PV involves a material sacrifice that is objectively sound.
-    try {
-      const chess = new Chess(fenBefore);
-      const materialValue = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
-      
-      let initialMaterial = 0;
-      const boardBefore = chess.board();
-      for (const row of boardBefore) {
-        for (const piece of row) {
-          if (piece) {
-            if (piece.color === move.color) initialMaterial += materialValue[piece.type];
-            else initialMaterial -= materialValue[piece.type];
-          }
-        }
-      }
-
-      // Apply our move
-      const from = uci.substring(0, 2);
-      const to = uci.substring(2, 4);
-      const promotion = uci.length === 5 ? uci[4] : undefined;
-      chess.move({ from, to, promotion });
-
-      // Determine if the piece we just moved was left en prise (can be captured)
-      // This covers cases where the opponent CAN capture but PV avoids it (e.g. forced mate)
-      let leftEnPrise = false;
-      const opponentMoves = chess.moves({ verbose: true });
-      for (const opMove of opponentMoves) {
-        if (opMove.to === to) { // opponent can capture on 'to'
-           const capturedPieceValue = materialValue[chess.get(to)?.type || 'p'] || 0;
-           const capturingPieceValue = materialValue[opMove.piece] || 0;
-           
-           if (capturedPieceValue > capturingPieceValue || capturedPieceValue >= 3) {
-             leftEnPrise = true;
-             break;
-           }
-        }
-      }
-
-      // Apply PV
-      if (move.pv) {
-        let pvMoves = move.pv.split(' ');
-        if (pvMoves[0] === uci) pvMoves = pvMoves.slice(1);
-        
-        // Only look ahead a few moves (e.g. 5 plies) to see immediate material resolution
-        const lookahead = Math.min(pvMoves.length, 5);
-        for (let i = 0; i < lookahead; i++) {
-          const m = pvMoves[i];
-          if (!m) continue;
-          try {
-            chess.move({ from: m.substring(0, 2), to: m.substring(2, 4), promotion: m.length === 5 ? m[4] : undefined });
-          } catch (e) {
-            break;
-          }
-        }
-      }
-
-      let finalMaterial = 0;
-      const boardAfter = chess.board();
-      for (const row of boardAfter) {
-        for (const piece of row) {
-          if (piece) {
-            if (piece.color === move.color) finalMaterial += materialValue[piece.type];
-            else finalMaterial -= materialValue[piece.type];
-          }
-        }
-      }
-
-      const sacValue = initialMaterial - finalMaterial;
-
-      // If we sacrificed material in PV, OR left a valuable piece en prise for a winning continuation
-      if ((sacValue >= 3 || leftEnPrise) && playerScoreAfter >= -100) {
-        return 'brilliant';
-      }
-      if ((sacValue > 0 && sacValue < 3) && playerScoreAfter >= -50) {
-        return 'great';
-      }
-      
-      // Additional criteria for Great Move:
-      // Finding the only winning/drawing move in a very bad position
-      if (playerScoreBefore <= -200 && playerScoreAfter > -100) {
-         return 'great'; // Saved the game
-      }
-    } catch (e) {
-      console.warn("Error calculating brilliant move", e);
-    }
-
-    if (effectiveLoss <= 5) return 'best';
-    return 'excellent';
+  // Missed winning opportunity
+  if (playerScoreBefore >= 250 && playerScoreAfter < 100 && effectiveLoss >= 150) {
+    return 'miss';
   }
 
-  if (effectiveLoss <= CLASSIFICATION_THRESHOLDS.GOOD) {
-    return 'good';
+  // 1. Check for genuine Brilliant or Great Move (strict criteria)
+  const specialClass = checkBrilliantOrGreat(move, isBestMove, effectiveLoss, playerScoreBefore, playerScoreAfter);
+  if (specialClass) return specialClass;
+
+  // 2. Best Move: Engine's #1 move, or essentially tied with best move (<= 8 cp loss)
+  if (isBestMove || effectiveLoss <= CLASSIFICATION_THRESHOLDS.BEST) {
+    return 'best';
   }
 
-  return 'unclassified';
+  // 3. Clear tiers based on centipawn loss
+  if (effectiveLoss <= CLASSIFICATION_THRESHOLDS.EXCELLENT) return 'excellent';
+  if (effectiveLoss <= CLASSIFICATION_THRESHOLDS.GOOD) return 'good';
+  if (effectiveLoss <= CLASSIFICATION_THRESHOLDS.INACCURACY) return 'inaccuracy';
+  if (effectiveLoss <= CLASSIFICATION_THRESHOLDS.MISTAKE) return 'mistake';
+  return 'blunder';
 }
 
 export function getClassificationExplanation(classification: MoveClassificationType): string {
