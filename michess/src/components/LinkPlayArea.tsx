@@ -90,6 +90,10 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
   const [ratingChange, setRatingChange] = useState<{ diff: number, newRating: number } | undefined>(undefined);
 
   useEffect(() => {
+    setArrows([]);
+  }, [fen]);
+
+  useEffect(() => {
     if (gameData?.status === 'completed' && user && gameData.id) {
       if (supabase) {
         supabase.from('rating_history')
@@ -113,6 +117,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
   const isChaos = gameData?.is_chaos ?? false;
 
   const doMove = (from: string, to: string, promotion?: 'q'|'r'|'b'|'n') => {
+    setArrows([]);
     makeMove({ from, to, promotion });
     return true;
   };

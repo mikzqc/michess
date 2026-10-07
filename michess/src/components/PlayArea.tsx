@@ -38,6 +38,10 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
   const [promotionState, setPromotionState] = useState<{ sourceSquare: string, targetSquare: string, color: 'w' | 'b' } | null>(null);
   const [showConfirmResign, setShowConfirmResign] = useState(false);
 
+  useEffect(() => {
+    setArrows([]);
+  }, [fen]);
+
   const isGameOver = game.isGameOver() || resignation !== null || timeoutResult !== null;
   const isGameStarted = history.length > 0;
 
@@ -179,6 +183,7 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
   });
 
   const doMove = (from: string, to: string, promotion?: 'q'|'r'|'b'|'n') => {
+    setArrows([]);
     const currentColor = game.turn();
     const move = makeMove({ from, to, promotion });
     if (move) {

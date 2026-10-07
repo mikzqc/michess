@@ -56,6 +56,10 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
     onComputerMove: handleComputerMove
   });
 
+  useEffect(() => {
+    setArrows([]);
+  }, [fen]);
+
   const isGameOver = gameOverResult !== null || timeoutResult !== null;
   const isGameStarted = history.length > 0;
 
@@ -132,6 +136,7 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
   };
 
   const doMove = (from: string, to: string, promotion?: 'q'|'r'|'b'|'n') => {
+    setArrows([]);
     const currentColor = game.turn();
     const move = makeMove({ from, to, promotion });
     if (move) {
