@@ -642,7 +642,6 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
               })}
             </div>
           </div>
-          </div>
           )}
         </div>
 
