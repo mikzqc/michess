@@ -63,6 +63,21 @@ export const ReviewStats: React.FC<ReviewStatsProps> = ({ analyzedMoves, whiteAc
         </div>
       </div>
 
+      <div className="grid grid-cols-2 text-center bg-surface-1/50 rounded p-2 border border-border-1/50">
+        <div className="flex flex-col border-r border-slate-700">
+          <span className="text-[10px] text-content-3 uppercase tracking-wider font-bold">White Est. Elo</span>
+          <span className="text-lg font-bold text-content-1">
+            {whiteAccuracy !== null ? Math.max(100, Math.round(Math.pow(whiteAccuracy / 100, 3.5) * 3200)) : '-'}
+          </span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] text-content-3 uppercase tracking-wider font-bold">Black Est. Elo</span>
+          <span className="text-lg font-bold text-content-1">
+            {blackAccuracy !== null ? Math.max(100, Math.round(Math.pow(blackAccuracy / 100, 3.5) * 3200)) : '-'}
+          </span>
+        </div>
+      </div>
+
       <div className="border-t border-border-1"></div>
 
       {/* Classifications */}

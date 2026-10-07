@@ -38,6 +38,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
   const [showBestMoveArrow, setShowBestMoveArrow] = useState(settings.showBestMoveArrow ?? true);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [userArrows, setUserArrows] = useState<any[]>([]);
+  const [showMoves, setShowMoves] = useState(true);
 
   useEffect(() => {
     setShowBestMoveArrow(settings.showBestMoveArrow ?? true);
@@ -313,6 +314,78 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
     return list;
   }, [userArrows, showBestMoveArrow, currentMoveIndex, analyzedMoves, selectedSquare, currentFen]);
 
+  const renderMoveDetails = (className = '') => {
+    if (currentMoveIndex < 0 || !analyzedMoves[currentMoveIndex]) return null;
+    const move = analyzedMoves[currentMoveIndex];
+    return (
+      <div className={`glass-panel border-none ring-1 ring-border-1/50 p-3 rounded-lg flex flex-col gap-2 shrink-0 relative overflow-hidden ${className}`}>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+        <div className="flex justify-between items-start border-b border-border-1 pb-2 relative z-10">
+          <h3 className="font-bold flex items-center gap-1.5 text-content-1 text-sm">
+            <Info size={14} className="text-accent" /> Details
+          </h3>
+          {move.classification && (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-content-1 bg-surface-3 px-1.5 py-0.5 rounded shadow-md">
+              <MoveClassificationBadge classification={move.classification} />
+              <span>{CLASSIFICATIONS[move.classification].name}</span>
+            </div>
+          )}
+        </div>
+
+        {move.classification && move.classification !== 'unclassified' && (
+          <div className="text-xs text-content-2 italic mb-0.5 relative z-10">
+            {getClassificationExplanation(move.classification)}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 gap-y-1.5 text-xs relative z-10">
+          <div className="text-content-3">Move:</div>
+          <div className="font-bold text-content-1 text-sm">{move.moveNumber}. {move.color === 'b' && '...'} {move.san}</div>
+          
+          <div className="text-content-3">Eval:</div>
+          <div className="font-bold text-content-1">
+            {move.evalAfter.score?.type === 'mate' 
+              ? `M${Math.abs(move.evalAfter.score!.value)}` 
+              : `${((move.evalAfter.score?.value || 0) / 100).toFixed(2)}`}
+          </div>
+
+          <div className="text-content-3">Loss:</div>
+          <div className={`font-bold ${move.evalLoss > 50 ? 'text-error' : 'text-content-2'}`}>
+            {(move.evalLoss / 100).toFixed(2)}
+          </div>
+          
+          {move.accuracy !== undefined && (
+            <>
+              <div className="text-content-3">Acc:</div>
+              <div className="font-bold text-content-1">
+                {move.accuracy?.toFixed(1)}%
+              </div>
+            </>
+          )}
+          
+          {move.bestMove && (
+            <>
+              <div className="text-content-3">Best:</div>
+              <div className="font-mono text-success text-[10px] flex items-center bg-success/10 px-1 py-0.5 rounded gap-1 font-bold">
+                <Sparkles size={10} className="text-success shrink-0" />
+                <span>{getMoveSan(move.fenBefore, move.bestMove)}</span>
+              </div>
+            </>
+          )}
+        </div>
+        
+        {move.pv && (
+          <div className="mt-1 text-[10px] relative z-10">
+            <div className="text-content-3 mb-0.5">Line (D{move.depth}):</div>
+            <div className="font-mono text-content-2 break-words leading-relaxed opacity-70 bg-surface-1/50 p-1.5 rounded">
+              {move.pv}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const squareStyles = useMemo(() => {
     const styles: Record<string, React.CSSProperties> = {};
     if (selectedSquare) {
@@ -330,8 +403,9 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
   return (
     <div className="w-full h-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 animate-fade-in">
       
-      {/* LEFT COLUMN: Board & Eval */}
-      <div className="lg:col-span-2 flex justify-center gap-4 relative">
+      {/* LEFT COLUMN: Board & Eval & Move Details */}
+      <div className="lg:col-span-2 flex flex-col md:flex-row justify-center gap-2 md:gap-4 relative">
+        {renderMoveDetails("hidden xl:flex w-48 2xl:w-56 pt-[32px]")}
         {/* Eval Bar */}
         <div className="hidden sm:block">
           <EvaluationBar score={currentEval?.score} orientation={boardOrientation} />
@@ -524,83 +598,21 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
           </div>
         )}
 
-        {/* Move Details Pane */}
-        {currentMoveIndex >= 0 && analyzedMoves[currentMoveIndex] && (
-          <div className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-lg flex flex-col gap-3 shrink-0 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
-            <div className="flex justify-between items-start border-b border-border-1 pb-2 relative z-10">
-              <h3 className="font-bold flex items-center gap-2 text-content-1">
-                <Info size={16} className="text-accent" /> Move Details
-              </h3>
-              {analyzedMoves[currentMoveIndex].classification && (
-                <div className="flex items-center gap-2 text-sm font-bold text-content-1 bg-surface-3 px-2 py-1 rounded shadow-md">
-                  <MoveClassificationBadge classification={analyzedMoves[currentMoveIndex].classification} />
-                  <span>{CLASSIFICATIONS[analyzedMoves[currentMoveIndex].classification].name}</span>
-                </div>
-              )}
-            </div>
-
-            {analyzedMoves[currentMoveIndex].classification && analyzedMoves[currentMoveIndex].classification !== 'unclassified' && (
-              <div className="text-sm text-content-2 italic mb-1 relative z-10">
-                {getClassificationExplanation(analyzedMoves[currentMoveIndex].classification)}
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 gap-y-2 text-sm relative z-10">
-              <div className="text-content-3">Move:</div>
-              <div className="font-bold text-content-1 text-base">{analyzedMoves[currentMoveIndex].moveNumber}. {analyzedMoves[currentMoveIndex].color === 'b' && '...'} {analyzedMoves[currentMoveIndex].san}</div>
-              
-              <div className="text-content-3">Evaluation:</div>
-              <div className="font-bold text-content-1">
-                {analyzedMoves[currentMoveIndex].evalAfter.score?.type === 'mate' 
-                  ? `M${Math.abs(analyzedMoves[currentMoveIndex].evalAfter.score!.value)}` 
-                  : `${((analyzedMoves[currentMoveIndex].evalAfter.score?.value || 0) / 100).toFixed(2)}`}
-              </div>
-
-              <div className="text-content-3">Eval Loss:</div>
-              <div className={`font-bold ${analyzedMoves[currentMoveIndex].evalLoss > 50 ? 'text-error' : 'text-content-2'}`}>
-                {(analyzedMoves[currentMoveIndex].evalLoss / 100).toFixed(2)}
-              </div>
-              
-              {analyzedMoves[currentMoveIndex].accuracy !== undefined && (
-                <>
-                  <div className="text-content-3">Accuracy:</div>
-                  <div className="font-bold text-content-1">
-                    {analyzedMoves[currentMoveIndex].accuracy?.toFixed(1)}%
-                  </div>
-                </>
-              )}
-              
-              {analyzedMoves[currentMoveIndex].bestMove && (
-                <>
-                  <div className="text-content-3">Engine Best:</div>
-                  <div className="font-mono text-success text-xs flex items-center bg-success/10 px-2 py-0.5 rounded gap-1.5 font-bold">
-                    <Sparkles size={12} className="text-success shrink-0" />
-                    <span>{getMoveSan(analyzedMoves[currentMoveIndex].fenBefore, analyzedMoves[currentMoveIndex].bestMove)}</span>
-                    <span className="text-[10px] opacity-60 font-sans font-normal">({analyzedMoves[currentMoveIndex].bestMove})</span>
-                  </div>
-                </>
-              )}
-            </div>
-            
-            {analyzedMoves[currentMoveIndex].pv && (
-              <div className="mt-2 text-xs relative z-10">
-                <div className="text-content-3 mb-1">Engine Line (Depth {analyzedMoves[currentMoveIndex].depth}):</div>
-                <div className="font-mono text-content-2 break-words leading-relaxed opacity-70 bg-surface-1/50 p-2 rounded">
-                  {analyzedMoves[currentMoveIndex].pv}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Move Details Pane (Mobile/Tablet only) */}
+        {renderMoveDetails("xl:hidden")}
 
         {/* Move List */}
-        <details className="glass-panel border-none ring-1 ring-border-1/50 rounded-lg group flex-1 overflow-hidden flex flex-col" open>
-          <summary className="font-bold text-content-1 p-4 cursor-pointer select-none list-none flex justify-between items-center outline-none bg-surface-2/50 border-b border-border-1 shrink-0">
+        <div className={`glass-panel border-none ring-1 ring-border-1/50 rounded-lg flex flex-col ${showMoves ? 'flex-1 overflow-hidden' : 'shrink-0'}`}>
+          <button 
+            onClick={() => setShowMoves(!showMoves)}
+            className="w-full font-bold text-content-1 p-4 cursor-pointer select-none flex justify-between items-center outline-none bg-surface-2/50 border-b border-border-1 shrink-0"
+          >
             <span>Moves Played</span>
-            <ChevronDown size={18} className="group-open:rotate-180 transition-transform" />
-          </summary>
-          <div className="overflow-y-auto p-2 h-full flex-1">
+            <ChevronDown size={18} className={`transition-transform duration-200 ${showMoves ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {showMoves && (
+            <div className="overflow-y-auto p-2 flex-1">
             <div className="grid grid-cols-[40px_1fr_1fr] text-sm text-left">
               {movePairs.map((pair, idx) => {
                 const whiteIndex = idx * 2;
@@ -630,7 +642,9 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
               })}
             </div>
           </div>
-        </details>
+          </div>
+          )}
+        </div>
 
       </div>
     </div>
