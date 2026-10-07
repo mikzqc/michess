@@ -67,13 +67,13 @@ export const ReviewStats: React.FC<ReviewStatsProps> = ({ analyzedMoves, whiteAc
         <div className="flex flex-col border-r border-slate-700">
           <span className="text-[10px] text-content-3 uppercase tracking-wider font-bold">White Est. Elo</span>
           <span className="text-lg font-bold text-content-1">
-            {whiteAccuracy !== null ? Math.max(100, Math.round(Math.pow(whiteAccuracy / 100, 3.5) * 3200)) : '-'}
+            {whiteAccuracy !== null ? Math.max(100, Math.round(Math.pow(whiteAccuracy / 100, 4) * 3200)) : '-'}
           </span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-content-3 uppercase tracking-wider font-bold">Black Est. Elo</span>
           <span className="text-lg font-bold text-content-1">
-            {blackAccuracy !== null ? Math.max(100, Math.round(Math.pow(blackAccuracy / 100, 3.5) * 3200)) : '-'}
+            {blackAccuracy !== null ? Math.max(100, Math.round(Math.pow(blackAccuracy / 100, 4) * 3200)) : '-'}
           </span>
         </div>
       </div>

@@ -405,7 +405,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
       
       {/* LEFT COLUMN: Board & Eval & Move Details */}
       <div className="lg:col-span-2 flex flex-col md:flex-row justify-center gap-2 md:gap-4 relative">
-        {renderMoveDetails("hidden xl:flex w-48 2xl:w-56 pt-[32px]")}
+        {renderMoveDetails("hidden xl:flex w-48 2xl:w-56 mt-[36px] h-fit")}
         {/* Eval Bar */}
         <div className="hidden sm:block">
           <EvaluationBar score={currentEval?.score} orientation={boardOrientation} />
