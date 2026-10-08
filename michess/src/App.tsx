@@ -431,8 +431,9 @@ function App() {
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
-      {user && profile && profile.games_played === 0 && profile.highest_rating === 100 && !skillModalDismissed && (
+      {user && profile && profile.games_played === 0 && !localStorage.getItem('skill_modal_' + user.id) && !skillModalDismissed && (
         <SkillLevelModal onComplete={() => {
+          localStorage.setItem('skill_modal_' + user.id, 'true');
           setSkillModalDismissed(true);
           refreshProfile();
         }} />

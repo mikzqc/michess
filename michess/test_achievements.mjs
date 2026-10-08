@@ -10,8 +10,12 @@ async function testAuth() {
     email,
     password: 'password123'
   });
-  console.log('SignUp Data:', data);
-  console.log('SignUp Error:', error);
+  
+  // wait 2 seconds for trigger
+  await new Promise(r => setTimeout(r, 2000));
+  
+  const { data: profile } = await supabase.from('profiles').select('highest_rating, games_played').eq('id', data.user.id).single();
+  console.log('Profile:', profile);
 }
 
 testAuth();
