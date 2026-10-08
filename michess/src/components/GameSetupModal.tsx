@@ -5,7 +5,7 @@ import type { Difficulty } from '../hooks/useComputerGame';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 
-export type SetupMode = 'computer' | 'local' | 'link';
+export type SetupMode = 'computer' | 'local' | 'link' | 'challenge';
 
 export interface TimeControl {
   minutes: number;
@@ -18,6 +18,7 @@ interface GameSetupModalProps {
   onStartComputer?: (color: PlayerColor, difficulty: Difficulty, timeControl: TimeControl | null) => void;
   onStartLocal?: (timeControl: TimeControl | null) => void;
   onStartLink?: (color: PlayerColor, timeControl: TimeControl | null) => void;
+  onStartChallenge?: (timeControl: TimeControl | null) => void;
 }
 
 const TIME_PRESETS = [
@@ -26,7 +27,7 @@ const TIME_PRESETS = [
   { label: 'Rapid', presets: [{m: 10, i: 0}, {m: 15, i: 10}, {m: 30, i: 0}] }
 ];
 
-export const GameSetupModal: React.FC<GameSetupModalProps> = ({ mode, onClose, onStartComputer, onStartLocal, onStartLink }) => {
+export const GameSetupModal: React.FC<GameSetupModalProps> = ({ mode, onClose, onStartComputer, onStartLocal, onStartLink, onStartChallenge }) => {
   const [difficulty, setDifficulty] = useState<Difficulty>(5);
   const [timeMode, setTimeMode] = useState<'realtime' | 'unlimited'>('realtime');
   const [minutes, setMinutes] = useState(10);
@@ -39,6 +40,8 @@ export const GameSetupModal: React.FC<GameSetupModalProps> = ({ mode, onClose, o
     const timeControl = timeMode === 'realtime' ? { minutes, increment } : null;
     if (mode === 'local' && onStartLocal) {
       onStartLocal(timeControl);
+    } else if (mode === 'challenge' && onStartChallenge) {
+      onStartChallenge(timeControl);
     } else if (mode === 'computer' || mode === 'link') {
       // Delay to force color selection if not chosen directly
       // But actually, we just default to random if they click the main button
@@ -169,6 +172,14 @@ export const GameSetupModal: React.FC<GameSetupModalProps> = ({ mode, onClose, o
             <div className="pt-2">
               <Button onClick={handleSubmit} fullWidth size="lg">
                 <Users size={20} className="mr-2" /> Start local game
+                {timeMode === 'realtime' && <span className="opacity-80 text-sm font-mono ml-2">({tcLabel})</span>}
+              </Button>
+            </div>
+          )}
+          {mode === 'challenge' && (
+            <div className="pt-2">
+              <Button onClick={handleSubmit} fullWidth size="lg">
+                <Users size={20} className="mr-2" /> Send Challenge
                 {timeMode === 'realtime' && <span className="opacity-80 text-sm font-mono ml-2">({tcLabel})</span>}
               </Button>
             </div>

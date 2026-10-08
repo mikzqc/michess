@@ -30,6 +30,8 @@ import { SkillLevelModal } from './components/SkillLevelModal';
 import { AboutArea } from './components/AboutArea';
 import { SupportArea } from './components/SupportArea';
 import { NotFoundArea } from './components/NotFoundArea';
+import { NotificationDropdown } from './components/NotificationDropdown';
+import { useChallenges } from './hooks/useChallenges';
 
 type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'about' | 'support' | '404';
 
@@ -44,10 +46,12 @@ function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [linkInviteCode, setLinkInviteCode] = useState<string | null>(null);
   const [setupMode, setSetupMode] = useState<SetupMode | null>(null);
+  const [challengeTargetId, setChallengeTargetId] = useState<string | null>(null);
   const [skillModalDismissed, setSkillModalDismissed] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const { addToast } = useToast();
   const { profile, loading: profileLoading, refreshProfile } = useProfile();
+  const { sendChallenge, respondToChallenge } = useChallenges();
   useAchievementTracker();
 
   const { user, loading: authLoading } = useAuth();
@@ -264,12 +268,51 @@ function App() {
           </button>
 
           {!authLoading && (
-            <div className={`ml-1 sm:ml-2 pl-3 sm:pl-6 border-l shrink-0 ${view === '404' ? 'border-red-900/30' : 'border-border-1'}`}>
+            <div className={`ml-1 sm:ml-2 pl-3 sm:pl-6 border-l shrink-0 flex items-center gap-2 ${view === '404' ? 'border-red-900/30' : 'border-border-1'}`}>
               {user ? (
-                <button 
-                  onClick={() => handleSetView('profile')}
-                  className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 flex items-center justify-center min-w-[80px] min-h-[38px] ${view === '404' ? 'bg-red-950/20 border-red-900/30 text-red-700 hover:text-red-500 hover:bg-red-900/40' : (view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1')}`}
-                >
+                <>
+                  <NotificationDropdown 
+                    onViewProfile={handleViewProfile} 
+                    onJoinGame={(gameId) => {
+                      setLinkInviteCode(gameId);
+                      handleSetView('link-game');
+                    }}
+                    onAcceptChallenge={async (challenge) => {
+                      if (!supabase) return;
+                      // Create game
+                      const inviteCode = Math.random().toString(36).substring(2, 9);
+                      const isWhite = Math.random() > 0.5;
+                      
+                      let tcObj = null;
+                      if (challenge.time_control && challenge.time_control !== 'untimed') {
+                        const [min, inc] = challenge.time_control.split('+').map(Number);
+                        tcObj = { minutes: min, increment: inc };
+                      }
+
+                      const { error } = await supabase.from('link_games').insert({
+                        id: inviteCode,
+                        white_id: isWhite ? user.id : challenge.sender_id,
+                        black_id: isWhite ? challenge.sender_id : user.id,
+                        time_control: tcObj,
+                        created_by: user.id
+                      });
+
+                      if (error) {
+                        addToast('Failed to create challenge game', 'error');
+                        return;
+                      }
+
+                      const res = await respondToChallenge(challenge.id, true, inviteCode);
+                      if (res.success) {
+                        setLinkInviteCode(inviteCode);
+                        handleSetView('link-game');
+                      }
+                    }}
+                  />
+                  <button 
+                    onClick={() => handleSetView('profile')}
+                    className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 flex items-center justify-center min-w-[80px] min-h-[38px] ${view === '404' ? 'bg-red-950/20 border-red-900/30 text-red-700 hover:text-red-500 hover:bg-red-900/40' : (view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1')}`}
+                  >
                   {profileLoading ? (
                     <div className="w-12 h-3 animate-pulse bg-content-3/30 rounded-full" />
                   ) : (
@@ -285,6 +328,7 @@ function App() {
                     </div>
                   )}
                 </button>
+                </>
               ) : (
                 <button 
                   onClick={() => setShowAuth(true)}
@@ -491,9 +535,9 @@ function App() {
                 window.history.pushState({}, '', '/');
               }
             }} 
-            onChallenge={() => {
-              // TODO: Implement challenge
-              addToast('Challenges coming soon!', 'info');
+            onChallenge={(userId) => {
+              setChallengeTargetId(userId);
+              setSetupMode('challenge');
             }} 
           />
         )}
@@ -558,7 +602,10 @@ function App() {
       {setupMode && (
         <GameSetupModal
           mode={setupMode}
-          onClose={() => setSetupMode(null)}
+          onClose={() => {
+            setSetupMode(null);
+            setChallengeTargetId(null);
+          }}
           onStartComputer={(color, difficulty, tc) => {
             setSetupMode(null);
             startComputerGame(color, difficulty, tc);
@@ -571,6 +618,19 @@ function App() {
           onStartLink={(color, tc) => {
             setSetupMode(null);
             handleCreateLinkGame(color, tc);
+          }}
+          onStartChallenge={async (tc) => {
+            setSetupMode(null);
+            if (challengeTargetId) {
+              const tcString = tc ? `${tc.minutes}+${tc.increment}` : 'untimed';
+              const result = await sendChallenge(challengeTargetId, tcString);
+              if (result.success) {
+                addToast('Challenge sent!', 'success');
+              } else {
+                addToast(`Failed to send challenge: ${result.error}`, 'error');
+              }
+            }
+            setChallengeTargetId(null);
           }}
         />
       )}

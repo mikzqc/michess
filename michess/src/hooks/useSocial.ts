@@ -61,6 +61,15 @@ export function useSocial() {
         status: 'pending'
       });
       if (error) throw error;
+      
+      // Notify the receiver
+      await supabase.from('notifications').insert({
+        user_id: friendId,
+        sender_id: user.id,
+        type: 'friend_request',
+        message: 'sent you a friend request'
+      });
+
       fetchFriends();
       return { success: true };
     } catch (err: any) {
@@ -75,6 +84,15 @@ export function useSocial() {
         .update({ status: 'accepted' })
         .match({ user_id: friendId, friend_id: user.id });
       if (error) throw error;
+
+      // Notify the original sender
+      await supabase.from('notifications').insert({
+        user_id: friendId,
+        sender_id: user.id,
+        type: 'friend_accepted',
+        message: 'accepted your friend request'
+      });
+
       fetchFriends();
       return { success: true };
     } catch (err: any) {
