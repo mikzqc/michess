@@ -89,8 +89,12 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile 
               )}
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-content-1 mb-1">
-                {profile?.username || 'Player'}
+              <h1 className="text-3xl font-bold text-content-1 mb-1 min-h-[36px] flex items-center">
+                {loading ? (
+                  <div className="w-32 h-6 animate-pulse bg-content-3/30 rounded-full" />
+                ) : (
+                  profile?.username || 'Player'
+                )}
               </h1>
               <p className="text-content-3 text-sm font-medium flex items-center gap-1">
                 <Mail size={14} /> {user.email}

@@ -42,7 +42,7 @@ function App() {
   const [setupMode, setSetupMode] = useState<SetupMode | null>(null);
   const [skillModalDismissed, setSkillModalDismissed] = useState(false);
   const { addToast } = useToast();
-  const { profile, refreshProfile } = useProfile();
+  const { profile, loading: profileLoading, refreshProfile } = useProfile();
   useAchievementTracker();
 
   const { user, loading: authLoading } = useAuth();
@@ -216,9 +216,13 @@ function App() {
               {user ? (
                 <button 
                   onClick={() => handleSetView('profile')}
-                  className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 ${view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1'}`}
+                  className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 flex items-center justify-center min-w-[80px] min-h-[38px] ${view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1'}`}
                 >
-                  {profile?.username || 'Profile'}
+                  {profileLoading ? (
+                    <div className="w-12 h-3 animate-pulse bg-content-3/30 rounded-full" />
+                  ) : (
+                    profile?.username || 'Profile'
+                  )}
                 </button>
               ) : (
                 <button 
