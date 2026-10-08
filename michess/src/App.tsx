@@ -197,70 +197,78 @@ function App() {
     });
   };
 
+  const getNavBtnClass = (isActive: boolean) => {
+    const base = 'transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg';
+    if (view === '404') {
+      return `${base} text-red-900 hover:text-red-500 hover:bg-red-950/30`;
+    }
+    return `${base} ${isActive ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`;
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <header className="bg-surface-2 border-b border-border-1 px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 relative z-50">
+      <header className={`${view === '404' ? 'bg-black border-b border-red-900/30 text-red-500/80 transition-colors duration-1000' : 'bg-surface-2 border-b border-border-1'} px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 relative z-50`}>
         <h1 
-          className="text-2xl font-bold tracking-wider text-content-1 cursor-pointer flex items-center gap-2 active:scale-95 transition-transform shrink-0"
+          className={`text-2xl font-bold tracking-wider cursor-pointer flex items-center gap-2 active:scale-95 transition-transform shrink-0 ${view === '404' ? 'text-red-700/80 drop-shadow-[0_0_8px_rgba(255,0,0,0.3)]' : 'text-content-1'}`}
           onClick={() => handleSetView('home')}
         >
-          <Swords className="text-accent" />
-          <span>Mi<span className="text-accent">chess</span></span>
+          <Swords className={view === '404' ? 'text-red-700 animate-pulse' : 'text-accent'} />
+          <span>Mi<span className={view === '404' ? 'text-red-900' : 'text-accent'}>chess</span></span>
         </h1>
         <nav className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar flex-nowrap w-full sm:w-auto">
           <button 
             onClick={() => setShowSettings(true)}
-            className="text-content-3 hover:text-content-1 hover:bg-surface-3 p-2 rounded-lg transition-colors flex items-center justify-center active:scale-95"
+            className={`${view === '404' ? 'text-red-900 hover:text-red-500 hover:bg-red-950/30' : 'text-content-3 hover:text-content-1 hover:bg-surface-3'} p-2 rounded-lg transition-colors flex items-center justify-center active:scale-95`}
             title="Settings"
             aria-label="Open Settings"
           >
             <SettingsIcon size={20} />
           </button>
 
-          <div className="h-6 w-px bg-border-1 hidden md:block"></div>
+          <div className={`h-6 w-px hidden md:block ${view === '404' ? 'bg-red-900/30' : 'bg-border-1'}`}></div>
 
           <button 
             onClick={() => handleSetView('puzzles')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'puzzles' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
+            className={getNavBtnClass(view === 'puzzles')}
           >
             <PuzzleIcon size={18} /> Puzzles
           </button>
 
           <button 
             onClick={() => handleSetView('history')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'history' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
+            className={getNavBtnClass(view === 'history')}
           >
             <Clock size={18} /> History
           </button>
 
           <button 
             onClick={() => setSetupMode('computer')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'play-computer' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
+            className={getNavBtnClass(view === 'play-computer')}
           >
             <Bot size={18} /> Play vs Computer
           </button>
           
           <button 
             onClick={() => setSetupMode('local')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'local' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
+            className={getNavBtnClass(view === 'local')}
           >
             <Swords size={18} /> Local Play
           </button>
 
           <button 
             onClick={() => handleSetView('social')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'social' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
+            className={getNavBtnClass(view === 'social')}
           >
             <Users size={18} /> Social
           </button>
 
           {!authLoading && (
-            <div className="ml-1 sm:ml-2 pl-3 sm:pl-6 border-l border-border-1 shrink-0">
+            <div className={`ml-1 sm:ml-2 pl-3 sm:pl-6 border-l shrink-0 ${view === '404' ? 'border-red-900/30' : 'border-border-1'}`}>
               {user ? (
                 <button 
                   onClick={() => handleSetView('profile')}
-                  className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 flex items-center justify-center min-w-[80px] min-h-[38px] ${view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1'}`}
+                  className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 flex items-center justify-center min-w-[80px] min-h-[38px] ${view === '404' ? 'bg-red-950/20 border-red-900/30 text-red-700 hover:text-red-500 hover:bg-red-900/40' : (view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1')}`}
                 >
                   {profileLoading ? (
                     <div className="w-12 h-3 animate-pulse bg-content-3/30 rounded-full" />
