@@ -15,6 +15,7 @@ import { AuthModal } from './components/AuthModal';
 import { ProfileArea } from './components/ProfileArea';
 import { LinkPlayArea } from './components/LinkPlayArea';
 import { useProfile } from './hooks/useProfile';
+import { useAchievementTracker } from './hooks/useAchievementTracker';
 import { supabase } from './services/supabase';
 import { generateUUID } from './utils/uuid';
 import { useEffect } from 'react';
@@ -40,6 +41,7 @@ function App() {
   const [setupMode, setSetupMode] = useState<SetupMode | null>(null);
   const { addToast } = useToast();
   const { profile } = useProfile();
+  useAchievementTracker();
 
   const { user, loading: authLoading } = useAuth();
   const { history, addGame, removeGame, clearHistory, updateGameReviewStats, migrateLocalGames, skipMigration, needsMigration } = useHistory();

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { useToast } from '../components/Toast';
 
 export interface Achievement {
   id: string;
@@ -13,6 +14,7 @@ export interface Achievement {
 export function useAchievements(userId?: string) {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
+  const { addToast } = useToast();
 
   useEffect(() => {
     if (!userId || !supabase) {
@@ -54,10 +56,25 @@ export function useAchievements(userId?: string) {
   const unlockAchievement = async (achievementId: string) => {
     if (!userId || !supabase) return;
     try {
-      await supabase.from('user_achievements').insert({
+      const { error } = await supabase.from('user_achievements').insert({
         user_id: userId,
         achievement_id: achievementId
       });
+      
+      if (!error) {
+        // Find the achievement details to show in the toast
+        const achievement = achievements.find(a => a.id === achievementId);
+        if (achievement) {
+          addToast(`Achievement Unlocked: ${achievement.name}! 🏆`, 'success');
+          
+          // Optimistically update local state
+          setAchievements(prev => prev.map(a => 
+            a.id === achievementId 
+              ? { ...a, unlocked_at: new Date().toISOString() } 
+              : a
+          ));
+        }
+      }
     } catch (err) {
       // Ignore unique constraint violations (already unlocked)
     }
