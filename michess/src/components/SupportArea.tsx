@@ -81,6 +81,7 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
           reply_to: email,
           subject: subject,
           message: finalMessage,
+          attachment_url: attachmentUrl || 'No attachment provided',
         },
         publicKey
       );
