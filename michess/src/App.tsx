@@ -25,6 +25,7 @@ import { PublicProfile } from './components/PublicProfile';
 import { SocialArea } from './components/SocialArea';
 import { PuzzleArea } from './components/PuzzleArea';
 import { Puzzle as PuzzleIcon } from 'lucide-react';
+import { SkillLevelModal } from './components/SkillLevelModal';
 
 type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles';
 
@@ -39,8 +40,9 @@ function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [linkInviteCode, setLinkInviteCode] = useState<string | null>(null);
   const [setupMode, setSetupMode] = useState<SetupMode | null>(null);
+  const [skillModalDismissed, setSkillModalDismissed] = useState(false);
   const { addToast } = useToast();
-  const { profile } = useProfile();
+  const { profile, refreshProfile } = useProfile();
   useAchievementTracker();
 
   const { user, loading: authLoading } = useAuth();
@@ -425,6 +427,12 @@ function App() {
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {user && profile && profile.games_played === 0 && profile.highest_rating === 100 && !skillModalDismissed && (
+        <SkillLevelModal onComplete={() => {
+          setSkillModalDismissed(true);
+          refreshProfile();
+        }} />
+      )}
 
       {needsMigration && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
