@@ -129,7 +129,7 @@ export const SocialArea: React.FC<SocialAreaProps> = ({ onExit, onViewProfile })
                         </div>
                         <div>
                           <span className="font-bold text-content-1 block">{friend.friend_profile?.username}</span>
-                          <span className="text-xs text-content-3">{friend.friend_profile?.rating} ELO</span>
+                          <span className="text-xs text-content-3">{friend.friend_profile?.highest_rating} ELO</span>
                         </div>
                       </div>
                       <button 
@@ -189,7 +189,7 @@ export const SocialArea: React.FC<SocialAreaProps> = ({ onExit, onViewProfile })
                       <div>
                         <span className="font-bold text-content-1 block">{res.username}</span>
                         <span className="text-xs text-content-3 uppercase tracking-wider font-bold">
-                          {res.rating} ELO
+                          {res.highest_rating} ELO
                         </span>
                       </div>
                     </div>
@@ -250,7 +250,7 @@ export const SocialArea: React.FC<SocialAreaProps> = ({ onExit, onViewProfile })
                 </thead>
                 <tbody>
                   {leaderboard.map((p, index) => {
-                    let score = p.rating;
+                    let score = p.highest_rating;
                     if (leaderboardCategory === 'bullet') score = p.rating_bullet;
                     else if (leaderboardCategory === 'blitz') score = p.rating_blitz;
                     else if (leaderboardCategory === 'rapid') score = p.rating_rapid;

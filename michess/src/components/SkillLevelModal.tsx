@@ -28,7 +28,6 @@ export const SkillLevelModal: React.FC<SkillLevelModalProps> = ({ onComplete }) 
     
     try {
       const { error } = await supabase.from('profiles').update({
-        rating: selectedLevel,
         highest_rating: selectedLevel,
         rating_bullet: selectedLevel,
         rating_blitz: selectedLevel,

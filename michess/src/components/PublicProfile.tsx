@@ -64,7 +64,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ username, onExit, 
               <h1 className="text-4xl font-bold text-content-1 mb-2">{profile.username}</h1>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="bg-accent/10 text-accent px-3 py-1 rounded-full font-bold text-sm border border-accent/20">
-                  {profile.rating} ELO
+                  {profile.highest_rating} ELO
                 </span>
                 <span className="text-success font-bold bg-success/10 px-3 py-1 rounded-full text-sm border border-success/20 flex items-center gap-1">
                   <ShieldCheck size={14} /> Active

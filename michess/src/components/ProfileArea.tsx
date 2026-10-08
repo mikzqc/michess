@@ -218,7 +218,7 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Overall Rating</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.rating || 100}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.highest_rating || 100}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Bullet</span>
