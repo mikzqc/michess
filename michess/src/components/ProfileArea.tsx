@@ -10,9 +10,10 @@ import { Input } from './ui/Input';
 interface ProfileAreaProps {
   onExit: () => void;
   onViewProfile?: (username: string) => void;
+  onProfileUpdate?: () => void;
 }
 
-export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile }) => {
+export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile, onProfileUpdate }) => {
   const { user } = useAuth();
   const { profile, loading, updateUsername, updateAvatar } = useProfile();
   const { addToast } = useToast();
@@ -41,6 +42,7 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile 
       addToast('Username updated successfully!', 'success');
       setIsEditing(false);
       setNewUsername('');
+      if (onProfileUpdate) onProfileUpdate();
     } else {
       addToast(`Error: ${error}`, 'error');
     }

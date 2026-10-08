@@ -392,6 +392,7 @@ function App() {
           <ProfileArea 
             onExit={() => handleSetView('home')} 
             onViewProfile={handleViewProfile}
+            onProfileUpdate={refreshProfile}
           />
         )}
 
