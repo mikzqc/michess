@@ -50,7 +50,7 @@ export function useChallenges() {
     if (!user || !supabase) return;
 
     const subscription = supabase
-      .channel('challenges_channel')
+      .channel(`challenges_channel_${Math.random().toString(36).substring(7)}`)
       .on(
         'postgres_changes',
         {
