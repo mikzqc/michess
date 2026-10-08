@@ -8,6 +8,9 @@ import { useAppTheme } from '../hooks/useAppTheme';
 import { getCustomPieces } from '../utils/themes';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../services/supabase';
+import { useToast } from './Toast';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -19,6 +22,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   const [cleared, setCleared] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [showPiecePreview, setShowPiecePreview] = useState(false);
+  const { user } = useAuth();
+  const { addToast } = useToast();
+  const [resettingPassword, setResettingPassword] = useState(false);
   
   const currentPieces = getCustomPieces(settings.pieceSet);
 
@@ -44,6 +50,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     setTimeout(() => {
       setCleared(false);
     }, 3000);
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user || !user.email || !supabase) return;
+    setResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: window.location.origin,
+      });
+      if (error) throw error;
+      addToast('Password reset email sent!', 'success');
+    } catch (err: any) {
+      addToast(err.message || 'Failed to send reset email.', 'error');
+    } finally {
+      setResettingPassword(false);
+    }
   };
 
   return (
@@ -289,6 +311,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             </Button>
           </div>
         </div>
+
+        {user && (
+          <div className="flex flex-col gap-4">
+            <h3 className="text-xs font-bold tracking-widest text-content-3 uppercase">Account</h3>
+            <div className="pt-2">
+              <Button 
+                variant="secondary"
+                fullWidth
+                onClick={handlePasswordReset}
+                disabled={resettingPassword}
+              >
+                {resettingPassword ? 'Sending...' : 'Send Password Reset Email'}
+              </Button>
+            </div>
+          </div>
+        )}
         
       </div>
     </Modal>

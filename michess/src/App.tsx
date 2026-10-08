@@ -463,10 +463,10 @@ function App() {
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       {showResetPassword && <ResetPasswordModal onClose={() => setShowResetPassword(false)} />}
       {user && profile && (!profile.games_played || profile.games_played === 0) && !localStorage.getItem('skill_modal_' + user.id) && !skillModalDismissed && (
-        <SkillLevelModal onComplete={() => {
+        <SkillLevelModal onComplete={async () => {
           localStorage.setItem('skill_modal_' + user.id, 'true');
           setSkillModalDismissed(true);
-          refreshProfile();
+          await refreshProfile();
         }} />
       )}
 

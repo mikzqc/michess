@@ -6,7 +6,7 @@ import { useToast } from './Toast';
 import { Trophy, Star, Shield, Crown } from 'lucide-react';
 
 interface SkillLevelModalProps {
-  onComplete: () => void;
+  onComplete: () => void | Promise<void>;
 }
 
 export const SkillLevelModal: React.FC<SkillLevelModalProps> = ({ onComplete }) => {
@@ -38,7 +38,7 @@ export const SkillLevelModal: React.FC<SkillLevelModalProps> = ({ onComplete }) 
       if (error) throw error;
       
       addToast('Starting skill level set!', 'success');
-      onComplete();
+      await onComplete();
     } catch (err: any) {
       console.error('Error setting skill level:', err);
       addToast(`Failed: ${err.message || err.details || JSON.stringify(err)}`, 'error');
