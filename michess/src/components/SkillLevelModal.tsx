@@ -39,9 +39,9 @@ export const SkillLevelModal: React.FC<SkillLevelModalProps> = ({ onComplete }) 
       
       addToast('Starting skill level set!', 'success');
       onComplete();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error setting skill level:', err);
-      addToast('Failed to set skill level', 'error');
+      addToast(`Failed: ${err.message || err.details || JSON.stringify(err)}`, 'error');
     } finally {
       setLoading(false);
     }
