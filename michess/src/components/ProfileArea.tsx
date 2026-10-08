@@ -271,9 +271,25 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Longest Streak</span>
                 <span className="text-2xl text-success font-bold">{profile?.longest_win_streak || 0}</span>
               </div>
+            </div>
+
+            <h2 className="text-xl font-bold text-content-1 mt-6 mb-2">Puzzles</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
-                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Puzzles</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.puzzle_rating || 100}</span>
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Rating</span>
+                <span className="text-2xl text-accent font-bold">{profile?.puzzle_rating || 1200}</span>
+              </div>
+              <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Solved</span>
+                <span className="text-2xl text-success font-bold">{profile?.puzzles_solved || 0}</span>
+              </div>
+              <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Failed</span>
+                <span className="text-2xl text-error font-bold">{profile?.puzzles_failed || 0}</span>
+              </div>
+              <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Best Streak</span>
+                <span className="text-2xl text-warning font-bold">{profile?.puzzle_best_streak || 0}</span>
               </div>
             </div>
             

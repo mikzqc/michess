@@ -11,6 +11,10 @@ export interface UserProfile {
   rating_blitz: number;
   rating_rapid: number;
   puzzle_rating: number;
+  puzzles_solved: number;
+  puzzles_failed: number;
+  puzzle_streak: number;
+  puzzle_best_streak: number;
   highest_rating: number;
   games_played: number;
   wins: number;

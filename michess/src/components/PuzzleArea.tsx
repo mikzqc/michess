@@ -24,6 +24,7 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
     nextPuzzle,
     resetProgress,
     retry,
+    loadDailyPuzzle,
     orientation,
     chess
   } = usePuzzle();
@@ -133,7 +134,7 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
         </div>
 
         {!isSolved && !isFailed && (
-          <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center justify-between gap-2 px-1 flex-wrap">
             <Button
               variant="ghost"
               size="sm"
@@ -141,7 +142,16 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
               className="text-xs text-content-3 hover:text-content-1"
               title="Reset progress to Puzzle #1 (Lowest Elo)"
             >
-              <RotateCcw size={14} className="mr-1" /> Reset to #1
+              <RotateCcw size={14} className="mr-1" /> Reset
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadDailyPuzzle}
+              className="text-xs text-accent border-accent/30 hover:bg-accent/10"
+              title="Play today's daily puzzle"
+            >
+              Daily Puzzle
             </Button>
             <Button
               variant="secondary"

@@ -117,9 +117,11 @@ export function usePuzzle() {
           // Sync puzzle rating to profile if authenticated
           if (user && supabase && puzzle) {
             supabase
-              .from('profiles')
-              .update({ puzzle_rating: puzzle.rating })
-              .eq('id', user.id)
+              .rpc('update_puzzle_stats', { 
+                p_user_id: user.id, 
+                p_solved: true, 
+                p_new_rating: puzzle.rating 
+              })
               .then(() => {});
           }
         } else {
@@ -142,9 +144,11 @@ export function usePuzzle() {
               setIsSolved(true);
               if (user && supabase && puzzle) {
                 supabase
-                  .from('profiles')
-                  .update({ puzzle_rating: puzzle.rating })
-                  .eq('id', user.id)
+                  .rpc('update_puzzle_stats', { 
+                    p_user_id: user.id, 
+                    p_solved: true, 
+                    p_new_rating: puzzle.rating 
+                  })
                   .then(() => {});
               }
             }
@@ -162,6 +166,15 @@ export function usePuzzle() {
         return false;
       }
       setIsFailed(true);
+      if (user && supabase && puzzle) {
+        supabase
+          .rpc('update_puzzle_stats', { 
+            p_user_id: user.id, 
+            p_solved: false, 
+            p_new_rating: puzzle.rating 
+          })
+          .then(() => {});
+      }
       return false;
     }
   };
@@ -201,6 +214,22 @@ export function usePuzzle() {
     }
   }, [chess, puzzle]);
 
+  const loadDailyPuzzle = useCallback(() => {
+    // Generate an index based on the current date
+    const today = new Date();
+    const dateString = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    
+    // Simple string hash
+    let hash = 0;
+    for (let i = 0; i < dateString.length; i++) {
+      hash = ((hash << 5) - hash) + dateString.charCodeAt(i);
+      hash |= 0;
+    }
+    
+    const targetIdx = Math.abs(hash) % (cachedSortedPuzzles?.length || 10000);
+    loadPuzzleAtIndex(targetIdx);
+  }, [loadPuzzleAtIndex]);
+
   return {
     fen,
     puzzle,
@@ -215,6 +244,7 @@ export function usePuzzle() {
     skipPuzzle: nextPuzzle,
     resetProgress,
     retry,
+    loadDailyPuzzle,
     orientation: playerColor, // Stays fixed to the player's side throughout puzzle moves!
     chess
   };
