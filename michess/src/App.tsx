@@ -25,10 +25,12 @@ import { useToast } from './components/Toast';
 import { PublicProfile } from './components/PublicProfile';
 import { SocialArea } from './components/SocialArea';
 import { PuzzleArea } from './components/PuzzleArea';
-import { Puzzle as PuzzleIcon } from 'lucide-react';
+import { Puzzle as PuzzleIcon, Info, LifeBuoy } from 'lucide-react';
 import { SkillLevelModal } from './components/SkillLevelModal';
+import { AboutArea } from './components/AboutArea';
+import { SupportArea } from './components/SupportArea';
 
-type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles';
+type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'about' | 'support';
 
 function App() {
   const [view, setView] = useState<ViewState>('home');
@@ -238,6 +240,20 @@ function App() {
             className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'social' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
           >
             <Users size={18} /> Social
+          </button>
+
+          <button 
+            onClick={() => handleSetView('about')} 
+            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'about' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
+          >
+            <Info size={18} /> About
+          </button>
+
+          <button 
+            onClick={() => handleSetView('support')} 
+            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'support' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
+          >
+            <LifeBuoy size={18} /> Support
           </button>
 
           {!authLoading && (
@@ -456,6 +472,12 @@ function App() {
           <PuzzleArea 
             onExit={() => handleSetView('home')} 
           />
+        )}
+        {view === 'about' && (
+          <AboutArea onExit={() => handleSetView('home')} />
+        )}
+        {view === 'support' && (
+          <SupportArea onExit={() => handleSetView('home')} />
         )}
       </main>
 
