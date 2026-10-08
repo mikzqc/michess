@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, LifeBuoy, Mail, MessageSquare, Send, User, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, LifeBuoy, Mail, MessageSquare, Send, User, CheckCircle2, Paperclip, X } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { useAuth } from '../hooks/useAuth';
 import emailjs from '@emailjs/browser';
+import { supabase } from '../services/supabase';
 
 interface SupportAreaProps {
   onExit: () => void;
@@ -16,6 +17,7 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
   const [email, setEmail] = useState(user?.email || '');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [attachment, setAttachment] = useState<File | null>(null);
   
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -44,6 +46,33 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
     }
 
     try {
+      let attachmentUrl = '';
+      if (attachment) {
+        const fileExt = attachment.name.split('.').pop();
+        const userId = user?.id || Math.random().toString(36).substring(2, 15);
+        const fileName = `${userId}-${Math.random()}.${fileExt}`;
+        
+        if (supabase) {
+          const { error: uploadError } = await supabase.storage
+            .from('support')
+            .upload(fileName, attachment);
+            
+          if (uploadError) {
+            console.error("Failed to upload attachment:", uploadError);
+            // Proceed anyway but without attachment, or you can throw error
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from('support')
+              .getPublicUrl(fileName);
+            attachmentUrl = publicUrl;
+          }
+        }
+      }
+
+      const finalMessage = attachmentUrl 
+        ? `${message}\n\n[Attachment: ${attachmentUrl}]` 
+        : message;
+
       await emailjs.send(
         serviceId,
         templateId,
@@ -51,7 +80,7 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
           from_name: name,
           reply_to: email,
           subject: subject,
-          message: message,
+          message: finalMessage,
         },
         publicKey
       );
@@ -60,6 +89,7 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
       setName('');
       setSubject('');
       setMessage('');
+      setAttachment(null);
       if (!user?.email) setEmail('');
     } catch (err: any) {
       console.error('EmailJS Error:', err);
@@ -163,6 +193,49 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
                 required
                 disabled={loading}
               />
+            </div>
+
+            <div className="flex items-center gap-4 pt-1">
+              {attachment ? (
+                <div className="flex items-center gap-2 bg-surface-2 border border-border-1 rounded-lg px-3 py-2 text-sm text-content-2 flex-1 min-w-0">
+                  <Paperclip size={14} className="shrink-0" />
+                  <span className="truncate">{attachment.name}</span>
+                  <button 
+                    type="button" 
+                    onClick={() => setAttachment(null)}
+                    disabled={loading}
+                    className="ml-auto text-content-3 hover:text-error transition-colors p-1"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <Button 
+                  type="button"
+                  variant="secondary" 
+                  className="relative overflow-hidden w-full sm:w-auto text-sm h-10"
+                  disabled={loading}
+                >
+                  <input 
+                    type="file" 
+                    accept="image/*,.pdf,.doc,.docx" 
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                          setError('File is too large (max 5MB)');
+                        } else {
+                          setError(null);
+                          setAttachment(file);
+                        }
+                      }
+                    }}
+                  />
+                  <Paperclip size={16} className="mr-2" /> 
+                  Attach File or Image
+                </Button>
+              )}
             </div>
 
             <div className="pt-2">

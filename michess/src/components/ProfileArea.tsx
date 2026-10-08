@@ -15,7 +15,7 @@ interface ProfileAreaProps {
 
 export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile, onProfileUpdate }) => {
   const { user } = useAuth();
-  const { profile, loading, updateUsername, updateAvatar } = useProfile();
+  const { profile, loading, updateUsername, updateAvatar, uploadAvatar } = useProfile();
   const { addToast } = useToast();
   
   const [newUsername, setNewUsername] = useState('');
@@ -126,24 +126,51 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
         <div className="space-y-8 pt-6 border-t border-border-1">
           {/* Avatar Section */}
           <div className="pt-2">
-            <h2 className="text-xl font-bold text-content-1 mb-4">Avatar URL</h2>
-            <div className="flex flex-col gap-2">
-              <Input 
-                type="text" 
-                defaultValue={profile?.avatar_url || ''}
-                placeholder="https://example.com/avatar.png"
-                onBlur={async (e) => {
-                  const url = e.target.value.trim();
-                  if (url !== profile?.avatar_url) {
-                    setSaving(true);
-                    const { success, error } = await updateAvatar(url);
-                    if (success) addToast('Avatar updated', 'success');
-                    else addToast(`Error: ${error}`, 'error');
-                    setSaving(false);
-                  }
-                }}
-              />
-              <p className="text-xs text-content-3">Paste an image URL to update your avatar.</p>
+            <h2 className="text-xl font-bold text-content-1 mb-4">Avatar</h2>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <Input 
+                    type="text" 
+                    defaultValue={profile?.avatar_url || ''}
+                    placeholder="https://example.com/avatar.png"
+                    onBlur={async (e) => {
+                      const url = e.target.value.trim();
+                      if (url !== profile?.avatar_url) {
+                        setSaving(true);
+                        const { success, error } = await updateAvatar(url);
+                        if (success) addToast('Avatar updated', 'success');
+                        else addToast(`Error: ${error}`, 'error');
+                        setSaving(false);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="shrink-0 text-content-3 font-medium">OR</div>
+                <Button 
+                  variant="secondary" 
+                  className="shrink-0 relative overflow-hidden"
+                  disabled={saving}
+                >
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSaving(true);
+                        const { success, error } = await uploadAvatar(file);
+                        if (success) addToast('Avatar uploaded successfully', 'success');
+                        else addToast(`Error: ${error}`, 'error');
+                        setSaving(false);
+                      }
+                    }}
+                  />
+                  Upload File
+                </Button>
+              </div>
+              <p className="text-xs text-content-3">Paste an image URL or upload a file directly.</p>
             </div>
           </div>
 
