@@ -212,23 +212,23 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Overall Rating</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.rating || 1200}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating || 100}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Bullet</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.rating_bullet || 1200}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating_bullet || 100}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Blitz</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.rating_blitz || 1200}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating_blitz || 100}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Rapid</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.rating_rapid || 1200}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating_rapid || 100}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Highest Overall</span>
-                <span className="text-2xl text-warning font-bold">{profile?.highest_rating || 1200}</span>
+                <span className="text-2xl text-warning font-bold">{profile?.highest_rating || 100}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Games</span>
@@ -240,7 +240,7 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile 
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Puzzles</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.puzzle_rating || 1200}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.puzzle_rating || 100}</span>
               </div>
             </div>
             

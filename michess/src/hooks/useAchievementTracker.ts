@@ -28,10 +28,10 @@ export function useAchievementTracker() {
     
     // Rating (Overall rating doesn't exist explicitly in profile, so we use highest_rating or one of the time controls)
     const maxRating = Math.max(
-      profile.highest_rating || 1200, 
-      profile.rating_bullet || 1200, 
-      profile.rating_blitz || 1200, 
-      profile.rating_rapid || 1200
+      profile.highest_rating || 100, 
+      profile.rating_bullet || 100, 
+      profile.rating_blitz || 100, 
+      profile.rating_rapid || 100
     );
     
     checkAndUnlock('rating_1000', maxRating >= 1000);
