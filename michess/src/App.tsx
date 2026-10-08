@@ -29,8 +29,9 @@ import { Puzzle as PuzzleIcon, Info, LifeBuoy } from 'lucide-react';
 import { SkillLevelModal } from './components/SkillLevelModal';
 import { AboutArea } from './components/AboutArea';
 import { SupportArea } from './components/SupportArea';
+import { NotFoundArea } from './components/NotFoundArea';
 
-type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'about' | 'support';
+type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'about' | 'support' | '404';
 
 function App() {
   const [view, setView] = useState<ViewState>('home');
@@ -65,6 +66,14 @@ function App() {
       setView('public-profile');
     } else if (path === '/puzzles') {
       setView('puzzles');
+    } else if (path === '/about') {
+      setView('about');
+    } else if (path === '/support') {
+      setView('support');
+    } else if (path !== '/' && path !== '') {
+      setView('404');
+    } else {
+      setView('home');
     }
 
     let subscription: any = null;
@@ -82,15 +91,15 @@ function App() {
     };
   }, []);
 
-  // Force users to set a username if they just signed up
+  // Force users to set a username if they just signed up — but ONLY once auth has fully resolved
   useEffect(() => {
-    if (user && !profileLoading && !profile && view !== 'profile') {
+    if (!authLoading && user && !profileLoading && !profile && view !== 'profile') {
       setView('profile');
     }
-  }, [user, profile, profileLoading, view]);
+  }, [authLoading, user, profile, profileLoading, view]);
 
   const handleSetView = (v: ViewState) => {
-    if (user && !profileLoading && !profile && v !== 'profile') {
+    if (!authLoading && user && !profileLoading && !profile && v !== 'profile') {
       addToast('Please set a username first!', 'info');
       setView('profile');
       return;
@@ -100,6 +109,10 @@ function App() {
       window.history.pushState({}, '', '/');
     } else if (v === 'puzzles') {
       window.history.pushState({}, '', '/puzzles');
+    } else if (v === 'about') {
+      window.history.pushState({}, '', '/about');
+    } else if (v === 'support') {
+      window.history.pushState({}, '', '/support');
     }
     setView(v);
   };
@@ -242,20 +255,6 @@ function App() {
             <Users size={18} /> Social
           </button>
 
-          <button 
-            onClick={() => handleSetView('about')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'about' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
-          >
-            <Info size={18} /> About
-          </button>
-
-          <button 
-            onClick={() => handleSetView('support')} 
-            className={`transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg ${view === 'support' ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`}
-          >
-            <LifeBuoy size={18} /> Support
-          </button>
-
           {!authLoading && (
             <div className="ml-1 sm:ml-2 pl-3 sm:pl-6 border-l border-border-1 shrink-0">
               {user ? (
@@ -373,6 +372,25 @@ function App() {
                 <p className="text-content-3 text-sm">Analyze your PGNs with powerful engine review.</p>
               </button>
             </div>
+
+            {/* Footer links */}
+            <div className="mt-16 pt-6 border-t border-border-1/50 flex flex-wrap items-center justify-center gap-6 text-sm animate-slide-up" style={{ animationDelay: '500ms', animationFillMode: 'both' }}>
+              <button
+                onClick={() => handleSetView('about')}
+                className="text-content-3 hover:text-accent transition-colors flex items-center gap-1.5"
+              >
+                <Info size={14} /> About Michess
+              </button>
+              <span className="text-border-1">•</span>
+              <button
+                onClick={() => handleSetView('support')}
+                className="text-content-3 hover:text-accent transition-colors flex items-center gap-1.5"
+              >
+                <LifeBuoy size={14} /> Support & Contact
+              </button>
+              <span className="text-border-1">•</span>
+              <span className="text-content-3/50">© {new Date().getFullYear()} Michess</span>
+            </div>
           </div>
         )}
 
@@ -478,6 +496,9 @@ function App() {
         )}
         {view === 'support' && (
           <SupportArea onExit={() => handleSetView('home')} />
+        )}
+        {view === '404' && (
+          <NotFoundArea onExit={() => handleSetView('home')} />
         )}
       </main>
 

@@ -26,17 +26,20 @@ export interface UserProfile {
 }
 
 export function useProfile() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
+    if (authLoading) return;
+
     if (!user) {
       setProfile(null);
       setLoading(false);
       return;
     }
 
+    setLoading(true);
     try {
       if (!supabase) throw new Error('No supabase client');
       const { data, error } = await supabase
@@ -71,7 +74,7 @@ export function useProfile() {
 
   useEffect(() => {
     fetchProfile();
-  }, [user]);
+  }, [user, authLoading]);
 
   const updateUsername = async (newUsername: string) => {
     if (!supabase) return { success: false, error: 'Database connection error.' };
