@@ -18,6 +18,8 @@ import { ConfirmModal } from './ConfirmModal';
 import { PromotionDialog } from './PromotionDialog';
 import { GameOverModal } from './GameOverModal';
 import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
+import { PlayerAvatar } from './PlayerAvatar';
+import { useAuth } from '../hooks/useAuth';
 
 interface ComputerPlayAreaProps {
   difficulty: Difficulty;
@@ -30,6 +32,7 @@ interface ComputerPlayAreaProps {
 }
 
 export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, playerColor, onExit, onReview, onSaveGame, initialTimeMs = null, incrementMs = 0 }) => {
+  const { user } = useAuth();
   const { settings, updateSettings } = useSettings();
   const { addToast } = useToast();
   const [gameOverResult, setGameOverResult] = useState<string | null>(null);
@@ -241,9 +244,12 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
           <div className={`flex justify-between items-center mb-2 px-1 border p-3 rounded-lg transition-colors ${topClockActive && !isGameOver ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
             <div className="flex flex-col gap-1">
               <div className="font-bold text-gray-300 flex items-center gap-2">
-                <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-sm ${topColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
-                  {topColor === 'white' ? 'W' : 'B'}
-                </div>
+                <PlayerAvatar 
+                  userId={topColor === compColor ? null : user?.id}
+                  color={topColor}
+                  className="w-8 h-8 rounded shadow-sm text-sm"
+                  isBot={topColor === compColor}
+                />
                 {topColor === compColor ? (
                   <><BotIcon /> Stockfish (Level {difficulty})</>
                 ) : (
@@ -316,9 +322,12 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
           <div className={`flex justify-between items-center mt-2 px-1 border p-3 rounded-lg transition-colors ${bottomClockActive && !isGameOver ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
             <div className="flex flex-col gap-1">
               <div className="font-bold text-gray-300 flex items-center gap-2">
-                <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-sm ${bottomColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
-                  {bottomColor === 'white' ? 'W' : 'B'}
-                </div>
+                <PlayerAvatar 
+                  userId={bottomColor === compColor ? null : user?.id}
+                  color={bottomColor}
+                  className="w-8 h-8 rounded shadow-sm text-sm"
+                  isBot={bottomColor === compColor}
+                />
                 {bottomColor === compColor ? (
                   <><BotIcon /> Stockfish (Level {difficulty})</>
                 ) : (

@@ -14,6 +14,7 @@ import { useToast } from './Toast';
 import { useSettings } from '../hooks/useSettings';
 import { calculateMaterial } from '../utils/material';
 import { CapturedPieces } from './CapturedPieces';
+import { PlayerAvatar } from './PlayerAvatar';
 import { audioService } from '../services/audio';
 import { ConfirmModal } from './ConfirmModal';
 import { PromotionDialog } from './PromotionDialog';
@@ -401,6 +402,8 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
 
   const topColor = boardOrientation === 'white' ? 'black' : 'white';
   const bottomColor = boardOrientation === 'white' ? 'white' : 'black';
+  const topPlayerId = topColor === 'white' ? gameData.white_player : gameData.black_player;
+  const bottomPlayerId = bottomColor === 'white' ? gameData.white_player : gameData.black_player;
   const topLabel = isPlayer ? 'Opponent' : (topColor === 'white' ? 'White (Anonymous)' : 'Black (Anonymous)');
   const bottomLabel = isPlayer ? 'You' : (bottomColor === 'white' ? 'White (Anonymous)' : 'Black (Anonymous)');
 
@@ -457,9 +460,11 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
           <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${topClockActive && gameData.status === 'active' ? 'bg-surface-3 border-accent shadow-md' : 'bg-surface-2 border-border-1 shadow-sm'}`}>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl shadow-sm ${topColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-[#222] text-white border border-gray-600'}`}>
-                  {topColor === 'white' ? 'W' : 'B'}
-                </div>
+                <PlayerAvatar 
+                  userId={topPlayerId} 
+                  color={topColor} 
+                  className="w-10 h-10 rounded shadow-sm text-xl"
+                />
                 <div className="font-bold text-content-1 text-lg">{topLabel}</div>
               </div>
               <CapturedPieces pieces={topCaptured} advantage={topAdvantage} pieceSet={settings.pieceSet} />
@@ -543,9 +548,11 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
           <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${bottomClockActive && gameData.status === 'active' ? 'bg-surface-3 border-accent shadow-md' : 'bg-surface-2 border-border-1 shadow-sm'}`}>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl shadow-sm ${bottomColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-[#222] text-white border border-gray-600'}`}>
-                  {bottomColor === 'white' ? 'W' : 'B'}
-                </div>
+                <PlayerAvatar 
+                  userId={bottomPlayerId} 
+                  color={bottomColor} 
+                  className="w-10 h-10 rounded shadow-sm text-xl"
+                />
                 <div className="font-bold text-content-1 text-lg">{bottomLabel}</div>
               </div>
               <CapturedPieces pieces={bottomCaptured} advantage={bottomAdvantage} pieceSet={settings.pieceSet} />

@@ -17,6 +17,8 @@ import { ConfirmModal } from './ConfirmModal';
 import { GameOverModal } from './GameOverModal';
 import { useToast } from './Toast';
 import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
+import { useAuth } from '../hooks/useAuth';
+import { PlayerAvatar } from './PlayerAvatar';
 
 interface PlayAreaProps {
   onReview?: (pgn: string) => void;
@@ -27,6 +29,7 @@ interface PlayAreaProps {
 }
 
 export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome, initialTimeMs = null, incrementMs = 0 }) => {
+  const { user } = useAuth();
   const { settings, updateSettings } = useSettings();
   const { addToast } = useToast();
   const { fen, history, makeMove, resetGame, getPgn, game } = useChess();
@@ -255,9 +258,11 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
           <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${topClockActive && !isGameOver ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl ${topColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
-                  {topColor === 'white' ? 'W' : 'B'}
-                </div>
+                <PlayerAvatar 
+                  userId={null} 
+                  color={topColor} 
+                  className="w-10 h-10 rounded shadow-sm text-xl"
+                />
                 <div className="font-bold text-white text-lg">Player 2</div>
               </div>
               <CapturedPieces pieces={topCaptured} advantage={topAdvantage} pieceSet={settings.pieceSet} />
@@ -327,9 +332,11 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
           <div className={`flex justify-between items-center border p-3 rounded-lg transition-colors ${bottomClockActive && !isGameOver ? 'bg-slate-800 border-chess-accent shadow-md' : 'bg-chess-panel border-chess-border'}`}>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xl ${bottomColor === 'white' ? 'bg-white text-black border border-gray-400' : 'bg-black text-white border border-gray-600'}`}>
-                  {bottomColor === 'white' ? 'W' : 'B'}
-                </div>
+                <PlayerAvatar 
+                  userId={user?.id} 
+                  color={bottomColor} 
+                  className="w-10 h-10 rounded shadow-sm text-xl"
+                />
                 <div className="font-bold text-white text-lg">Player 1</div>
               </div>
               <CapturedPieces pieces={bottomCaptured} advantage={bottomAdvantage} pieceSet={settings.pieceSet} />
