@@ -74,7 +74,7 @@ export const AboutArea: React.FC<AboutAreaProps> = ({ onExit }) => {
             </div>
             
             <div className="flex items-center gap-3">
-              <Button variant="secondary" className="gap-2" onClick={() => window.open('https://github.com', '_blank')}>
+              <Button variant="secondary" className="gap-2" onClick={() => window.open('https://github.com/mikzqc/michess', '_blank')}>
                 <Code size={18} /> Source Code
               </Button>
             </div>
