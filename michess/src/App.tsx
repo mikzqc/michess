@@ -64,7 +64,20 @@ function App() {
     }
   }, []);
 
+  // Force users to set a username if they just signed up
+  useEffect(() => {
+    if (user && !profileLoading && !profile && view !== 'profile') {
+      setView('profile');
+    }
+  }, [user, profile, profileLoading, view]);
+
   const handleSetView = (v: ViewState) => {
+    if (user && !profileLoading && !profile && v !== 'profile') {
+      addToast('Please set a username first!', 'info');
+      setView('profile');
+      return;
+    }
+
     if (v === 'home') {
       window.history.pushState({}, '', '/');
     } else if (v === 'puzzles') {
