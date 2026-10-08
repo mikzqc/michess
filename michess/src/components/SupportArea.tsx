@@ -69,10 +69,6 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
         }
       }
 
-      const finalMessage = attachmentUrl 
-        ? `${message}\n\n[Attachment: ${attachmentUrl}]` 
-        : message;
-
       await emailjs.send(
         serviceId,
         templateId,
@@ -80,7 +76,7 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
           from_name: name,
           reply_to: email,
           subject: subject,
-          message: finalMessage,
+          message: message,
           attachment_url: attachmentUrl || 'No attachment provided',
         },
         publicKey
