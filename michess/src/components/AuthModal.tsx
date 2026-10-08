@@ -26,6 +26,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     if (lower.includes('invalid login')) return "Incorrect email or password.";
     if (lower.includes('already registered')) return "An account with this email already exists.";
     if (lower.includes('password should be')) return "Password must be at least 6 characters.";
+    if (lower.includes('networkerror') || lower.includes('failed to fetch')) return "Network Error: Please disable your Adblocker / Brave Shields, or check your internet connection.";
     return errMessage;
   };
 
