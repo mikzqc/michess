@@ -13,13 +13,13 @@ export const SkillLevelModal: React.FC<SkillLevelModalProps> = ({ onComplete }) 
   const { user } = useAuth();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [selectedLevel, setSelectedLevel] = useState<number | null>(400);
+  const [selectedLevel, setSelectedLevel] = useState<number | null>(100);
 
   const levels = [
-    { value: 400, label: 'New to Chess', icon: Star, desc: 'Most common', color: 'text-success' },
-    { value: 800, label: 'Beginner', icon: Shield, desc: 'Knows how pieces move', color: 'text-content-1' },
-    { value: 1200, label: 'Intermediate', icon: Trophy, desc: 'Has played quite a bit', color: 'text-content-1' },
-    { value: 1600, label: 'Advanced', icon: Crown, desc: 'Experienced tournament player', color: 'text-content-1' },
+    { value: 100, label: 'New to Chess', icon: Star, desc: 'Most common', color: 'text-success' },
+    { value: 400, label: 'Beginner', icon: Shield, desc: 'Knows how pieces move', color: 'text-content-1' },
+    { value: 800, label: 'Intermediate', icon: Trophy, desc: 'Has played quite a bit', color: 'text-content-1' },
+    { value: 1100, label: 'Advanced', icon: Crown, desc: 'Experienced tournament player', color: 'text-content-1' },
   ];
 
   const handleContinue = async () => {
