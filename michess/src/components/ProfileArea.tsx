@@ -82,28 +82,28 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-accent/20 to-surface-2/0 z-0"></div>
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-surface-3 rounded-full flex items-center justify-center border-2 border-border-2 overflow-hidden shadow-sm">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className="w-16 h-16 shrink-0 bg-surface-3 rounded-full flex items-center justify-center border-2 border-border-2 overflow-hidden shadow-sm">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <User size={32} className="text-content-3" />
               )}
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-content-1 mb-1 min-h-[36px] flex items-center">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold text-content-1 mb-1 min-h-[36px] flex items-center break-all">
                 {loading ? (
                   <div className="w-32 h-6 animate-pulse bg-content-3/30 rounded-full" />
                 ) : (
                   profile?.username || 'Player'
                 )}
               </h1>
-              <p className="text-content-3 text-sm font-medium flex items-center gap-1">
-                <Mail size={14} /> {user.email}
+              <p className="text-content-3 text-sm font-medium flex items-center gap-1 truncate">
+                <Mail size={14} className="shrink-0" /> <span className="truncate">{user.email}</span>
               </p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
             {onViewProfile && profile?.username && (
               <Button 
                 variant="primary"

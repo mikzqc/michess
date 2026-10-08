@@ -52,7 +52,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ username, onExit, 
 
       <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-8 relative overflow-hidden shadow-sm animate-slide-up mb-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-6 relative z-10">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 min-w-0 flex-1">
             <div className="w-24 h-24 bg-surface-3 rounded-full flex items-center justify-center border-4 border-border-2 overflow-hidden shadow-sm shrink-0">
               {profile.avatar_url ? (
                 <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
@@ -60,8 +60,8 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ username, onExit, 
                 <User size={48} className="text-content-3" />
               )}
             </div>
-            <div>
-              <h1 className="text-4xl font-bold text-content-1 mb-2">{profile.username}</h1>
+            <div className="min-w-0">
+              <h1 className="text-4xl font-bold text-content-1 mb-2 break-all">{profile.username}</h1>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="bg-accent/10 text-accent px-3 py-1 rounded-full font-bold text-sm border border-accent/20">
                   {profile.highest_rating} ELO
@@ -73,7 +73,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ username, onExit, 
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 shrink-0">
             <Button onClick={() => onChallenge(profile.id)}>
               <Swords size={18} className="mr-2" /> Challenge
             </Button>
