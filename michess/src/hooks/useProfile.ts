@@ -48,6 +48,18 @@ export function useProfile() {
       if (!error && data) {
         setProfile(data as UserProfile);
       } else {
+        // If no profile exists, but they have a username from signup metadata, auto-create it!
+        if (user.user_metadata?.username) {
+          const { data: newProfile, error: rpcError } = await supabase.rpc('update_username', { 
+            p_new_username: user.user_metadata.username 
+          });
+          
+          if (!rpcError && newProfile) {
+            setProfile(newProfile as UserProfile);
+            setLoading(false);
+            return;
+          }
+        }
         setProfile(null);
       }
     } catch (err) {

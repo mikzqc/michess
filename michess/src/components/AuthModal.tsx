@@ -13,6 +13,7 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,12 +47,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         if (error) throw error;
         onClose();
       } else {
+        if (!username || username.trim().length < 3) {
+          throw new Error('Username must be at least 3 characters');
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              username: username.trim()
+            }
+          }
         });
         if (error) throw error;
-        addToast('Sign up successful! You are now logged in.', 'success');
+        addToast('Sign up successful! Please check your email to verify.', 'success');
         onClose();
       }
     } catch (err: any) {
@@ -82,6 +91,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
           icon={<Mail size={18} />}
           placeholder="you@example.com"
         />
+
+        {!isLogin && (
+          <Input 
+            label="Username"
+            type="text" 
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            required
+            disabled={loading}
+            placeholder="Choose a username"
+            minLength={3}
+            maxLength={20}
+          />
+        )}
 
         <div className="relative">
           <Input 
