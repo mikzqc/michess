@@ -273,7 +273,16 @@ function App() {
                   {profileLoading ? (
                     <div className="w-12 h-3 animate-pulse bg-content-3/30 rounded-full" />
                   ) : (
-                    profile?.username || 'Profile'
+                    <div className="flex items-center gap-2">
+                      {profile?.avatar_url && (
+                        <img 
+                          src={profile.avatar_url} 
+                          alt="Avatar" 
+                          className="w-5 h-5 rounded-full object-cover" 
+                        />
+                      )}
+                      <span>{profile?.username || 'Profile'}</span>
+                    </div>
                   )}
                 </button>
               ) : (
