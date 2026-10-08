@@ -218,7 +218,7 @@ function App() {
                   onClick={() => handleSetView('profile')}
                   className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 ${view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1'}`}
                 >
-                  {profile?.username || user.email?.split('@')[0] || 'Profile'}
+                  {profile?.username || 'Profile'}
                 </button>
               ) : (
                 <button 
