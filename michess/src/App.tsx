@@ -12,6 +12,7 @@ import { HistoryList } from './components/HistoryList';
 import type { HistoryGame } from './types/history';
 import { useAuth } from './hooks/useAuth';
 import { AuthModal } from './components/AuthModal';
+import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { ProfileArea } from './components/ProfileArea';
 import { LinkPlayArea } from './components/LinkPlayArea';
 import { useProfile } from './hooks/useProfile';
@@ -41,6 +42,7 @@ function App() {
   const [linkInviteCode, setLinkInviteCode] = useState<string | null>(null);
   const [setupMode, setSetupMode] = useState<SetupMode | null>(null);
   const [skillModalDismissed, setSkillModalDismissed] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const { addToast } = useToast();
   const { profile, loading: profileLoading, refreshProfile } = useProfile();
   useAchievementTracker();
@@ -62,6 +64,20 @@ function App() {
     } else if (path === '/puzzles') {
       setView('puzzles');
     }
+
+    let subscription: any = null;
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange((event, _session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setShowResetPassword(true);
+        }
+      });
+      subscription = data.subscription;
+    }
+
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
   }, []);
 
   // Force users to set a username if they just signed up
@@ -445,6 +461,7 @@ function App() {
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showResetPassword && <ResetPasswordModal onClose={() => setShowResetPassword(false)} />}
       {user && profile && (!profile.games_played || profile.games_played === 0) && !localStorage.getItem('skill_modal_' + user.id) && !skillModalDismissed && (
         <SkillLevelModal onComplete={() => {
           localStorage.setItem('skill_modal_' + user.id, 'true');
