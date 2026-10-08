@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, LifeBuoy, Mail, MessageSquare, Send, User, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, LifeBuoy, Mail, MessageSquare, Send, User } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { useAuth } from '../hooks/useAuth';
@@ -15,49 +15,11 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
   const [email, setEmail] = useState(user?.email || '');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
-
-    try {
-      const response = await fetch("https://formsubmit.co/ajax/michess.support@gmail.com", {
-        method: "POST",
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          subject,
-          message,
-          _subject: `Michess Support: ${subject}`
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message. Please try again later.');
-      }
-
-      setSuccess(true);
-      setName('');
-      setSubject('');
-      setMessage('');
-      if (!user?.email) setEmail('');
-      
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Keep email synced if user loads late
+  useEffect(() => {
+    if (user?.email) setEmail(user.email);
+  }, [user]);
 
   return (
     <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 h-full flex flex-col py-6">
@@ -83,96 +45,75 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
             </p>
           </div>
 
-          {success ? (
-            <div className="bg-success/10 border border-success/30 rounded-2xl p-8 text-center animate-fade-in flex flex-col items-center">
-              <CheckCircle2 size={48} className="text-success mb-4" />
-              <h3 className="text-xl font-bold text-content-1 mb-2">Message Sent!</h3>
-              <p className="text-content-3 mb-6">
-                Thanks for reaching out to Michess Support. We'll get back to you at <strong>{user?.email || email}</strong> as soon as possible.
-              </p>
-              <Button onClick={() => setSuccess(false)}>
-                Send another message
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <div className="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
+          <form 
+            action="https://formsubmit.co/michess.support@gmail.com" 
+            method="POST" 
+            className="space-y-6"
+          >
+            {/* FormSubmit Configuration */}
+            <input type="hidden" name="_next" value={window.location.href} />
+            <input type="hidden" name="_captcha" value="false" />
+            <input type="hidden" name="_subject" value={`Michess Support: ${subject || 'New Message'}`} />
+            <input type="hidden" name="_template" value="box" />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input 
-                  label="Your Name"
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="John Doe"
-                  required
-                  icon={<User size={18} />}
-                  disabled={loading}
-                />
-                
-                <Input 
-                  label="Email Address"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="john@example.com"
-                  required
-                  icon={<Mail size={18} />}
-                  disabled={loading || !!user?.email} // Disable if they are logged in so they don't change their return address
-                />
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input 
-                label="Subject"
+                label="Your Name"
+                name="name"
                 type="text"
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-                placeholder="What is this about?"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="John Doe"
                 required
-                icon={<MessageSquare size={18} />}
-                disabled={loading}
+                icon={<User size={18} />}
               />
+              
+              <Input 
+                label="Email Address"
+                name="email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="john@example.com"
+                required
+                icon={<Mail size={18} />}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-content-2">
-                  Message
-                </label>
-                <textarea 
-                  value={message}
-                  onChange={e => setMessage(e.target.value)}
-                  className="w-full bg-surface-1 border border-border-1 rounded-lg px-4 py-3 text-content-1 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors resize-y min-h-[150px]"
-                  placeholder="Describe your issue or feedback in detail..."
-                  required
-                  disabled={loading}
-                />
-              </div>
+            <Input 
+              label="Subject"
+              name="subject"
+              type="text"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              placeholder="What is this about?"
+              required
+              icon={<MessageSquare size={18} />}
+            />
 
-              <div className="pt-2">
-                <Button type="submit" fullWidth disabled={loading}>
-                  {loading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Send size={18} className="mr-2" /> Send Message
-                    </>
-                  )}
-                </Button>
-                <p className="text-center text-xs text-content-3 mt-4">
-                  Powered by FormSubmit. Replies will be sent to your email.
-                </p>
-              </div>
-            </form>
-          )}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-content-2">
+                Message
+              </label>
+              <textarea 
+                name="message"
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                className="w-full bg-surface-1 border border-border-1 rounded-lg px-4 py-3 text-content-1 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors resize-y min-h-[150px]"
+                placeholder="Describe your issue or feedback in detail..."
+                required
+              />
+            </div>
+
+            <div className="pt-2">
+              <Button type="submit" fullWidth>
+                <Send size={18} className="mr-2" /> Send Message
+              </Button>
+              <p className="text-center text-xs text-content-3 mt-4">
+                Powered by FormSubmit. Replies will be sent to your email.
+              </p>
+            </div>
+          </form>
         </div>
       </div>
     </div>
