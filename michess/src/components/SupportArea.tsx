@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, LifeBuoy, Mail, MessageSquare, Send, User } from 'lucide-react';
+import { ArrowLeft, LifeBuoy, Mail, MessageSquare, Send, User, CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { useAuth } from '../hooks/useAuth';
+import emailjs from '@emailjs/browser';
 
 interface SupportAreaProps {
   onExit: () => void;
@@ -15,11 +16,58 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
   const [email, setEmail] = useState(user?.email || '');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Keep email synced if user loads late
   useEffect(() => {
     if (user?.email) setEmail(user.email);
   }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    // EmailJS environment variables
+    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+    if (!serviceId || !templateId || !publicKey) {
+      setError('EmailJS is not configured. Please add VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID, and VITE_EMAILJS_PUBLIC_KEY to your .env file or Vercel variables.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await emailjs.send(
+        serviceId,
+        templateId,
+        {
+          from_name: name,
+          reply_to: email,
+          subject: subject,
+          message: message,
+        },
+        publicKey
+      );
+
+      setSuccess(true);
+      setName('');
+      setSubject('');
+      setMessage('');
+      if (!user?.email) setEmail('');
+    } catch (err: any) {
+      console.error('EmailJS Error:', err);
+      setError('Failed to send message. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 h-full flex flex-col py-6">
@@ -45,18 +93,26 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
             </p>
           </div>
 
-          <form 
-            action="https://formsubmit.co/michess.support@gmail.com" 
-            method="POST" 
-            className="space-y-6"
-          >
-            {/* FormSubmit Configuration */}
-            <input type="hidden" name="_next" value={window.location.href} />
-            <input type="hidden" name="_captcha" value="false" />
-            <input type="hidden" name="_subject" value={`Michess Support: ${subject || 'New Message'}`} />
-            <input type="hidden" name="_template" value="box" />
+          {success ? (
+            <div className="bg-success/10 border border-success/30 rounded-2xl p-8 text-center animate-fade-in flex flex-col items-center">
+              <CheckCircle2 size={48} className="text-success mb-4" />
+              <h3 className="text-xl font-bold text-content-1 mb-2">Message Sent!</h3>
+              <p className="text-content-3 mb-6">
+                Thanks for reaching out to Michess Support. We'll get back to you at <strong>{user?.email || email}</strong> as soon as possible.
+              </p>
+              <Button onClick={() => setSuccess(false)}>
+                Send another message
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input 
                 label="Your Name"
                 name="name"
@@ -66,6 +122,7 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
                 placeholder="John Doe"
                 required
                 icon={<User size={18} />}
+                disabled={loading}
               />
               
               <Input 
@@ -77,6 +134,7 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
                 placeholder="john@example.com"
                 required
                 icon={<Mail size={18} />}
+                disabled={loading || !!user?.email} // Disable if they are logged in so they don't change their return address
               />
             </div>
 
@@ -89,6 +147,7 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
               placeholder="What is this about?"
               required
               icon={<MessageSquare size={18} />}
+              disabled={loading}
             />
 
             <div className="space-y-2">
@@ -102,18 +161,32 @@ export const SupportArea: React.FC<SupportAreaProps> = ({ onExit }) => {
                 className="w-full bg-surface-1 border border-border-1 rounded-lg px-4 py-3 text-content-1 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors resize-y min-h-[150px]"
                 placeholder="Describe your issue or feedback in detail..."
                 required
+                disabled={loading}
               />
             </div>
 
             <div className="pt-2">
-              <Button type="submit" fullWidth>
-                <Send size={18} className="mr-2" /> Send Message
+              <Button type="submit" fullWidth disabled={loading}>
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} className="mr-2" /> Send Message
+                  </>
+                )}
               </Button>
               <p className="text-center text-xs text-content-3 mt-4">
-                Powered by FormSubmit. Replies will be sent to your email.
+                Powered by EmailJS. Replies will be sent to your email.
               </p>
             </div>
           </form>
+          )}
         </div>
       </div>
     </div>
