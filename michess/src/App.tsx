@@ -32,6 +32,7 @@ import { SupportArea } from './components/SupportArea';
 import { NotFoundArea } from './components/NotFoundArea';
 import { NotificationDropdown } from './components/NotificationDropdown';
 import { useChallenges } from './hooks/useChallenges';
+import heroImage from './assets/hero.png';
 
 type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'about' | 'support' | '404';
 
@@ -380,10 +381,10 @@ function App() {
               <div className="flex-1 w-full max-w-md lg:max-w-none animate-slide-in-right relative">
                 <div className="absolute inset-0 bg-gradient-to-tr from-accent/20 to-info/20 rounded-3xl blur-3xl -z-10 transform rotate-6 scale-105"></div>
                 <img 
-                  src="/src/assets/hero.png" 
+                  src={heroImage} 
                   alt="Chess Board" 
-                  className="w-full h-auto drop-shadow-2xl rounded-3xl border border-white/10"
-                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  className="w-full h-auto drop-shadow-2xl rounded-3xl"
+                  onError={(e) => { e.currentTarget.src = '/hero.png' }}
                 />
               </div>
             </div>
