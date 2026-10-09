@@ -1,891 +1,732 @@
-IMPORTANT — EXISTING PROJECT
+\# MICHESS — PROJECT RULES
 
 
 
-This project has already been created and is located at:
+\## 1. Project Overview
 
 
 
-C:\\Users\\mikzqc\\Documents\\Michess\\michess
+Michess is a lightweight, modern chess website focused on playing chess, analyzing games, solving puzzles, and improving as a player.
 
 
 
-Do NOT recreate the Vite project, reinstall dependencies unnecessarily, or delete working files.
+The goal is to build a reliable, polished chess platform with a distinctive identity, clean code, and excellent usability.
 
 
 
-Current installed dependencies include:
+Every new feature must fit into the existing application rather than making it feel like a collection of disconnected features.
 
 
 
-React + Vite + TypeScript
-
-Tailwind CSS v4
-
-chess.js
-
-react-chessboard v5.12.1
-
-lucide-react
+\## 2. Development Principles
 
 
 
-The current Phase 1 UI already renders. Copy PGN works, but chess pieces currently cannot be moved. Fix this existing issue first before proceeding to Phase 2.
+\* Always inspect the existing implementation before making changes.
+
+\* Understand how the relevant components, hooks, routes, database tables, and utilities work before modifying them.
+
+\* Preserve existing functionality unless the task explicitly requires changing it.
+
+\* Never rebuild the entire project to implement a small feature.
+
+\* Prefer targeted, incremental changes over unnecessary refactoring.
+
+\* Reuse existing components, utilities, hooks, and services.
+
+\* Avoid duplicate implementations of features that already exist.
+
+\* Fix root causes instead of hiding symptoms.
+
+\* Do not implement features with placeholder logic and claim they are complete.
+
+\* Do not stop at a superficial implementation when the task requires a functional feature.
+
+\* If a requirement conflicts with the existing architecture, choose the smallest maintainable solution.
+
+\* If an important change could break existing functionality, inspect its dependencies before proceeding.
 
 
 
-First inspect the actual files and installed package APIs. Do not assume an API based on an older version.
+\## 3. Existing Technology Stack
 
 
 
-After fixing the chessboard, test that:
+Preserve the existing technology stack unless a change is genuinely necessary.
 
 
 
-Pieces can be dragged.
+\* React
 
-Legal moves work.
-
-Illegal moves are rejected.
-
-Move history updates.
-
-FEN updates.
-
-PGN updates.
-
-Flip Board works.
-
-New Game works.
-
-
-
-Only after all of these work should you proceed to the next phase.
-
-
-
-
-# Build a complete chess website with Stockfish AI and game review
-
-
-
-Create a polished, fully functional chess website called \*\*Michess\*\*.
-
-
-
-The website should feel like a modern chess platform, with a clean dark theme, smooth interactions, responsive design, and a professional chessboard.
-
-
-
-\## CORE TECHNOLOGY
-
-
-
-Use:
-
-
-
-\* React + Vite
+\* Vite
 
 \* TypeScript
 
-\* Tailwind CSS
+\* Tailwind CSS v4
 
-\* chess.js for legal move validation, game state, FEN, PGN and SAN notation
+\* chess.js
 
-\* Stockfish.js WebAssembly running inside a Web Worker
+\* react-chessboard
 
-\* LocalStorage for saving settings and completed games
+\* Stockfish.js / WebAssembly
 
+\* Supabase authentication
 
+\* Supabase database and REST API
 
-Do not create a fake chess engine or pretend to analyze games. Use a real Stockfish engine.
+\* Supabase Row Level Security (RLS)
 
+\* LocalStorage where already appropriate
 
+\* Lucide icons
 
-Use a browser-compatible single-threaded Stockfish build for the first version. Keep the engine implementation modular so it can be upgraded later.
 
 
+Do not migrate frameworks, replace libraries, or introduce a new state-management system without a compelling technical reason.
 
-\## PAGE 1: HOME
 
 
+Do not install new dependencies when existing tools can solve the problem.
 
-Create a modern chess homepage with:
 
 
+\## 4. Visual Identity
 
-\* Logo: Checkmate Arena
 
-\* Play vs Computer button
 
-\* Game Review button
+Michess must maintain a consistent visual identity.
 
-\* Recent Games section
 
-\* Settings button
 
-\* Dark chess-themed background
+\### Design direction
 
-\* Responsive layout for desktop and mobile
 
 
+\* Dark blue as the primary visual identity.
 
-\## PAGE 2: PLAY VS COMPUTER
+\* Clean, modern, chess-focused interface.
 
+\* Professional without looking corporate or generic.
 
+\* Clear hierarchy and readable typography.
 
-Create a full chess gameplay screen.
+\* Consistent spacing, borders, radii, and component styles.
 
+\* Minimal unnecessary decoration.
 
+\* Restrained animations and transitions.
 
-Layout:
+\* Responsive layouts across supported devices.
 
 
 
-Left/main area:
+\### Avoid
 
 
 
-\* Interactive chessboard
+\* Unnecessary purple gradients.
 
-\* Standard chess pieces
+\* Excessive glassmorphism.
 
-\* Board coordinates
+\* Excessive glowing effects.
 
-\* Last-move highlight
+\* Giant rounded cards everywhere.
 
-\* Legal-move indicators
+\* Excessive animations.
 
-\* Check and checkmate indication
+\* Emoji-heavy interfaces.
 
-\* Selected-square highlight
+\* Generic AI-generated-looking designs.
 
-\* Promotion dialog
+\* Inconsistent button styles.
 
-\* Board flip button
+\* Random colors that conflict with the existing theme.
 
+\* Unnecessary redesigns of working pages.
 
 
-Right panel:
 
+Before creating a new UI component, check whether an existing component can be reused.
 
 
-\* Opponent name: Stockfish
 
-\* Opponent rating / difficulty
+\## 5. Chess Rules and Game Integrity
 
-\* Current evaluation bar
 
-\* Move list
 
-\* New Game button
+Chess functionality must follow actual chess rules.
 
-\* Resign button
 
-\* Undo button
 
-\* Settings
+\* Use chess.js for legal move validation and game-state logic where appropriate.
 
+\* Never implement a separate, conflicting chess-rules engine without a compelling reason.
 
+\* Correctly handle check, checkmate, stalemate, castling, en passant, promotion, repetition, and applicable draw conditions.
 
-Gameplay requirements:
+\* Maintain correct board orientation for each player.
 
+\* Keep move history synchronized with the board position.
 
+\* Ensure clocks and game results are handled consistently.
 
-1\. User can play as White, Black, or Random.
+\* Prevent illegal moves and invalid positions.
 
-2\. Stockfish makes legal moves.
+\* Handle game completion, resignation, timeouts, and draws correctly.
 
-3\. User cannot move the opponent's pieces.
+\* Do not trust client-submitted results without appropriate validation.
 
-4\. Detect checkmate, stalemate, threefold repetition, insufficient material and other draw conditions supported by chess.js.
+\* Ensure rematches and game creation cannot accidentally create duplicate games.
 
-5\. Disable moves while Stockfish is thinking.
 
-6\. Show a thinking indicator.
 
-7\. Store the entire game move history.
+Any changes to chess logic must be tested against existing gameplay.
 
-8\. Record every move in SAN notation.
 
-9\. Export the game as PGN.
 
-10\. Allow the user to copy the PGN.
+\## 6. Stockfish and Game Analysis
 
-11\. Add a difficulty selector.
 
 
+Reuse the existing Stockfish integration.
 
-Difficulty presets:
 
 
+\* Avoid creating unnecessary engine workers.
 
-\* Beginner
+\* Terminate workers and subscriptions when no longer needed.
 
-\* Easy
+\* Prevent analysis from freezing the interface.
 
-\* Medium
+\* Handle engine initialization failures.
 
-\* Hard
+\* Handle cancellation and position changes correctly.
 
-\* Master
+\* Keep engine evaluations synchronized with the selected position.
 
+\* Do not display fabricated evaluations, best moves, accuracy values, or move classifications.
 
+\* Distinguish engine analysis from authoritative game results.
 
-Use appropriate Stockfish UCI settings such as UCI\_LimitStrength, UCI\_Elo, Skill Level or a configurable search limit. Do not claim that these settings represent exact human ratings.
+\* Calculate accuracy and move classifications using a consistent, documented methodology.
 
+\* Make deeper analysis optional when it would significantly increase processing time.
 
+\* Keep analysis usable on lower-powered devices.
 
-\## STOCKFISH ENGINE
 
 
+\## 7. Puzzle System
 
-Create a reusable StockfishEngine service.
 
 
+Puzzles must use valid positions and reliable move sequences.
 
-Requirements:
 
 
+\* Validate puzzle positions and moves.
 
-\* Load the engine in a Web Worker.
+\* Use the existing chess logic for move legality.
 
-\* Initialize with the UCI protocol.
+\* Correctly handle multi-move solutions and opponent responses.
 
-\* Support isready.
+\* Prevent invalid interactions during loading or completion.
 
-\* Support position fen.
+\* Provide clear feedback for correct and incorrect moves.
 
-\* Support go depth and/or go movetime.
+\* Allow retries where appropriate.
 
-\* Parse bestmove.
+\* Handle missing or invalid puzzle data gracefully.
 
-\* Parse info depth, score cp, score mate, pv and nodes where available.
+\* Never invent puzzle solutions or statistics.
 
-\* Support stop.
+\* Store user progress using the existing data architecture.
 
-\* Handle engine loading errors.
+\* Keep puzzle boards responsive.
 
-\* Handle engine crashes gracefully.
+\* Avoid downloading large puzzle datasets unnecessarily.
 
-\* Never block the React UI.
+\* Ensure daily puzzles, if implemented, remain consistent across users and time zones.
 
-\* Prevent stale engine responses from being applied to the wrong position.
 
-\* Queue or cancel analysis requests safely.
 
+\## 8. React and TypeScript Standards
 
 
-The engine should support two separate modes:
 
+\* Use TypeScript properly.
 
+\* Avoid `any` unless absolutely necessary and justified.
 
-1\. Playing mode: limited search time or depth.
+\* Reuse existing types and interfaces.
 
-2\. Review mode: stronger analysis of each move.
+\* Keep components focused and maintainable.
 
+\* Extract shared logic into reusable hooks or utilities when appropriate.
 
+\* Avoid excessively large components.
 
-\## PAGE 3: POST-GAME REVIEW
+\* Avoid unnecessary abstractions for trivial functionality.
 
+\* Keep React hooks compliant with their rules.
 
+\* Use stable keys for rendered lists.
 
-After a match ends, automatically open a Game Review page.
+\* Prevent unnecessary re-renders.
 
+\* Clean up event listeners, subscriptions, and workers.
 
+\* Avoid stale state and race conditions.
 
-The review must use Stockfish to analyze the actual game move by move.
+\* Do not suppress TypeScript errors merely to make the build pass.
 
+\* Remove unused imports, dead code, and obsolete implementations introduced during development.
 
 
-Do not merely show a fake score or randomly assign blunders.
 
+\## 9. Supabase and Database Rules
 
 
-\### Review screen layout
 
+Supabase is the existing backend. Preserve its configuration and established patterns.
 
 
-Top section:
 
+\* Reuse the existing Supabase client.
 
+\* Do not create duplicate clients without a clear reason.
 
-\* Game result
+\* Reuse existing tables when appropriate.
 
-\* White player
+\* Inspect existing schemas before adding or changing tables.
 
-\* Black player
+\* Avoid unnecessary migrations.
 
-\* Total moves
+\* Use appropriate indexes and constraints.
 
-\* Overall accuracy for White
+\* Use transactions or atomic database operations where needed to protect consistency.
 
-\* Overall accuracy for Black
+\* Handle failed requests and network errors.
 
-\* Game result summary
+\* Avoid redundant queries.
 
-\* Review progress indicator
+\* Keep database access patterns consistent.
 
+\* Never expose service-role keys or other secrets in client-side code.
 
+\* Do not hardcode credentials.
 
-Main section:
+\* Do not alter production data to make tests pass.
 
+\* Document any required schema or policy changes.
 
 
-\* Interactive chessboard
 
-\* Evaluation bar
+When changing the database, ensure existing features remain compatible with the new schema.
 
-\* Move list
 
-\* Evaluation graph
 
-\* Current move details
+\## 10. Security and Authentication
 
-\* Best move arrow
 
-\* Engine principal variation
 
+Security must be enforced by the backend, not just the UI.
 
 
-\### MOVE REVIEW
 
+\* Use Supabase RLS wherever appropriate.
 
+\* Users must not be able to edit another user's private profile or data.
 
-For every move:
+\* Validate ownership before modifying protected records.
 
+\* Protect friend requests, challenges, notifications, and game records against unauthorized modifications.
 
+\* Do not trust user IDs supplied by the client without verification.
 
-1\. Load the position before the move.
+\* Validate and sanitize user-generated content.
 
-2\. Analyze the position with Stockfish.
+\* Prevent unauthorized access through guessed IDs.
 
-3\. Get the best engine move.
+\* Do not expose private account information through profiles or guest links.
 
-4\. Evaluate the position before the move.
+\* Keep secrets out of source code, logs, and client bundles.
 
-5\. Apply the actual move.
+\* Never weaken security policies simply to make a feature work.
 
-6\. Evaluate the resulting position.
+\* Treat guest access as a separate permission model that must be explicitly validated.
 
-7\. Calculate the evaluation loss.
 
-8\. Classify the move.
 
-9\. Display the appropriate review symbol.
+Review database policies whenever a feature introduces new tables or access patterns.
 
-10\. Store the result.
 
 
+\## 11. Authentication and User Profiles
 
-Keep separate analysis data for White and Black.
 
 
+\* Preserve existing authentication flows.
 
-Use centipawn evaluations and mate scores internally.
+\* Handle logged-out, loading, and authenticated states properly.
 
+\* Prevent duplicate or inconsistent profile records.
 
+\* Restrict profile editing to the profile owner.
 
-Normalize the evaluation so positive means good for White and negative means good for Black.
+\* Avoid exposing private email addresses or account metadata.
 
+\* Handle expired sessions and authentication failures gracefully.
 
+\* Keep guest functionality working where supported.
 
-Do not incorrectly classify a move merely because the engine evaluation is negative. A move must be judged relative to the player who made it.
+\* Do not require an account for existing guest features unless explicitly requested.
 
 
 
-\### REVIEW SYMBOLS
+\## 12. Friends, Challenges, and Notifications
 
 
 
-Use the following symbols from the reference image.
+Keep social features lightweight and chess-focused.
 
 
 
-Create a reusable MoveClassification component.
+\* Validate friend requests and challenge permissions.
 
+\* Prevent duplicate or contradictory requests.
 
+\* Ensure accepted challenges create only one game.
 
-Symbols:
+\* Restrict notifications to their intended recipients.
 
+\* Track read/unread notification state reliably.
 
+\* Clean up realtime subscriptions.
 
-!! Brilliant
+\* Avoid duplicate notifications caused by repeated events.
 
-! Great Move
+\* Make notification actions navigate to the correct destination.
 
-★ Best Move
+\* Handle unavailable opponents and expired challenges.
 
-👍 Excellent
+\* Do not introduce fake users, fake online status, or fake activity.
 
-✓ Good
+\* Do not implement leaderboards or an opening explorer unless explicitly requested.
 
-📖 Book Move
 
-?! Inaccuracy
 
-!? Mistake
+\## 13. Responsive Design
 
-? Blunder
 
-?? Missed Win
 
-= Equal
+All new features must work with the existing responsive design.
 
-∞ Unclear Position
 
-± White is Slightly Better
 
-∓ White is Winning
+Test relevant pages at:
 
-+− White is Clearly Better
 
-−+ Black is Winning
 
-−= Black is Slightly Better
+\* Desktop resolutions.
 
-⇄ Space Advantage
+\* Smaller laptop resolutions.
 
-G Development Advantage
+\* iPad/tablet resolutions.
 
-↔ Counterplay
+\* Mobile portrait.
 
-≠ White Win
+\* Mobile landscape.
 
 
 
-The UI must use actual chess review symbols, not only colored text labels.
+Pay special attention to the chessboard, move list, engine panel, navigation, modals, forms, profiles, puzzles, and notifications.
 
 
 
-For the main review move list, show:
+\* Prevent horizontal overflow.
 
+\* Keep interactive controls accessible.
 
+\* Avoid unreadably small text.
 
-Move number | White SAN | White symbol | Black SAN | Black symbol
+\* Ensure dialogs fit within the viewport.
 
+\* Preserve usable board proportions.
 
+\* Avoid fixed widths that break smaller screens.
 
-Example:
+\* Prefer responsive CSS and existing layout patterns.
 
+\* Do not fix mobile layouts by breaking desktop layouts.
 
 
-1\. e4 ★ e5 ✓
 
-2\. Nf3 ! Nc6 ✓
+\## 14. Performance
 
-3\. Bb5 !? a6 ✓
 
-4\. Ba4 ?? Nf6 !!
 
+\* Keep initial page loads lightweight.
 
+\* Avoid unnecessary dependencies.
 
-The example above is illustrative only. Classifications must be generated from Stockfish analysis.
+\* Avoid redundant database requests.
 
+\* Avoid excessive realtime subscriptions.
 
+\* Load large resources only when needed.
 
-\### CLASSIFICATION LOGIC
+\* Keep Stockfish work off the main thread where the existing architecture supports it.
 
+\* Avoid unnecessary re-renders and expensive calculations.
 
+\* Clean up unused workers and resources.
 
-Create a move classification algorithm based on evaluation loss.
+\* Do not sacrifice correctness or security for marginal performance improvements.
 
 
 
-Use configurable thresholds.
+\## 15. Error Handling
 
 
 
-For example:
+Every major feature must have appropriate loading, success, empty, and error states.
 
 
 
-\* Best Move: negligible loss and close to the engine's top move.
+\* Never leave the user on a permanently spinning loader.
 
-\* Excellent: very small loss.
+\* Never silently swallow important failures.
 
-\* Good: small loss.
+\* Show concise, understandable error messages.
 
-\* Inaccuracy: noticeable loss.
+\* Keep technical details in development logs when appropriate.
 
-\* Mistake: substantial loss.
+\* Avoid exposing secrets, internal stack traces, or sensitive data to users.
 
-\* Blunder: severe loss.
+\* Provide retry options when retrying is safe.
 
-\* Missed Win: a winning opportunity was lost.
+\* Handle offline states and expired sessions gracefully.
 
-\* Brilliant: only assign when the move meets a strong tactical or positional criterion, not just because it is the engine's first choice.
+\* Prevent failed requests from leaving the UI in an inconsistent state.
 
 
 
-Do not present arbitrary thresholds as official Chess.com or Lichess standards.
+\## 16. Accessibility and Usability
 
 
 
-Make thresholds configurable in one file.
+\* Use semantic HTML.
 
+\* Provide accessible labels for icon-only buttons.
 
+\* Support keyboard navigation where appropriate.
 
-Handle:
+\* Provide visible focus indicators.
 
+\* Maintain adequate contrast.
 
+\* Use clear button labels and feedback.
 
-\* Forced moves
+\* Avoid relying exclusively on color to communicate chess or game states.
 
-\* Checkmates
+\* Respect reduced-motion preferences where practical.
 
-\* Tactical positions
+\* Make errors understandable and actionable.
 
-\* Promotions
 
-\* Captures
 
-\* Forced sacrifices
+\## 17. Testing and Verification
 
-\* Mate scores
 
-\* Winning positions
 
-\* Losing positions
+After implementing a feature:
 
-\* Drawn positions
 
 
+1\. Run the relevant build or development checks.
 
-Do not mark a move as a blunder simply because it changes the engine's numerical evaluation from positive to negative without accounting for perspective and mate scores.
+2\. Check TypeScript errors.
 
+3\. Check the browser console.
 
+4\. Test the changed feature's main flow.
 
-\### GAME REVIEW GRAPH
+5\. Test important failure states.
 
+6\. Check related existing features for regressions.
 
+7\. Verify database permissions when backend access changes.
 
-Create a chess evaluation graph below or beside the board.
+8\. Verify responsive behavior when the UI changes.
 
+9\. Fix errors caused by the implementation.
 
+10\. Report anything that remains untested.
 
-Requirements:
 
 
+Do not claim tests passed unless they were actually run.
 
-\* X-axis: move number
 
-\* Y-axis: evaluation
 
-\* White advantage above zero
+Do not claim a feature is fully functional if only its interface has been implemented.
 
-\* Black advantage below zero
 
-\* Draw at zero
 
-\* Mate values displayed separately as M1, M2, etc.
+Prefer targeted tests for the affected functionality, followed by broader regression testing for major changes.
 
-\* Plot the evaluation after each move.
 
-\* Highlight inaccuracies, mistakes and blunders.
 
-\* Clicking a graph point jumps to that move.
+\## 18. Git and Change Management
 
-\* Clicking a move in the move list jumps to that position.
 
-\* Use a smooth but accurate graph.
 
-\* Do not hide meaningful evaluation changes.
+\* Inspect the current working tree before making changes.
 
+\* Do not overwrite unrelated user changes.
 
+\* Do not delete files without understanding their purpose.
 
-\### REVIEW MOVE DETAILS
+\* Keep changes focused and reviewable.
 
+\* Avoid committing secrets or generated junk.
 
+\* Do not automatically force-push, reset, or discard user work.
 
-When selecting a move, show:
+\* Do not deploy changes unless explicitly authorized.
 
+\* Keep environment configuration intact.
 
+\* Explain any manual setup required after implementation.
 
-\* Move number
 
-\* SAN notation
 
-\* Classification
+\## 19. Working With Existing Code
 
-\* Evaluation before
 
-\* Evaluation after
 
-\* Evaluation loss
+Before modifying a feature:
 
-\* Best engine move
 
-\* Principal variation
 
-\* Short explanation
+1\. Locate the relevant files.
 
+2\. Read the existing implementation.
 
+3\. Identify dependencies and related components.
 
-Example:
+4\. Determine which existing utilities can be reused.
 
+5\. Make the smallest maintainable change.
 
+6\. Test the result.
 
-Move 18. Qxd5?
+7\. Check for regressions.
 
 
 
-Blunder
+Do not assume a feature is missing simply because its implementation is not in the first file inspected.
 
 
 
-You lost approximately 2.4 pawns of evaluation.
+Do not recreate existing functionality under a different name.
 
 
 
-Best move: Nxd5
+Do not perform broad refactors unrelated to the task.
 
 
 
-Engine line: Nxd5 Qxd5 Qxd5
+\## 20. Final Response Requirements
 
 
 
-Keep explanations based on the engine's actual analysis. Do not invent tactical reasons.
+After completing a task, provide a concise report containing:
 
 
 
-\### REVIEW CONTROLS
+\* What changed.
 
+\* Which important files or components changed.
 
+\* Any database migrations or configuration changes required.
 
-Add:
+\* What tests were actually performed.
 
+\* Any known bugs or remaining limitations.
 
+\* Any manual steps the user must complete.
 
-\* Previous move
 
-\* Next move
 
-\* First move
+Be honest about incomplete work.
 
-\* Last move
 
-\* Play through game
 
-\* Pause review
+Do not dump the entire codebase into the response.
 
-\* Board flip
 
-\* Show best move arrow
 
-\* Copy PGN
+Do not provide lengthy explanations of trivial changes.
 
-\* Download PGN
 
-\* Review again
 
+\## 21. Final Priority Order
 
 
-\## ACCURACY
 
+When making engineering decisions, prioritize:
 
 
-Calculate separate accuracy scores for White and Black.
 
+1\. Correctness and chess-rule accuracy.
 
+2\. Security and data integrity.
 
-Use a clearly documented evaluation-to-accuracy formula.
+3\. Reliability.
 
+4\. Preservation of existing functionality.
 
+5\. User experience and responsive design.
 
-Do not claim that the scores exactly match Chess.com or Lichess.
+6\. Maintainability.
 
+7\. Performance.
 
+8\. New features and visual polish.
 
-Display:
+A smaller feature that works reliably is better than a large feature that only appears to work.
 
+## 22. Mandatory Localhost Verification
 
+**Always run the local development server after completing development work. This is mandatory for every task.**
 
-White Accuracy: 87%
+1. Finish implementing the requested changes.
+2. Run the relevant build and TypeScript checks.
+3. Start the local development server using the project's existing setup, typically `npm run dev`.
+4. Keep the server running so the user can access the site locally.
+5. Open the local website in a browser and verify that it loads correctly.
+6. Test the modified features and check the browser console for errors.
+7. Fix any issues caused by the changes and repeat verification.
+8. Report the local URL, such as `http://localhost:5173/`, and summarize what was tested.
 
-Black Accuracy: 74%
+**Important rules:**
 
+* Never skip starting the development server after finishing a task.
+* Do not start duplicate development servers if one is already running.
+* Reuse the existing terminal session when possible.
+* If the default port is occupied, use the next available port and report the actual URL.
+* Do not claim the site was tested locally unless it was actually opened and checked.
+* If the server cannot start, investigate and fix the issue before declaring the task complete.
+* If an external service such as Supabase prevents full testing, explain the limitation honestly.
+* Do not stop the development server immediately after verification. Leave it running for the user.
+* Do not deploy the site unless explicitly instructed.
 
+**Definition of done:** The requested changes are implemented, relevant checks have been performed, and the local Michess website is running and accessible.
 
-These are example formats, not hardcoded results.
 
+\*\*Core rule: Improve Michess incrementally. Preserve what works, understand what exists, and never sacrifice correctness, security, or usability just to add more features.\*\*
 
 
-\## DESIGN
-
-
-
-Style:
-
-
-
-\* Professional chess platform
-
-\* Dark navy / charcoal theme
-
-\* Green for good moves
-
-\* Yellow for inaccuracies
-
-\* Orange for mistakes
-
-\* Red for blunders
-
-\* White / neutral for normal moves
-
-\* Clean typography
-
-\* Smooth hover and click interactions
-
-\* Accessible controls
-
-\* Responsive layout
-
-\* No excessive gradients
-
-\* No unnecessary animations
-
-
-
-The chessboard should be the main focus.
-
-
-
-\## ENGINE PERFORMANCE
-
-
-
-Do not run expensive analysis for the entire game all at once on the main UI thread.
-
-
-
-Use a review queue.
-
-
-
-Show:
-
-
-
-Analyzing game... 12 / 42 positions
-
-
-
-Allow the user to cancel analysis.
-
-
-
-Cache analysis results by FEN and analysis settings.
-
-
-
-Use a lower search depth or time for quick reviews and a higher limit for deep reviews.
-
-
-
-\## IMPORTANT FUNCTIONAL REQUIREMENTS
-
-
-
-\* No fake buttons.
-
-\* No fake Stockfish responses.
-
-\* No placeholder review data once the game is finished.
-
-\* All chess moves must be legal.
-
-\* SAN must be generated from chess.js.
-
-\* Engine must return actual legal best moves.
-
-\* Handle engine loading failures.
-
-\* Handle refreshes safely.
-
-\* Keep all game data consistent.
-
-\* Write clean reusable components.
-
-\* Include a README with setup instructions.
-
-
-
-\## IMPLEMENTATION ORDER
-
-
-
-Build the project in this order:
-
-
-
-1\. Project setup and theme.
-
-2\. Chessboard and legal moves.
-
-3\. Local chess game.
-
-4\. Stockfish Web Worker.
-
-5\. Play vs computer.
-
-6\. Move history and PGN.
-
-7\. Game completion detection.
-
-8\. Review engine queue.
-
-9\. Move classification.
-
-10\. Accuracy calculation.
-
-11\. Evaluation graph.
-
-12\. Review navigation.
-
-13\. Settings and polish.
-
-
-
-Start by implementing the complete playable chess game. Then implement real Stockfish review.
-
-
-
-At the end, provide the complete working project with all files and setup instructions.
-
-
-
-You are my lead developer. Build this project with me step by step.
-
-
-
-Start by creating the complete playable chess website with React, TypeScript, chess.js and Stockfish.js.
-
-
-
-Do not just explain how to build it. Write the actual code.
-
-
-
-After each major feature, make sure the existing features still work.
-
-
-
-When you finish the first version, tell me exactly how to run it locally on Windows 11 using VS Code.
-
-
-
-Use the attached image as the reference for the chess move review symbols.
-
-
-
-Begin with Phase 1: Create the project and implement a fully playable chessboard with legal moves, move history and PGN.
-
-
-
-
-
-Do not attempt to generate the entire project in a single response. Work phase-by-phase. For each phase, create the required files, explain what was implemented briefly, and verify that the existing functionality remains intact before moving to the next phase. If a response would become too large, stop at a clean checkpoint and continue from that checkpoint when asked. Never replace working functionality with placeholders just to move forward.
 

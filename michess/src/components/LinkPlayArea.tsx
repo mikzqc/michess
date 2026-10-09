@@ -89,6 +89,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
   const [promotionState, setPromotionState] = useState<{ sourceSquare: string, targetSquare: string, color: 'w' | 'b' } | null>(null);
   const [showConfirmResign, setShowConfirmResign] = useState(false);
   const [ratingChange, setRatingChange] = useState<{ diff: number, newRating: number } | undefined>(undefined);
+  const [showGameOverModal, setShowGameOverModal] = useState(true);
 
   useEffect(() => {
     setArrows([]);
@@ -528,9 +529,10 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                 }}
               />
             )}
-            {gameData.status === 'completed' && (
+            {gameData.status === 'completed' && showGameOverModal && (
                <GameOverModal 
                    result={isTimeout ? 'Time Expired' : gameEndReason}
+                   playerColor={gameData.white_player === playerId ? 'white' : 'black'}
                    onReview={isChaos ? undefined : (() => onReview?.(gameData.pgn || chess.pgn())) as any}
                    onRematch={gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w') ? rematchGame : offerRematch}
                    rematchOffer={{
@@ -539,6 +541,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                      onDecline: declineRematch
                    }}
                    ratingChange={ratingChange}
+                   onViewBoard={() => setShowGameOverModal(false)}
                    onHome={onExit}
                  />
             )}
@@ -687,6 +690,36 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
               )}
             </>
           )}
+          {gameData.status === 'completed' && !showGameOverModal && (
+            <div className="col-span-2 bg-surface-3 border border-border-1 rounded-lg p-3 flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-sm text-content-1">{isTimeout ? 'Time Expired' : gameEndReason}</span>
+                <button 
+                  onClick={() => setShowGameOverModal(true)}
+                  className="text-xs text-accent hover:underline font-semibold"
+                >
+                  Show Outcome
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {!isChaos && (
+                  <button 
+                    onClick={() => onReview?.(gameData.pgn || chess.pgn())}
+                    className="bg-accent hover:bg-accent-hover text-white py-2 rounded text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Review Game
+                  </button>
+                )}
+                <button 
+                  onClick={gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w') ? rematchGame : offerRematch}
+                  className="bg-surface-2 hover:bg-surface-1 border border-border-1 text-content-1 py-2 rounded text-xs font-bold transition-colors cursor-pointer"
+                >
+                  {gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w') ? 'Accept Rematch' : 'Rematch'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {gameData.status !== 'active' && (
             <button 
               onClick={onExit}

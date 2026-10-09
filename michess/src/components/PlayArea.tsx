@@ -40,6 +40,7 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
   const [arrows, setArrows] = useState<any[]>([]);
   const [promotionState, setPromotionState] = useState<{ sourceSquare: string, targetSquare: string, color: 'w' | 'b' } | null>(null);
   const [showConfirmResign, setShowConfirmResign] = useState(false);
+  const [showGameOverModal, setShowGameOverModal] = useState(true);
 
   useEffect(() => {
     setArrows([]);
@@ -166,6 +167,7 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
   const handleResetGame = () => {
     setResignation(null);
     setTimeoutResult(null);
+    setShowGameOverModal(true);
     timeoutClaimedRef.current = false;
     clearSelection();
     setArrows([]);
@@ -318,11 +320,12 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
                 }}
               />
             )}
-            {isGameOver && (
+            {isGameOver && showGameOverModal && (
                <GameOverModal 
                  result={getStatusText()}
                  onReview={() => onReview?.(getFinalPgn())}
                  onRematch={handleResetGame}
+                 onViewBoard={() => setShowGameOverModal(false)}
                  onHome={onHome}
                />
             )}
@@ -377,6 +380,34 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
         </div>
 
         <div className="grid grid-cols-2 gap-2">
+          {isGameOver && !showGameOverModal && (
+            <div className="col-span-2 bg-surface-3 border border-border-1 rounded-lg p-3 flex flex-col gap-2 mb-2">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-sm text-content-1">{getStatusText()}</span>
+                <button 
+                  onClick={() => setShowGameOverModal(true)}
+                  className="text-xs text-accent hover:underline font-semibold"
+                >
+                  Show Outcome
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button 
+                  onClick={() => onReview?.(getFinalPgn())}
+                  className="bg-accent hover:bg-accent-hover text-white py-2 rounded text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Review Game
+                </button>
+                <button 
+                  onClick={handleResetGame}
+                  className="bg-surface-2 hover:bg-surface-1 border border-border-1 text-content-1 py-2 rounded text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Rematch
+                </button>
+              </div>
+            </div>
+          )}
+
           {!isGameOver && (
             <button 
               onClick={handleResignClick}

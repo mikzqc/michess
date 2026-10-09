@@ -42,9 +42,11 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
   const [arrows, setArrows] = useState<any[]>([]);
   const [promotionState, setPromotionState] = useState<{ sourceSquare: string, targetSquare: string, color: 'w' | 'b' } | null>(null);
   const [timeoutResult, setTimeoutResult] = useState<string | null>(null);
+  const [showGameOverModal, setShowGameOverModal] = useState(true);
 
   const handleGameOver = (result: string) => {
     setGameOverResult(result);
+    setShowGameOverModal(true);
   };
 
   const handleComputerMove = () => {
@@ -194,6 +196,7 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
   const handleNewGame = () => {
     setGameOverResult(null);
     setTimeoutResult(null);
+    setShowGameOverModal(true);
     timeoutClaimedRef.current = false;
     clearSelection();
     setArrows([]);
@@ -309,11 +312,13 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
                 }}
               />
             )}
-            {isGameOver && (
+            {isGameOver && showGameOverModal && (
                <GameOverModal 
                  result={gameOverResult || timeoutResult || 'Game Over'}
+                 playerColor={playerColor}
                  onReview={() => onReview(getPgn())}
                  onRematch={handleNewGame}
+                 onViewBoard={() => setShowGameOverModal(false)}
                  onHome={onExit}
                />
             )}
@@ -389,6 +394,34 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
           >
             <Undo2 size={16} /> Undo
           </button>
+
+          {isGameOver && !showGameOverModal && (
+            <div className="col-span-2 bg-surface-3 border border-border-1 rounded-lg p-3 flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-sm text-content-1">{gameOverResult || timeoutResult}</span>
+                <button 
+                  onClick={() => setShowGameOverModal(true)}
+                  className="text-xs text-accent hover:underline font-semibold"
+                >
+                  Show Outcome
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button 
+                  onClick={() => onReview(getPgn())}
+                  className="bg-accent hover:bg-accent-hover text-white py-2 rounded text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Review Game
+                </button>
+                <button 
+                  onClick={handleNewGame}
+                  className="bg-surface-2 hover:bg-surface-1 border border-border-1 text-content-1 py-2 rounded text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Rematch
+                </button>
+              </div>
+            </div>
+          )}
 
           {!isGameOver && (
             <button 

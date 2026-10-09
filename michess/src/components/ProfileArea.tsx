@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useToast } from './Toast';
-import { User, Save, Clock, LogOut, ArrowLeft, ShieldCheck, Mail } from 'lucide-react';
+import { User, Save, Clock, LogOut, ArrowLeft, ShieldCheck, Mail, Upload } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -15,12 +15,13 @@ interface ProfileAreaProps {
 
 export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile, onProfileUpdate }) => {
   const { user } = useAuth();
-  const { profile, loading, updateUsername, updateAvatar, uploadAvatar } = useProfile();
+  const { profile, loading, updateUsername, uploadAvatar } = useProfile();
   const { addToast } = useToast();
   
   const [newUsername, setNewUsername] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const winRate = profile?.games_played ? Math.round(((profile.wins || 0) / profile.games_played) * 100) : 0;
 
   const handleSignOut = async () => {
     if (supabase) {
@@ -127,50 +128,32 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
           {/* Avatar Section */}
           <div className="pt-2">
             <h2 className="text-xl font-bold text-content-1 mb-4">Avatar</h2>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <Input 
-                    type="text" 
-                    defaultValue={profile?.avatar_url || ''}
-                    placeholder="https://example.com/avatar.png"
-                    onBlur={async (e) => {
-                      const url = e.target.value.trim();
-                      if (url !== profile?.avatar_url) {
-                        setSaving(true);
-                        const { success, error } = await updateAvatar(url);
-                        if (success) addToast('Avatar updated', 'success');
-                        else addToast(`Error: ${error}`, 'error');
-                        setSaving(false);
-                      }
-                    }}
-                  />
-                </div>
-                <div className="shrink-0 text-content-3 font-medium">OR</div>
-                <Button 
-                  variant="secondary" 
-                  className="shrink-0 relative overflow-hidden"
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <Button 
+                variant="secondary" 
+                className="relative overflow-hidden flex items-center gap-2"
+                disabled={saving}
+              >
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="absolute inset-0 opacity-0 cursor-pointer"
                   disabled={saving}
-                >
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setSaving(true);
-                        const { success, error } = await uploadAvatar(file);
-                        if (success) addToast('Avatar uploaded successfully', 'success');
-                        else addToast(`Error: ${error}`, 'error');
-                        setSaving(false);
-                      }
-                    }}
-                  />
-                  Upload File
-                </Button>
-              </div>
-              <p className="text-xs text-content-3">Paste an image URL or upload a file directly.</p>
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSaving(true);
+                      const { success, error } = await uploadAvatar(file);
+                      if (success) addToast('Avatar uploaded successfully', 'success');
+                      else addToast(`Error: ${error}`, 'error');
+                      setSaving(false);
+                    }
+                  }}
+                />
+                <Upload size={16} />
+                <span>{saving ? 'Uploading...' : 'Upload Avatar'}</span>
+              </Button>
+              <p className="text-xs text-content-3">Upload an image file (PNG, JPG, WebP) up to 5MB.</p>
             </div>
           </div>
 
@@ -245,27 +228,31 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Overall Rating</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.highest_rating || 100}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating || profile?.highest_rating || 800}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Bullet</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.rating_bullet || 100}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating_bullet || 800}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Blitz</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.rating_blitz || 100}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating_blitz || 800}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Rapid</span>
-                <span className="text-2xl text-content-1 font-bold">{profile?.rating_rapid || 100}</span>
+                <span className="text-2xl text-content-1 font-bold">{profile?.rating_rapid || 800}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Highest Overall</span>
-                <span className="text-2xl text-warning font-bold">{profile?.highest_rating || 100}</span>
+                <span className="text-2xl text-warning font-bold">{profile?.highest_rating || profile?.rating || 800}</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Games</span>
                 <span className="text-2xl text-content-1 font-bold">{profile?.games_played || 0}</span>
+              </div>
+              <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
+                <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Win Rate</span>
+                <span className="text-2xl text-emerald-400 font-bold">{winRate}%</span>
               </div>
               <div className="bg-surface-3 p-4 rounded-lg border border-border-1 flex flex-col items-center">
                 <span className="text-content-3 text-xs uppercase tracking-wider font-bold">Longest Streak</span>
