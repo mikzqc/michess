@@ -3,13 +3,14 @@ import { Button } from './ui/Button';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from './Toast';
-import { Trophy, Star, Shield, Crown } from 'lucide-react';
+import { Trophy, Star, Shield, Crown, X } from 'lucide-react';
 
 interface SkillLevelModalProps {
   onComplete: () => void | Promise<void>;
+  onClose?: () => void;
 }
 
-export const SkillLevelModal: React.FC<SkillLevelModalProps> = ({ onComplete }) => {
+export const SkillLevelModal: React.FC<SkillLevelModalProps> = ({ onComplete, onClose }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -50,6 +51,15 @@ export const SkillLevelModal: React.FC<SkillLevelModalProps> = ({ onComplete }) 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-surface-2 border border-border-1 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in relative flex flex-col max-h-[90vh]">
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 text-content-3 hover:text-content-1 rounded-lg transition-colors cursor-pointer z-10"
+            title="Dismiss"
+          >
+            <X size={18} />
+          </button>
+        )}
         
         <div className="p-8 pb-4 text-center">
           <h2 className="text-2xl font-bold text-content-1 mb-2">What is your chess skill level?</h2>

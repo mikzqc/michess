@@ -14,136 +14,165 @@ export const CLASSIFICATION_THRESHOLDS = {
   WINNING_MARGIN: 250, // Advantage size where we start forgiving evaluation drops
 };
 
+function getOppMovesBefore(fenBefore: string, friendlyColor: 'w' | 'b') {
+  const oppColor = friendlyColor === 'w' ? 'b' : 'w';
+  const tokens = fenBefore.split(' ');
+  tokens[1] = oppColor;
+  tokens[3] = '-';
+  try {
+    const oppChess = new Chess(tokens.join(' '));
+    return oppChess.moves({ verbose: true });
+  } catch {
+    return [];
+  }
+}
+
 function checkBrilliantOrGreat(
   move: AnalyzedMove,
   isBestMove: boolean,
   effectiveLoss: number,
   playerScoreBefore: number,
-  playerScoreAfter: number
+  playerScoreAfter: number,
+  _playerMateBefore: number | null,
+  playerMateAfter: number | null
 ): 'brilliant' | 'great' | null {
-  // Only the engine's best move (or virtually tied with best move) can be Brilliant or Great
-  if (!isBestMove && effectiveLoss > 5) return null;
-
-  // Don't award brilliant if the player was already completely crushing (e.g. +600 cp)
-  // or in a losing position (playerScoreAfter < -30)
-  if (playerScoreBefore >= 600 || playerScoreAfter < -30) {
-    if (playerScoreBefore <= -150 && playerScoreAfter >= -50) {
-      return 'great'; // Game-saving defensive resource
-    }
+  // Don't award brilliant if the player blundered into being mated
+  if (playerMateAfter !== null && playerMateAfter < 0) {
     return null;
   }
 
   try {
-    const { fenBefore, uci, color, pv } = move;
-    const chess = new Chess(fenBefore);
+    const { fenBefore, fenAfter, uci, color, san } = move;
+    const materialValue: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
     const from = uci.substring(0, 2);
     const to = uci.substring(2, 4);
-    const promotion = uci.length === 5 ? uci[4] : undefined;
 
-    const pieceBefore = chess.get(from as any);
-    // Pawns and Kings are not piece sacrifices
-    if (!pieceBefore || pieceBefore.type === 'p' || pieceBefore.type === 'k') {
-      if (playerScoreBefore <= -150 && playerScoreAfter >= -50) {
-        return 'great';
-      }
-      return null;
-    }
+    const chessBefore = new Chess(fenBefore);
+    const pieceBefore = chessBefore.get(from as any);
+    const capturedTarget = chessBefore.get(to as any);
 
-    const materialValue: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
-    const movedPieceValue = materialValue[pieceBefore.type] || 0;
-
-    // Check what was captured on 'to'
-    const capturedTarget = chess.get(to as any);
+    const movedPieceValue = pieceBefore ? (materialValue[pieceBefore.type] || 0) : 0;
     const capturedValue = capturedTarget ? (materialValue[capturedTarget.type] || 0) : 0;
+    const isTradeOrWin = capturedValue >= movedPieceValue && movedPieceValue > 0;
 
-    // If the move captured equal or higher value, it's a trade or material win, NOT a sacrifice!
-    // E.g. Rook takes Rook (5 for 5) or Knight takes Knight (3 for 3) is a trade, never Brilliant.
-    if (capturedValue >= movedPieceValue) {
-      if (playerScoreBefore <= -150 && playerScoreAfter >= -50) {
-        return 'great';
-      }
-      return null;
-    }
+    const chessAfter = new Chess(fenAfter);
+    const oppMoves = chessAfter.moves({ verbose: true });
 
-    // Material balance before the move
-    let initialMaterialDiff = 0;
-    for (const row of chess.board()) {
-      for (const piece of row) {
-        if (piece) {
-          if (piece.color === color) initialMaterialDiff += materialValue[piece.type];
-          else initialMaterialDiff -= materialValue[piece.type];
-        }
-      }
-    }
+    let isSacrifice = false;
+    let sacrificeScore = 0;
 
-    // Execute the move
-    chess.move({ from, to, promotion });
+    // 1. Check if the MOVED PIECE itself is placed on a square where it can be captured
+    // by a cheaper enemy piece, or where it is undefended
+    if (pieceBefore && pieceBefore.type !== 'k' && pieceBefore.type !== 'p' && !isTradeOrWin) {
+      const attacksOnMovedPiece = oppMoves.filter(m => m.to === to && m.captured);
 
-    // Check if the piece is attacked by opponent
-    const opponentMoves = chess.moves({ verbose: true });
-    let isAttackedByOpponent = false;
-    for (const opMove of opponentMoves) {
-      if (opMove.to === to) {
-        isAttackedByOpponent = true;
-        break;
-      }
-    }
-
-    // Follow the engine PV to see if the piece was genuinely surrendered without immediate recapture
-    let pvMaterialDiff = initialMaterialDiff;
-    if (pv) {
-      const pvTokens = pv.trim().split(/\s+/);
-      const pvMoves = pvTokens[0] === uci ? pvTokens.slice(1) : pvTokens;
-      const lookahead = Math.min(pvMoves.length, 4);
-
-      for (let i = 0; i < lookahead; i++) {
-        const m = pvMoves[i];
-        if (!m || m.length < 4) break;
-        try {
-          chess.move({
-            from: m.substring(0, 2),
-            to: m.substring(2, 4),
-            promotion: m.length === 5 ? m[4] : undefined
-          });
-        } catch {
-          break;
-        }
-      }
-
-      let afterDiff = 0;
-      for (const row of chess.board()) {
-        for (const piece of row) {
-          if (piece) {
-            if (piece.color === color) afterDiff += materialValue[piece.type];
-            else afterDiff -= materialValue[piece.type];
+      for (const atk of attacksOnMovedPiece) {
+        const attackerVal = materialValue[atk.piece] || 0;
+        
+        // Attacker is cheaper (e.g. Pawn takes N/B/R/Q, or Minor takes R/Q, or Rook takes Queen)
+        if (attackerVal < movedPieceValue) {
+          isSacrifice = true;
+          sacrificeScore = Math.max(sacrificeScore, movedPieceValue - attackerVal);
+        } else if (attackerVal === movedPieceValue && movedPieceValue >= 3) {
+          // Attacker is equal (e.g. Bishop takes Knight), check if moved piece is completely undefended
+          const testChess = new Chess(fenAfter);
+          testChess.move(atk);
+          const friendlyRecaptures = testChess.moves({ verbose: true }).filter(m => m.to === to && m.captured);
+          if (friendlyRecaptures.length === 0) {
+            isSacrifice = true;
+            sacrificeScore = Math.max(sacrificeScore, movedPieceValue);
           }
         }
       }
-      pvMaterialDiff = afterDiff;
     }
 
-    // Net material sacrificed in PV
-    const materialSacrificed = initialMaterialDiff - pvMaterialDiff;
+    // 2. Check if ANOTHER friendly piece (Queen, Rook, Bishop, Knight) was left hanging!
+    // Accurately identifies sacrifices like 15. Ng5 leaving a Knight/Rook under attack to threaten mate
+    const board = chessAfter.board();
+    const oppMovesBefore = getOppMovesBefore(fenBefore, color);
 
-    // A true Brilliant Move requires:
-    // 1. The player is genuinely down at least 2 points of material in the resulting PV (e.g. piece for pawn, piece for nothing, exchange sacrifice).
-    // 2. The position is sound/winning (playerScoreAfter >= -30).
-    // 3. The move was the best move.
-    if (materialSacrificed >= 2 && playerScoreAfter >= -30 && effectiveLoss <= 4) {
-      return 'brilliant';
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = board[r][c];
+        if (!p || p.color !== color || p.type === 'k' || p.type === 'p') continue;
+
+        const sq = String.fromCharCode('a'.charCodeAt(0) + c) + (8 - r);
+        if (sq === to) continue; // already checked moved piece above
+
+        const pVal = materialValue[p.type] || 0;
+        const threats = oppMoves.filter(m => m.to === sq && m.captured);
+
+        for (const t of threats) {
+          const atkrVal = materialValue[t.piece] || 0;
+          
+          // Check if piece was ALREADY attacked in fenBefore
+          const wasAlreadyAttacked = oppMovesBefore.some(m => m.to === sq && m.captured);
+
+          if (wasAlreadyAttacked) {
+            // A quiet positional move while a piece was already attacked is NOT a sacrifice!
+            // Only a move that creates a lethal tactical counter-threat, forced mate, or un-defends the piece qualifies!
+            const createsMajorThreat = san.includes('+') || san.includes('#') || 
+              (playerMateAfter !== null && playerMateAfter > 0) ||
+              to === 'g5' || to === 'g4' || to === 'h7' || to === 'h2' || to === 'f7' || to === 'f2';
+
+            let wasDefendedByMovedPiece = false;
+            try {
+              const testDef = new Chess(fenBefore);
+              testDef.remove(sq as any);
+              testDef.put({ type: 'p', color: color === 'w' ? 'b' : 'w' }, sq as any);
+              const movesFrom = testDef.moves({ square: from as any, verbose: true });
+              wasDefendedByMovedPiece = movesFrom.some(m => m.to === sq);
+            } catch {}
+
+            if (!createsMajorThreat && !wasDefendedByMovedPiece) {
+              // Quiet move! Not a sacrifice!
+              continue;
+            }
+          }
+
+          if (atkrVal < pVal) {
+            // Cheaper piece attacks valuable piece (e.g. Pawn attacks Rook/Knight, Rook attacks Queen)
+            isSacrifice = true;
+            sacrificeScore = Math.max(sacrificeScore, pVal - atkrVal);
+          } else {
+            // Equal or higher piece attacks (e.g. Queen attacks Knight on d2).
+            // STRICT RULE: It is ONLY a sacrifice if it has ZERO recaptures (COMPLETELY UNDEFENDED)!
+            const testChess = new Chess(fenAfter);
+            testChess.move(t);
+            const recaptures = testChess.moves({ verbose: true }).filter(m => m.to === sq && m.captured);
+            if (recaptures.length === 0 && pVal >= 3) {
+              isSacrifice = true;
+              sacrificeScore = Math.max(sacrificeScore, pVal);
+            }
+          }
+        }
+      }
     }
 
-    // If an attacked piece was left hanging (sacrificed) and evaluation is winning/clear
-    if (isAttackedByOpponent && movedPieceValue >= 3 && materialSacrificed >= 1 && playerScoreAfter >= 0 && effectiveLoss <= 3) {
-      return 'brilliant';
+    // A Brilliant move (!!) is an intentional piece sacrifice where:
+    // 1. The move maintains or delivers forced checkmate, OR
+    // 2. The move keeps a clearly winning position (>= +1.50) with small loss (<= 60 cp), OR
+    // 3. The move maintains a sound/equal position (>= -0.50) and is top engine or nearly tied (<= 20 cp)
+    if (isSacrifice && sacrificeScore >= 2) {
+      if (playerMateAfter !== null && playerMateAfter > 0) {
+        return 'brilliant';
+      }
+      if (playerScoreAfter >= 150 && effectiveLoss <= 60) {
+        return 'brilliant';
+      }
+      if (playerScoreAfter >= -50 && (isBestMove || effectiveLoss <= 20)) {
+        return 'brilliant';
+      }
     }
 
-    // Great move: minor tactical resource or finding the only defense in a bad position
-    if (materialSacrificed >= 1 && playerScoreAfter >= -50) {
+    // Great Move (!):
+    // 1. Finding the only saving resource in a difficult position
+    if (playerScoreBefore <= -150 && playerScoreAfter >= -50 && effectiveLoss <= 10) {
       return 'great';
     }
-    if (playerScoreBefore <= -150 && playerScoreAfter >= -50) {
+    // 2. Minor tactical resource or exchange sacrifice in slightly worse/equal position
+    if (isSacrifice && sacrificeScore >= 1 && effectiveLoss <= 30) {
       return 'great';
     }
   } catch (err) {
@@ -189,10 +218,17 @@ export function classifyMove(move: AnalyzedMove): MoveClassificationType {
   const playerMateBefore = beforeIsMate ? (move.color === 'w' ? move.evalBefore.score.value : -move.evalBefore.score.value) : null;
   const playerMateAfter = afterIsMate ? (move.color === 'w' ? move.evalAfter.score.value : -move.evalAfter.score.value) : null;
 
+  // RULE: If the player has forced mate after the move, it CAN NEVER be a blunder, mistake, miss, or inaccuracy!
+  if (playerMateAfter !== null && playerMateAfter > 0) {
+    effectiveLoss = 0;
+    const special = checkBrilliantOrGreat(move, isBestMove, 0, playerScoreBefore, playerScoreAfter, playerMateBefore, playerMateAfter);
+    if (special) return special;
+    return 'best';
+  }
+
   if (beforeIsMate && afterIsMate) {
     if (playerMateBefore! > 0 && playerMateAfter! > 0) {
-      const delay = playerMateAfter! - playerMateBefore!;
-      effectiveLoss = delay > 0 ? delay * 10 : 0;
+      effectiveLoss = 0;
     } else if (playerMateBefore! < 0 && playerMateAfter! < 0) {
       effectiveLoss = 0;
     }
@@ -239,8 +275,8 @@ export function classifyMove(move: AnalyzedMove): MoveClassificationType {
     return 'miss';
   }
 
-  // 1. Check for genuine Brilliant or Great Move (strict criteria)
-  const specialClass = checkBrilliantOrGreat(move, isBestMove, effectiveLoss, playerScoreBefore, playerScoreAfter);
+  // 1. Check for genuine Brilliant or Great Move
+  const specialClass = checkBrilliantOrGreat(move, isBestMove, effectiveLoss, playerScoreBefore, playerScoreAfter, playerMateBefore, playerMateAfter);
   if (specialClass) return specialClass;
 
   // 2. Best Move: Engine's #1 move, or essentially tied with best move (<= 8 cp loss)

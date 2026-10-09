@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { AnalyzedMove } from '../types/review';
 import { MoveClassificationBadge } from './MoveClassificationBadge';
 import { CLASSIFICATIONS, type MoveClassificationType } from '../types/classification';
+import { estimatePerformanceRating } from '../utils/accuracy';
 
 interface ReviewStatsProps {
   analyzedMoves: AnalyzedMove[];
@@ -38,6 +39,12 @@ export const ReviewStats: React.FC<ReviewStatsProps> = ({ analyzedMoves, whiteAc
     return { counts, biggestMistakeMove };
   }, [analyzedMoves]);
 
+  const whiteMoves = useMemo(() => analyzedMoves.filter(m => m.color === 'w'), [analyzedMoves]);
+  const blackMoves = useMemo(() => analyzedMoves.filter(m => m.color === 'b'), [analyzedMoves]);
+
+  const whiteEstElo = useMemo(() => estimatePerformanceRating(whiteAccuracy, whiteMoves), [whiteAccuracy, whiteMoves]);
+  const blackEstElo = useMemo(() => estimatePerformanceRating(blackAccuracy, blackMoves), [blackAccuracy, blackMoves]);
+
   return (
     <div className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-lg flex flex-col gap-4">
       {openingName && (
@@ -67,13 +74,13 @@ export const ReviewStats: React.FC<ReviewStatsProps> = ({ analyzedMoves, whiteAc
         <div className="flex flex-col border-r border-slate-700">
           <span className="text-[10px] text-content-3 uppercase tracking-wider font-bold">White Est. Elo</span>
           <span className="text-lg font-bold text-content-1">
-            {whiteAccuracy !== null ? Math.max(100, Math.round(Math.pow(whiteAccuracy / 100, 4) * 3200)) : '-'}
+            {whiteEstElo !== null ? whiteEstElo : '-'}
           </span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-content-3 uppercase tracking-wider font-bold">Black Est. Elo</span>
           <span className="text-lg font-bold text-content-1">
-            {blackAccuracy !== null ? Math.max(100, Math.round(Math.pow(blackAccuracy / 100, 4) * 3200)) : '-'}
+            {blackEstElo !== null ? blackEstElo : '-'}
           </span>
         </div>
       </div>

@@ -566,12 +566,18 @@ function App() {
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       {showResetPassword && <ResetPasswordModal onClose={() => setShowResetPassword(false)} />}
-      {user && profile && (!profile.games_played || profile.games_played === 0) && !localStorage.getItem('skill_modal_' + user.id) && !skillModalDismissed && (
-        <SkillLevelModal onComplete={async () => {
-          localStorage.setItem('skill_modal_' + user.id, 'true');
-          setSkillModalDismissed(true);
-          await refreshProfile();
-        }} />
+      {user && profile && (!profile.games_played || profile.games_played === 0) && (!profile.highest_rating && !profile.rating_bullet && !profile.rating_blitz) && !localStorage.getItem('skill_modal_' + user.id) && !skillModalDismissed && (
+        <SkillLevelModal 
+          onClose={() => {
+            localStorage.setItem('skill_modal_' + user.id, 'true');
+            setSkillModalDismissed(true);
+          }}
+          onComplete={async () => {
+            localStorage.setItem('skill_modal_' + user.id, 'true');
+            setSkillModalDismissed(true);
+            await refreshProfile();
+          }} 
+        />
       )}
 
       {needsMigration && (

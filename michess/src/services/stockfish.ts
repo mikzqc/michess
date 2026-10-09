@@ -72,12 +72,36 @@ export class StockfishEngine {
   }
 
   /**
+   * Flushes the engine pipeline and waits for 'readyok'.
+   * Ensures all preceding commands have finished and no stale bestmove remains.
+   */
+  public async syncReady(): Promise<void> {
+    if (this.state === 'uninitialized' || this.state === 'stopped' || this.state === 'error') {
+      await this.init();
+      return;
+    }
+
+    return new Promise((resolve) => {
+      const onReady = (e: MessageEvent) => {
+        if (typeof e.data === 'string' && e.data.trim() === 'readyok') {
+          this.worker?.removeEventListener('message', onReady);
+          this.state = 'ready';
+          resolve();
+        }
+      };
+      this.worker?.addEventListener('message', onReady);
+      this.send('isready');
+    });
+  }
+
+  /**
    * Stop the current analysis immediately.
    */
   public stop() {
     if (this.state === 'thinking') {
       this.send('stop');
-      // The engine will output bestmove which resolves the current promise
+      this.clearAnalysisState();
+      this.state = 'ready';
     }
   }
 
@@ -99,6 +123,21 @@ export class StockfishEngine {
   }
 
   /**
+   * Resets the engine state for a new game.
+   */
+  public async newGame(): Promise<void> {
+    if (this.state === 'uninitialized' || this.state === 'stopped' || this.state === 'error') {
+      await this.init();
+      return;
+    }
+    this.send('stop');
+    this.clearAnalysisState();
+    this.send('ucinewgame');
+    await this.syncReady();
+    this.state = 'ready';
+  }
+
+  /**
    * Analyze a position using depth or movetime.
    */
   public async analyzePosition(fen: string, options: { depth?: number; movetime?: number; skillLevel?: number }): Promise<EngineResponse> {
@@ -106,13 +145,11 @@ export class StockfishEngine {
       await this.init();
     }
 
-    // If it's already thinking, stop it before starting new analysis
+    // If it's already thinking, stop it and wait until ready
     if (this.state === 'thinking') {
-      this.stop();
-      // Wait until the engine actually finishes outputting bestmove
-      while (this.state === 'thinking') {
-        await new Promise(r => setTimeout(r, 10));
-      }
+      this.send('stop');
+      this.clearAnalysisState();
+      await this.syncReady();
     }
 
     return new Promise((resolve, reject) => {
@@ -135,7 +172,6 @@ export class StockfishEngine {
       const skill = options.skillLevel !== undefined ? options.skillLevel : 20;
       this.send(`setoption name Skill Level value ${skill}`);
 
-      this.send('ucinewgame');
       this.send(`position fen ${fen}`);
       
       let goCmd = 'go';
@@ -215,16 +251,18 @@ export class StockfishEngine {
       ponder = tokens[3];
     }
 
-    if (this.currentAnalysisResolve) {
-      this.currentAnalysisResolve({
+    const resolve = this.currentAnalysisResolve;
+    const info = { ...this.latestInfo };
+    this.clearAnalysisState();
+    this.state = 'ready';
+
+    if (resolve) {
+      resolve({
         bestmove,
         ponder,
-        info: this.latestInfo,
+        info,
       });
-      this.clearAnalysisState();
     }
-    
-    this.state = 'ready';
   }
 
   private clearAnalysisState() {

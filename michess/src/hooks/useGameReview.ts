@@ -38,6 +38,12 @@ export function useGameReview({ pgn, depth = 12 }: UseGameReviewProps) {
   const cancelRef = useRef(false);
 
   const calculateLoss = (evalBefore: EngineEvaluation, evalAfter: EngineEvaluation, color: 'w' | 'b'): number => {
+    // If player has forced checkmate after the move, loss is strictly 0!
+    if (evalAfter.score?.type === 'mate') {
+      const playerMate = color === 'w' ? evalAfter.score.value : -evalAfter.score.value;
+      if (playerMate > 0) return 0;
+    }
+
     // Normalizing mate scores for loss calculation
     const getScore = (ev: EngineEvaluation) => {
       if (!ev.score) return 0;
@@ -55,6 +61,11 @@ export function useGameReview({ pgn, depth = 12 }: UseGameReviewProps) {
     const playerBefore = color === 'w' ? s1 : -s1;
     const playerAfter = color === 'w' ? s2 : -s2;
     
+    // If player maintains forced checkmate, loss is 0
+    if (playerBefore >= 9000 && playerAfter >= 9000) {
+      return 0;
+    }
+
     // Loss is how much advantage was lost. 
     // If player improved their position, loss is clamped to 0.
     return Math.max(0, playerBefore - playerAfter);
@@ -104,6 +115,8 @@ export function useGameReview({ pgn, depth = 12 }: UseGameReviewProps) {
 
       const evaluations: EngineEvaluation[] = [];
 
+      await stockfishEngine.newGame();
+
       for (let i = 0; i < positions.length; i++) {
         if (cancelRef.current) break;
         
@@ -112,29 +125,62 @@ export function useGameReview({ pgn, depth = 12 }: UseGameReviewProps) {
         let evaluation = reviewCache.get(fen, depth);
         
         if (!evaluation) {
-          try {
-            const response = await stockfishEngine.analyzePosition(fen, { depth });
-            
-            // UCI outputs score from the perspective of the side to move.
-            // Normalize it to ALWAYS be from White's perspective.
-            let normalizedScore = response.info?.score;
-            if (normalizedScore && fen.split(' ')[1] === 'b') {
-              normalizedScore = {
-                type: normalizedScore.type,
-                value: -normalizedScore.value
-              };
+          const tempChess = new Chess(fen);
+          
+          if (tempChess.isGameOver()) {
+            let score: EngineEvaluation['score'];
+            if (tempChess.isCheckmate()) {
+              const sideToMove = fen.split(' ')[1];
+              // From White's perspective: if Black is mated, White wins (+1 mate); if White is mated, (-1 mate)
+              score = { type: 'mate', value: sideToMove === 'b' ? 1 : -1 };
+            } else {
+              score = { type: 'cp', value: 0 };
             }
-
             evaluation = {
-              score: normalizedScore,
-              depth: response.info?.depth,
-              pv: response.info?.pv,
-              bestmove: response.bestmove
+              score,
+              depth,
+              pv: '',
+              bestmove: '(none)'
             };
             reviewCache.set(fen, depth, evaluation);
-          } catch (err) {
-            console.error("Stockfish analysis failed for FEN:", fen, err);
-            evaluation = {}; // empty fallback
+          } else {
+            try {
+              let response = await stockfishEngine.analyzePosition(fen, { depth });
+              
+              // Validate that bestmove is legal in fen
+              const legalMoves = tempChess.moves({ verbose: true });
+              const isLegal = response.bestmove === '(none)' || legalMoves.some(m => {
+                const uci = `${m.from}${m.to}${m.promotion || ''}`;
+                return uci === response.bestmove || response.bestmove.startsWith(m.from + m.to);
+              });
+
+              if (!isLegal) {
+                console.warn(`[Review] Stale bestmove "${response.bestmove}" for turn ${tempChess.turn()} in ${fen}. Resyncing engine and retrying...`);
+                await stockfishEngine.newGame();
+                response = await stockfishEngine.analyzePosition(fen, { depth });
+              }
+
+              // UCI outputs score from the perspective of the side to move.
+              // Normalize it to ALWAYS be from White's perspective.
+              let normalizedScore = response.info?.score;
+              if (normalizedScore && fen.split(' ')[1] === 'b') {
+                normalizedScore = {
+                  type: normalizedScore.type,
+                  value: -normalizedScore.value
+                };
+              }
+
+              evaluation = {
+                score: normalizedScore,
+                depth: response.info?.depth ?? depth,
+                pv: response.info?.pv,
+                bestmove: response.bestmove
+              };
+              reviewCache.set(fen, depth, evaluation);
+            } catch (err) {
+              console.error("Stockfish analysis failed for FEN:", fen, err);
+              evaluation = {}; // empty fallback
+            }
           }
         }
         

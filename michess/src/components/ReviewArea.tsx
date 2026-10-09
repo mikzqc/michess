@@ -6,6 +6,7 @@ import { EvaluationBar } from './EvaluationBar';
 import { Bot, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Info, AlertTriangle, User, Copy, Sparkles, Eraser } from 'lucide-react';
 import { CLASSIFICATIONS, type MoveClassificationType } from '../types/classification';
 import { getClassificationExplanation } from '../utils/classification';
+import { calculateGameAccuracy } from '../utils/accuracy';
 import { EvaluationGraph } from './EvaluationGraph';
 import { ReviewStats } from './ReviewStats';
 import { MoveClassificationBadge } from './MoveClassificationBadge';
@@ -136,14 +137,14 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
     const blackMoves = analyzedMoves.filter(m => m.color === 'b');
     
     if (whiteMoves.length > 0) {
-      whiteAccuracy = whiteMoves.reduce((sum, m) => sum + (m.accuracy || 0), 0) / whiteMoves.length;
+      whiteAccuracy = calculateGameAccuracy(whiteMoves);
     }
     if (blackMoves.length > 0) {
-      blackAccuracy = blackMoves.reduce((sum, m) => sum + (m.accuracy || 0), 0) / blackMoves.length;
+      blackAccuracy = calculateGameAccuracy(blackMoves);
     }
     
     if (whiteAccuracy !== null && blackAccuracy !== null) {
-      overallAccuracy = (whiteAccuracy + blackAccuracy) / 2;
+      overallAccuracy = Math.round(((whiteAccuracy + blackAccuracy) / 2) * 10) / 10;
     } else {
       overallAccuracy = whiteAccuracy || blackAccuracy;
     }
@@ -345,8 +346,8 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
           <div className="text-content-3">Eval:</div>
           <div className="font-bold text-content-1">
             {move.evalAfter.score?.type === 'mate' 
-              ? `M${Math.abs(move.evalAfter.score!.value)}` 
-              : `${((move.evalAfter.score?.value || 0) / 100).toFixed(2)}`}
+              ? `${(move.evalAfter.score?.value || 0) > 0 ? '+' : '-'}M${Math.abs(move.evalAfter.score!.value)}` 
+              : `${(move.evalAfter.score?.value || 0) > 0 ? '+' : ''}${((move.evalAfter.score?.value || 0) / 100).toFixed(2)}`}
           </div>
 
           <div className="text-content-3">Loss:</div>
@@ -614,9 +615,9 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
           {showMoves && (
             <div className="overflow-y-auto p-2 flex-1">
             <div className="grid grid-cols-[40px_1fr_1fr] text-sm text-left">
-              {movePairs.map((pair, idx) => {
-                const whiteIndex = idx * 2;
-                const blackIndex = idx * 2 + 1;
+              {movePairs.map((pair) => {
+                const whiteIndex = pair.white ? analyzedMoves.indexOf(pair.white) : -1;
+                const blackIndex = pair.black ? analyzedMoves.indexOf(pair.black) : -1;
                 
                 return (
                   <React.Fragment key={pair.moveNumber}>
