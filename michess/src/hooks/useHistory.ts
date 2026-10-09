@@ -72,7 +72,6 @@ export function useHistory() {
                 source: cg.source as any,
                 timestamp: Number(cg.timestamp),
                 reviewed: cg.reviewed,
-                is_chaos: cg.is_chaos || false,
                 whiteAccuracy: cg.white_accuracy || undefined,
                 blackAccuracy: cg.black_accuracy || undefined,
                 overallAccuracy: cg.overall_accuracy || undefined,
@@ -153,8 +152,7 @@ export function useHistory() {
         black_accuracy: game.blackAccuracy,
         overall_accuracy: game.overallAccuracy,
         move_count: game.moveCount,
-        classifications: game.classifications,
-        is_chaos: game.is_chaos || false
+        classifications: game.classifications
       }).select('id').single();
       
       if (error) throw error;

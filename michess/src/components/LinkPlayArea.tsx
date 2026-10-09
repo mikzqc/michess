@@ -20,15 +20,13 @@ import { ConfirmModal } from './ConfirmModal';
 import { PromotionDialog } from './PromotionDialog';
 import { GameOverModal } from './GameOverModal';
 import { Chess } from 'chess.js';
-import { OwnerPanel } from './OwnerPanel';
-import { moveInFen, removeInFen, putInFen, switchTurnInFen, type PieceSymbol } from '../utils/fenUtils';
 import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
 
 interface LinkPlayAreaProps {
   inviteCode: string;
   onExit: () => void;
   onReview?: (pgn: string) => void;
-  onSaveGame?: (pgn: string, white: string, black: string, result: string, date: string, event: string, is_chaos?: boolean) => void;
+  onSaveGame?: (pgn: string, white: string, black: string, result: string, date: string, event: string) => void;
   onRequireAuth: () => void;
 }
 
@@ -62,7 +60,6 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
   const { 
     gameData, fen, chess, error, loading, makeMove, joinGame, resign, 
     cancelGame, abortGame, claimTimeout, playerId, rematchGame, offerRematch, declineRematch, 
-    activateChaosMode, chaosUpdateGame, chaosClockAction,
     offerDraw, acceptDraw, declineDraw, isReconnecting
   } = useLinkGame(inviteCode, user?.id);
   const clockState = useChessClock(gameData);
@@ -111,13 +108,6 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
     }
   }, [gameData?.status, gameData?.id, user]);
   
-  // Chaos State
-  const [chaosAction, setChaosAction] = useState<'none'|'spawn'|'remove'|'replace'>('none');
-  const [spawnPiece, setSpawnPiece] = useState<{type: PieceSymbol, color: 'w'|'b'}>({ type: 'q', color: 'w' });
-  const [freeMoveActive, setFreeMoveActive] = useState(false);
-  const [ignoreTurnActive, setIgnoreTurnActive] = useState(false);
-  const isChaos = gameData?.is_chaos ?? false;
-
   const doMove = (from: string, to: string, promotion?: 'q'|'r'|'b'|'n') => {
     setArrows([]);
     makeMove({ from, to, promotion });
@@ -128,13 +118,6 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
     if (gameData?.status !== 'active') return false;
     handlePieceDropEnd();
     if (!args.targetSquare) return false;
-    
-    if (isChaos && freeMoveActive) {
-      const newFen = moveInFen(fen, args.sourceSquare, args.targetSquare);
-      const finalFen = ignoreTurnActive ? newFen : switchTurnInFen(newFen);
-      chaosUpdateGame({ fen: finalFen, current_turn: finalFen.split(' ')[1] as 'w'|'b' });
-      return true;
-    }
 
     const isPawn = chess.get(args.sourceSquare as any)?.type === 'p';
     const isPromotion = isPawn && (args.targetSquare[1] === '8' || args.targetSquare[1] === '1');
@@ -149,24 +132,6 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
     }
 
     return doMove(args.sourceSquare, args.targetSquare);
-  };
-
-  const handleChaosSquareClick = (square: string) => {
-    if (!isChaos || chaosAction === 'none') return false;
-    
-    if (chaosAction === 'spawn') {
-      const newFen = putInFen(fen, square, spawnPiece.type, spawnPiece.color);
-      chaosUpdateGame({ fen: newFen });
-    } else if (chaosAction === 'remove') {
-      const newFen = removeInFen(fen, square);
-      chaosUpdateGame({ fen: newFen });
-    } else if (chaosAction === 'replace') {
-      const newFen = putInFen(fen, square, spawnPiece.type, spawnPiece.color);
-      chaosUpdateGame({ fen: newFen });
-    }
-    
-    setChaosAction('none');
-    return true;
   };
 
   const inviteUrl = `${window.location.origin}/play/link/${inviteCode}`;
@@ -206,8 +171,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
 
   // Auto-abort timer logic
   useEffect(() => {
-    // Disable if not active, or if in chaos mode
-    if (gameData?.status !== 'active' || isChaos) {
+    if (gameData?.status !== 'active') {
       setAbortTimer(null);
       return;
     }
@@ -232,7 +196,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameData?.status, chess.history().length, isChaos]);
+  }, [gameData?.status, chess.history().length]);
 
   useEffect(() => {
     if (abortTimer === 0 && gameData?.status === 'active' && isPlayer) {
@@ -302,10 +266,10 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
       const whitePlayer = 'Player (White)';
       const blackPlayer = 'Player (Black)';
       const eventLabel = gameData.time_control ? `Link Game (${gameData.time_control})` : 'Link Game';
-      onSaveGame(gameData.pgn, whitePlayer, blackPlayer, resStr, new Date().toLocaleDateString(), eventLabel, isChaos);
+      onSaveGame(gameData.pgn, whitePlayer, blackPlayer, resStr, new Date().toLocaleDateString(), eventLabel);
       setHasSaved(true);
     }
-  }, [gameData?.status, gameData?.winner, gameData?.pgn, hasSaved, onSaveGame, chess, user, isChaos]);
+  }, [gameData?.status, gameData?.winner, gameData?.pgn, hasSaved, onSaveGame, chess, user]);
 
   if (loading) {
     return (
@@ -490,16 +454,8 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                 onPieceDrop: onDrop,
                 onSquareClick: (args) => {
                   if (gameData.status !== 'active') return;
-                  if (handleChaosSquareClick(args.square)) return;
                   const move = handleSquareClick(args.square);
                   if (move) {
-                    if (isChaos && freeMoveActive) {
-                       const newFen = moveInFen(fen, move.from, move.to);
-                       const finalFen = ignoreTurnActive ? newFen : switchTurnInFen(newFen);
-                       chaosUpdateGame({ fen: finalFen, current_turn: finalFen.split(' ')[1] as 'w'|'b' });
-                       return;
-                    }
-                    
                     const isPawn = chess.get(move.from as any)?.type === 'p';
                     const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
                     if (isPromotion && !settings.autoQueen) {
@@ -533,7 +489,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                <GameOverModal 
                    result={isTimeout ? 'Time Expired' : gameEndReason}
                    playerColor={gameData.white_player === playerId ? 'white' : 'black'}
-                   onReview={isChaos ? undefined : (() => onReview?.(gameData.pgn || chess.pgn())) as any}
+                   onReview={(() => onReview?.(gameData.pgn || chess.pgn())) as any}
                    onRematch={gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w') ? rematchGame : offerRematch}
                    rematchOffer={{
                      byMe: gameData.rematch_offer_by === (gameData.white_player === playerId ? 'w' : 'b'),
@@ -610,36 +566,6 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
           </div>
         )}
 
-        <OwnerPanel 
-          isChaos={isChaos}
-          onToggleChaos={async () => {
-            if (!isChaos) await activateChaosMode();
-          }}
-          onSpawnPiece={() => setChaosAction(prev => prev === 'spawn' ? 'none' : 'spawn')}
-          onRemovePiece={() => setChaosAction(prev => prev === 'remove' ? 'none' : 'remove')}
-          onReplacePiece={() => setChaosAction(prev => prev === 'replace' ? 'none' : 'replace')}
-          onFreeMoveToggle={(val) => setFreeMoveActive(val)}
-          onIgnoreTurnToggle={(val) => setIgnoreTurnActive(val)}
-          onSwitchTurn={() => {
-             const newFen = switchTurnInFen(fen);
-             chaosUpdateGame({ fen: newFen, current_turn: newFen.split(' ')[1] as 'w'|'b' });
-          }}
-          onClearBoard={() => {
-             chaosUpdateGame({ fen: '8/8/8/8/8/8/8/8 w - - 0 1' });
-          }}
-          onResetPosition={() => {
-             chaosUpdateGame({ fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', current_turn: 'w' });
-          }}
-          onPauseClock={() => chaosClockAction('pause', clockState.whiteTimeMs, clockState.blackTimeMs)}
-          onResumeClock={() => chaosClockAction('resume')}
-          onResetClock={() => chaosClockAction('reset')}
-          freeMoveActive={freeMoveActive}
-          ignoreTurnActive={ignoreTurnActive}
-          chaosAction={chaosAction}
-          spawnPiece={spawnPiece}
-          setSpawnPiece={setSpawnPiece}
-        />
-
         <div className="flex-1 min-h-0 overflow-hidden">
           <MoveHistory history={chess.history({ verbose: true })} />
         </div>
@@ -702,14 +628,12 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {!isChaos && (
-                  <button 
-                    onClick={() => onReview?.(gameData.pgn || chess.pgn())}
-                    className="bg-accent hover:bg-accent-hover text-white py-2 rounded text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    Review Game
-                  </button>
-                )}
+                <button 
+                  onClick={() => onReview?.(gameData.pgn || chess.pgn())}
+                  className="bg-accent hover:bg-accent-hover text-white py-2 rounded text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Review Game
+                </button>
                 <button 
                   onClick={gameData.rematch_offer_by === (gameData.white_player === playerId ? 'b' : 'w') ? rematchGame : offerRematch}
                   className="bg-surface-2 hover:bg-surface-1 border border-border-1 text-content-1 py-2 rounded text-xs font-bold transition-colors cursor-pointer"

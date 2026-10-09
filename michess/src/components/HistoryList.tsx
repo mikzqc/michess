@@ -130,11 +130,6 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onR
                       <span className="text-xs font-bold uppercase tracking-wider text-content-3 bg-surface-3 px-2 py-1 rounded">
                         {game.source}
                       </span>
-                      {game.is_chaos && (
-                        <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 border border-accent/20 px-2 py-1 rounded">
-                          CHAOS
-                        </span>
-                      )}
                       {game.syncStatus === 'synced' && (
                         <span className="text-success" title="Synced to cloud"><Cloud size={14} /></span>
                       )}
@@ -192,14 +187,12 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onR
                   )}
 
                   <div className="flex w-full md:w-auto gap-2">
-                    {!game.is_chaos && (
-                      <Button 
-                        onClick={() => onReview(game.pgn)}
-                        className="flex-1 md:flex-none"
-                      >
-                        <Play size={18} className="mr-2" /> Review
-                      </Button>
-                    )}
+                    <Button 
+                      onClick={() => onReview(game.pgn)}
+                      className="flex-1 md:flex-none"
+                    >
+                      <Play size={18} className="mr-2" /> Review
+                    </Button>
                     <Button 
                       onClick={() => handleRemove(game.id)}
                       variant="ghost"

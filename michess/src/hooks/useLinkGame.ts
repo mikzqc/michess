@@ -41,10 +41,7 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
       if (fetchErr) throw fetchErr;
       
       setGameData(data);
-      if (data.is_chaos) {
-        setFen(data.fen);
-        try { chess.load(data.fen); } catch {}
-      } else if (data.pgn !== lastProcessedPgn.current) {
+      if (data.pgn !== lastProcessedPgn.current) {
         chess.loadPgn(data.pgn || '');
         setFen(chess.fen());
         lastProcessedPgn.current = data.pgn;
@@ -77,11 +74,9 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
           const newGame = payload.new as LinkGame;
           setGameData(newGame);
           
-          if (newGame.is_chaos) {
-            setFen(newGame.fen);
-            try { chess.load(newGame.fen); } catch {}
-          } else if (newGame.pgn !== lastProcessedPgn.current) {
+          if (newGame.pgn !== lastProcessedPgn.current) {
             chess.loadPgn(newGame.pgn || '');
+            setFen(chess.fen());
             
             const history = chess.history({ verbose: true });
             const lastMove = history[history.length - 1];
@@ -338,52 +333,6 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
     }
   };
 
-  const activateChaosMode = async () => {
-    if (!supabase || !gameData) return;
-    try {
-      await supabase.rpc('activate_chaos_mode', { p_game_id: gameData.id });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const chaosUpdateGame = async (updates: Partial<LinkGame>) => {
-    if (!supabase || !gameData) return false;
-    
-    // optimistically update local state
-    setGameData({ ...gameData, ...updates, is_chaos: true } as LinkGame);
-    if (updates.fen) setFen(updates.fen);
-
-    try {
-      const { error } = await supabase.rpc('chaos_update_game', {
-        p_game_id: gameData.id,
-        p_fen: updates.fen || null,
-        p_pgn: updates.pgn || null,
-        p_turn: updates.current_turn || null,
-        p_status: updates.status || null,
-        p_winner: updates.winner || null
-      });
-      if (error) console.error("Chaos update failed", error);
-      return !error;
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const chaosClockAction = async (action: 'pause' | 'resume' | 'reset', white_time_ms?: number, black_time_ms?: number) => {
-    if (!supabase || !gameData) return;
-    try {
-      await supabase.rpc('chaos_clock_action', {
-        p_game_id: gameData.id,
-        p_action: action,
-        p_white_time_ms: white_time_ms || null,
-        p_black_time_ms: black_time_ms || null
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const offerDraw = async () => {
     if (!supabase || !gameData) return;
     if (gameData.status !== 'active') return;
@@ -451,9 +400,6 @@ export function useLinkGame(inviteCode: string | null, userId: string | undefine
     rematchGame,
     offerRematch,
     declineRematch,
-    activateChaosMode,
-    chaosUpdateGame,
-    chaosClockAction,
     offerDraw,
     acceptDraw,
     declineDraw,

@@ -11,7 +11,6 @@ export interface HistoryGame {
   source: 'local' | 'computer' | 'import';
   timestamp: number;
   reviewed: boolean;
-  is_chaos?: boolean;
   whiteAccuracy?: number;
   blackAccuracy?: number;
   overallAccuracy?: number;

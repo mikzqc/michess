@@ -15,7 +15,6 @@ export interface LinkGame {
   white_time_ms?: number | null;
   black_time_ms?: number | null;
   last_move_at?: string | null;
-  is_chaos?: boolean;
   draw_offer_by?: 'w' | 'b' | null;
   rematch_offer_by?: 'w' | 'b' | null;
   created_at: string;

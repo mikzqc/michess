@@ -187,7 +187,7 @@ function App() {
     updateGameReviewStats(pgn, stats);
   }, [updateGameReviewStats]);
 
-  const handleSaveGame = (pgn: string, white: string, black: string, result: string, date: string, event: string, is_chaos?: boolean) => {
+  const handleSaveGame = (pgn: string, white: string, black: string, result: string, date: string, event: string) => {
     const isComputer = view === 'play-computer';
     addGame({
       pgn,
@@ -197,8 +197,7 @@ function App() {
       date,
       event,
       source: isComputer ? 'computer' : 'local',
-      moveCount: pgn.split('. ').length - 1,
-      is_chaos
+      moveCount: pgn.split('. ').length - 1
     });
   };
 
