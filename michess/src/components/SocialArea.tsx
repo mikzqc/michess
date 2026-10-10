@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, UserPlus, Check, X, User, ArrowLeft, Users } from 'lucide-react';
+import { Search, UserPlus, Check, X, User, ArrowLeft, Users, MessageSquare } from 'lucide-react';
 import { useSocial } from '../hooks/useSocial';
 import { useSearch } from '../hooks/useSearch';
 import { useAuth } from '../hooks/useAuth';
@@ -9,9 +9,10 @@ import { useToast } from './Toast';
 interface SocialAreaProps {
   onExit: () => void;
   onViewProfile: (username: string) => void;
+  onOpenChat?: (friendId: string) => void;
 }
 
-export const SocialArea: React.FC<SocialAreaProps> = ({ onExit, onViewProfile }) => {
+export const SocialArea: React.FC<SocialAreaProps> = ({ onExit, onViewProfile, onOpenChat }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
   const { friends, sendRequest, acceptRequest, removeFriend } = useSocial();
@@ -132,13 +133,24 @@ export const SocialArea: React.FC<SocialAreaProps> = ({ onExit, onViewProfile })
                           <span className="text-xs text-content-3">{friend.friend_profile?.highest_rating} ELO</span>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => removeFriend(friend.user_id === user.id ? friend.friend_id : friend.user_id)} 
-                        className="p-2 text-content-3 hover:bg-red-900/50 hover:text-red-400 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                        title="Remove Friend"
-                      >
-                        <X size={18} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {onOpenChat && (
+                          <button
+                            onClick={() => onOpenChat(friend.user_id === user.id ? friend.friend_id : friend.user_id)}
+                            className="p-2 text-content-3 hover:text-accent hover:bg-surface-3 rounded-lg transition-colors cursor-pointer"
+                            title="Chat with Friend"
+                          >
+                            <MessageSquare size={18} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => removeFriend(friend.user_id === user.id ? friend.friend_id : friend.user_id)} 
+                          className="p-2 text-content-3 hover:bg-red-900/50 hover:text-red-400 rounded-lg transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                          title="Remove Friend"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

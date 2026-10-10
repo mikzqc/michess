@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useChessClock } from '../hooks/useChessClock';
 import { MoveHistory } from './MoveHistory';
 import { ChessClock } from './ChessClock';
-import { Copy, Flag, Check, ShieldAlert, RotateCcw, Eraser, Handshake } from 'lucide-react';
+import { Copy, Flag, Check, ShieldAlert, RotateCcw, Eraser, Handshake, MessageSquare } from 'lucide-react';
 import { useBoardHighlights } from '../hooks/useBoardHighlights';
 import { copyToClipboard } from '../utils/clipboard';
 import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
@@ -19,6 +19,7 @@ import { audioService } from '../services/audio';
 import { ConfirmModal } from './ConfirmModal';
 import { PromotionDialog } from './PromotionDialog';
 import { GameOverModal } from './GameOverModal';
+import { InGameChat } from './InGameChat';
 import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
 
 interface LinkPlayAreaProps {
@@ -41,6 +42,8 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
   const [hasSaved, setHasSaved] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [abortTimer, setAbortTimer] = useState<number | null>(null);
+  const [sidebarTab, setSidebarTab] = useState<'moves' | 'chat'>('moves');
+  const [inGameUnread, setInGameUnread] = useState(0);
   const timeoutClaimedRef = useRef(false);
   
   const {
@@ -541,8 +544,53 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
           </div>
         )}
 
-        <div className="flex-1 min-h-0 overflow-hidden">
+        {/* Sidebar Tabs: Moves & Chat */}
+        <div className="flex border-b border-border-1 gap-4 shrink-0 px-1">
+          <button
+            type="button"
+            onClick={() => setSidebarTab('moves')}
+            className={`pb-2 text-sm font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              sidebarTab === 'moves'
+                ? 'border-b-2 border-accent text-accent'
+                : 'text-content-3 hover:text-content-2'
+            }`}
+          >
+            <span>Moves</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSidebarTab('chat');
+              setInGameUnread(0);
+            }}
+            className={`pb-2 text-sm font-bold flex items-center gap-1.5 transition-colors relative cursor-pointer ${
+              sidebarTab === 'chat'
+                ? 'border-b-2 border-accent text-accent'
+                : 'text-content-3 hover:text-content-2'
+            }`}
+          >
+            <MessageSquare size={14} />
+            <span>Chat</span>
+            {inGameUnread > 0 && sidebarTab !== 'chat' && (
+              <span className="w-2 h-2 rounded-full bg-error animate-pulse" />
+            )}
+          </button>
+        </div>
+
+        <div className={`flex-1 min-h-0 overflow-hidden flex flex-col ${sidebarTab === 'moves' ? 'flex' : 'hidden'}`}>
           <MoveHistory history={chess.history({ verbose: true })} />
+        </div>
+
+        <div className={`flex-1 min-h-0 overflow-hidden flex flex-col ${sidebarTab === 'chat' ? 'flex' : 'hidden'}`}>
+          <InGameChat
+            gameId={gameData.id}
+            playerId={playerId}
+            playerName={user?.user_metadata?.username || (isPlayer ? (playerColor === 'white' ? 'White' : 'Black') : 'Spectator')}
+            opponentName={topLabel}
+            opponentId={topPlayerId || undefined}
+            isChatOpen={sidebarTab === 'chat'}
+            onUnreadCountChange={setInGameUnread}
+          />
         </div>
         
         <div className="grid grid-cols-2 gap-2">

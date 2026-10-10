@@ -32,7 +32,9 @@ import { NotFoundArea } from './components/NotFoundArea';
 import { NotificationDropdown } from './components/NotificationDropdown';
 import { OpeningExplorerPage } from './components/OpeningExplorerPage';
 import { useChallenges } from './hooks/useChallenges';
-import { BookOpen } from 'lucide-react';
+import { useDirectChat } from './hooks/useDirectChat';
+import { FriendsChatModal } from './components/FriendsChatModal';
+import { BookOpen, MessageSquare } from 'lucide-react';
 import heroImage from './assets/hero.png';
 
 type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'openings' | 'about' | 'support' | '404';
@@ -53,6 +55,9 @@ function App() {
   const [challengeTargetId, setChallengeTargetId] = useState<string | null>(null);
   const [skillModalDismissed, setSkillModalDismissed] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showFriendsChat, setShowFriendsChat] = useState(false);
+  const [chatActiveFriendId, setChatActiveFriendId] = useState<string | null>(null);
+  const { totalUnreadCount } = useDirectChat();
   const { addToast } = useToast();
   const { profile, loading: profileLoading, refreshProfile } = useProfile();
   const { sendChallenge, respondToChallenge } = useChallenges();
@@ -490,6 +495,26 @@ function App() {
                       }
                     }}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowFriendsChat(true)}
+                    className={`relative p-2 rounded-lg transition-colors active:scale-95 cursor-pointer ${
+                      view === '404'
+                        ? 'text-red-900 hover:text-red-500 hover:bg-red-950/30'
+                        : 'text-content-3 hover:text-content-1 hover:bg-surface-3'
+                    }`}
+                    aria-label="Friends Chat"
+                    title="Friends Chat"
+                  >
+                    <MessageSquare size={18} />
+                    {totalUnreadCount > 0 && (
+                      <span className={`absolute top-1 right-1 w-4 h-4 text-white text-[10px] font-bold flex items-center justify-center rounded-full pointer-events-none ${
+                        view === '404' ? 'bg-red-700 animate-pulse shadow-[0_0_8px_rgba(255,0,0,0.6)]' : 'bg-accent'
+                      }`}>
+                        {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                      </span>
+                    )}
+                  </button>
                   <button 
                     onClick={() => handleSetView('profile')}
                     className={`px-3 py-1.5 rounded-lg border transition-colors font-medium text-sm active:scale-95 flex items-center justify-center min-h-[34px] cursor-pointer ${view === '404' ? 'bg-red-950/20 border-red-900/30 text-red-700 hover:text-red-500 hover:bg-red-900/40' : (view === 'profile' ? 'bg-accent border-accent text-white font-semibold' : 'bg-surface-3 border-border-1 hover:bg-surface-2 text-content-1')}`}
@@ -723,12 +748,20 @@ function App() {
               setChallengeTargetId(userId);
               setSetupMode('challenge');
             }} 
+            onOpenChat={(userId) => {
+              setChatActiveFriendId(userId);
+              setShowFriendsChat(true);
+            }}
           />
         )}
         {view === 'social' && (
           <SocialArea 
             onExit={() => handleSetView('home')} 
             onViewProfile={handleViewProfile} 
+            onOpenChat={(friendId) => {
+              setChatActiveFriendId(friendId);
+              setShowFriendsChat(true);
+            }}
           />
         )}
         {view === 'puzzles' && (
@@ -829,6 +862,22 @@ function App() {
           }}
         />
       )}
+
+      {/* Friends Chat Modal */}
+      <FriendsChatModal
+        isOpen={showFriendsChat}
+        onClose={() => {
+          setShowFriendsChat(false);
+          setChatActiveFriendId(null);
+        }}
+        initialFriendId={chatActiveFriendId}
+        onChallengeFriend={(friendId) => {
+          setShowFriendsChat(false);
+          setChallengeTargetId(friendId);
+          setSetupMode('challenge');
+        }}
+        onViewProfile={handleViewProfile}
+      />
     </div>
   );
 }

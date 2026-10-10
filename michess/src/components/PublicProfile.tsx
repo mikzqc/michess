@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, ArrowLeft, ShieldCheck, Swords, Zap, Clock, Target, Trophy, Medal } from 'lucide-react';
+import { User, ArrowLeft, ShieldCheck, Swords, Zap, Clock, Target, Trophy, Medal, MessageSquare } from 'lucide-react';
 import { usePublicProfile } from '../hooks/usePublicProfile';
 import { usePublicHistory } from '../hooks/usePublicHistory';
 import { useStatistics } from '../hooks/useStatistics';
@@ -11,9 +11,10 @@ interface PublicProfileProps {
   username: string;
   onExit: () => void;
   onChallenge: (userId: string) => void;
+  onOpenChat?: (userId: string) => void;
 }
 
-export const PublicProfile: React.FC<PublicProfileProps> = ({ username, onExit, onChallenge }) => {
+export const PublicProfile: React.FC<PublicProfileProps> = ({ username, onExit, onChallenge, onOpenChat }) => {
   const { profile, loading: profileLoading, error } = usePublicProfile(username);
   const { history, loading: historyLoading } = usePublicHistory(profile?.id);
   const { stats, openingStats } = useStatistics(history, username);
@@ -74,6 +75,11 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ username, onExit, 
           </div>
           
           <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+            {onOpenChat && (
+              <Button variant="outline" onClick={() => onOpenChat(profile.id)}>
+                <MessageSquare size={18} className="mr-2" /> Message
+              </Button>
+            )}
             <Button onClick={() => onChallenge(profile.id)}>
               <Swords size={18} className="mr-2" /> Challenge
             </Button>
