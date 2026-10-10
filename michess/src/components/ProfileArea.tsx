@@ -11,9 +11,10 @@ interface ProfileAreaProps {
   onExit: () => void;
   onViewProfile?: (username: string) => void;
   onProfileUpdate?: () => void;
+  onRequireAuth?: () => void;
 }
 
-export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile, onProfileUpdate }) => {
+export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile, onProfileUpdate, onRequireAuth }) => {
   const { user } = useAuth();
   const { profile, loading, updateUsername, uploadAvatar } = useProfile();
   const { addToast } = useToast();
@@ -62,8 +63,13 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
     return (
       <div className="flex flex-col items-center justify-center h-64 mt-20 gap-4">
         <User size={48} className="text-content-3" />
-        <h2 className="text-2xl font-bold text-content-1">Not logged in</h2>
-        <Button onClick={onExit}>Return to Game</Button>
+        <h2 className="text-2xl font-bold text-content-1">Sign in to view your profile</h2>
+        <div className="flex items-center gap-3">
+          {onRequireAuth && (
+            <Button onClick={onRequireAuth} variant="primary">Sign In / Register</Button>
+          )}
+          <Button onClick={onExit} variant="ghost">Return to Home</Button>
+        </div>
       </div>
     );
   }

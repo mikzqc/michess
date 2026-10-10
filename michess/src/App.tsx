@@ -59,27 +59,34 @@ function App() {
   const { history, addGame, removeGame, clearHistory, updateGameReviewStats, migrateLocalGames, skipMigration, needsMigration } = useHistory();
 
   useEffect(() => {
-    const path = window.location.pathname;
-    const linkMatch = path.match(/^\/play\/link\/([a-zA-Z0-9_-]+)$/);
-    const playerMatch = path.match(/^\/player\/([a-zA-Z0-9_-]+)$/);
-    
-    if (linkMatch) {
-      setLinkInviteCode(linkMatch[1]);
-      setView('link-game');
-    } else if (playerMatch) {
-      setTargetUsername(playerMatch[1]);
-      setView('public-profile');
-    } else if (path === '/puzzles') {
-      setView('puzzles');
-    } else if (path === '/about') {
-      setView('about');
-    } else if (path === '/support') {
-      setView('support');
-    } else if (path !== '/' && path !== '') {
-      setView('404');
-    } else {
-      setView('home');
-    }
+    const handleLocationChange = () => {
+      const path = window.location.pathname;
+      const linkMatch = path.match(/^\/play\/link\/([a-zA-Z0-9_-]+)$/);
+      const playerMatch = path.match(/^\/player\/([a-zA-Z0-9_-]+)$/);
+      
+      if (linkMatch) {
+        setLinkInviteCode(linkMatch[1]);
+        setView('link-game');
+      } else if (playerMatch) {
+        setTargetUsername(playerMatch[1]);
+        setView('public-profile');
+      } else if (path === '/puzzles') {
+        setView('puzzles');
+      } else if (path === '/about') {
+        setView('about');
+      } else if (path === '/support') {
+        setView('support');
+      } else if (path === '/profile') {
+        setView('profile');
+      } else if (path !== '/' && path !== '') {
+        setView('404');
+      } else {
+        setView('home');
+      }
+    };
+
+    handleLocationChange();
+    window.addEventListener('popstate', handleLocationChange);
 
     let subscription: any = null;
     if (supabase) {
@@ -92,6 +99,7 @@ function App() {
     }
 
     return () => {
+      window.removeEventListener('popstate', handleLocationChange);
       if (subscription) subscription.unsubscribe();
     };
   }, []);
@@ -100,6 +108,7 @@ function App() {
   useEffect(() => {
     if (!authLoading && user && !profileLoading && !profile && view !== 'profile') {
       setView('profile');
+      window.history.pushState({}, '', '/profile');
     }
   }, [authLoading, user, profile, profileLoading, view]);
 
@@ -107,6 +116,7 @@ function App() {
     if (!authLoading && user && !profileLoading && !profile && v !== 'profile') {
       addToast('Please set a username first!', 'info');
       setView('profile');
+      window.history.pushState({}, '', '/profile');
       return;
     }
 
@@ -118,6 +128,8 @@ function App() {
       window.history.pushState({}, '', '/about');
     } else if (v === 'support') {
       window.history.pushState({}, '', '/support');
+    } else if (v === 'profile') {
+      window.history.pushState({}, '', '/profile');
     }
     setView(v);
   };
@@ -517,6 +529,7 @@ function App() {
             onExit={() => handleSetView('home')} 
             onViewProfile={handleViewProfile}
             onProfileUpdate={refreshProfile}
+            onRequireAuth={() => setShowAuth(true)}
           />
         )}
 
@@ -531,6 +544,8 @@ function App() {
                 window.history.pushState({}, '', '/');
               } else if (previousView === 'puzzles') {
                 window.history.pushState({}, '', '/puzzles');
+              } else if (previousView === 'profile') {
+                window.history.pushState({}, '', '/profile');
               } else {
                 window.history.pushState({}, '', '/');
               }
