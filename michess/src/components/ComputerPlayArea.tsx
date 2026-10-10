@@ -156,8 +156,8 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
     if (isThinking) return false; // Not allowed while computer is thinking
     if (!args.targetSquare) return false;
     
-    const isPawn = game.get(args.sourceSquare as any)?.type === 'p';
-    const isPromotion = isPawn && (args.targetSquare[1] === '8' || args.targetSquare[1] === '1');
+    const legalMoves = game.moves({ square: args.sourceSquare as any, verbose: true });
+    const isPromotion = legalMoves.some(m => m.to === args.targetSquare && m.promotion);
 
     if (isPromotion) {
       if (settings.autoQueen) {
@@ -283,12 +283,12 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
                 onSquareClick: (args) => {
                   const move = handleSquareClick(args.square);
                   if (move && !gameOverResult && !isThinking) {
-                    const isPawn = game.get(move.from as any)?.type === 'p';
-                    const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
+                    const legalMoves = game.moves({ square: move.from as any, verbose: true });
+                    const isPromotion = legalMoves.some(m => m.to === move.to && m.promotion);
                     if (isPromotion && !settings.autoQueen) {
                       setPromotionState({ sourceSquare: move.from, targetSquare: move.to, color: game.turn() });
                     } else {
-                      doMove(move.from, move.to, 'q');
+                      doMove(move.from, move.to, isPromotion ? 'q' : undefined);
                     }
                   }
                 },
@@ -310,6 +310,7 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
                   doMove(promotionState.sourceSquare, promotionState.targetSquare, piece);
                   setPromotionState(null);
                 }}
+                onCancel={() => setPromotionState(null)}
               />
             )}
             {isGameOver && showGameOverModal && (

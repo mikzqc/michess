@@ -47,8 +47,8 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
     handlePieceDropEnd();
     if (!args.targetSquare || args.sourceSquare === args.targetSquare) return false;
     
-    const isPawn = typeof args.piece === 'string' && args.piece[1].toLowerCase() === 'p';
-    const isPromotion = isPawn && (args.targetSquare[1] === '8' || args.targetSquare[1] === '1');
+    const legalMoves = chess.moves({ square: args.sourceSquare as any, verbose: true });
+    const isPromotion = legalMoves.some(m => m.to === args.targetSquare && m.promotion);
     
     return makeMove({
       from: args.sourceSquare,
@@ -61,8 +61,8 @@ export const PuzzleArea: React.FC<PuzzleAreaProps> = ({ onExit }) => {
     if (isSolved || isFailed || !square) return;
     const move = highlightSquareClick(square as any);
     if (move) {
-      const isPawn = chess.get(move.from as any)?.type === 'p';
-      const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
+      const legalMoves = chess.moves({ square: move.from as any, verbose: true });
+      const isPromotion = legalMoves.some(m => m.to === move.to && m.promotion);
       
       makeMove({
         from: move.from,

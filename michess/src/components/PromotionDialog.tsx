@@ -5,9 +5,10 @@ interface PromotionDialogProps {
   color: 'w' | 'b';
   pieceSet: string;
   onSelect: (piece: 'q' | 'r' | 'n' | 'b') => void;
+  onCancel?: () => void;
 }
 
-export const PromotionDialog: React.FC<PromotionDialogProps> = ({ color, pieceSet, onSelect }) => {
+export const PromotionDialog: React.FC<PromotionDialogProps> = ({ color, pieceSet, onSelect, onCancel }) => {
   const pieces = getCustomPieces(pieceSet);
   
   const renderPiece = (type: 'Q' | 'R' | 'N' | 'B', internalName: 'q' | 'r' | 'n' | 'b') => {
@@ -17,7 +18,10 @@ export const PromotionDialog: React.FC<PromotionDialogProps> = ({ color, pieceSe
       return (
         <button 
           className="w-16 h-16 bg-surface-3 hover:bg-border-1 rounded-lg flex items-center justify-center p-2 transition-colors cursor-pointer"
-          onClick={() => onSelect(internalName)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(internalName);
+          }}
         >
           <PieceComp squareWidth="100%" />
         </button>
@@ -32,7 +36,10 @@ export const PromotionDialog: React.FC<PromotionDialogProps> = ({ color, pieceSe
     return (
       <button 
         className="w-16 h-16 bg-surface-3 hover:bg-border-1 rounded-lg flex items-center justify-center text-4xl transition-colors cursor-pointer text-content-1"
-        onClick={() => onSelect(internalName)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(internalName);
+        }}
       >
         {unicodeMap[key]}
       </button>
@@ -40,8 +47,14 @@ export const PromotionDialog: React.FC<PromotionDialogProps> = ({ color, pieceSe
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg animate-fade-in">
-      <div className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-xl shadow-2xl flex gap-2 animate-scale-in">
+    <div 
+      className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg animate-fade-in cursor-pointer"
+      onClick={onCancel}
+    >
+      <div 
+        className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-xl shadow-2xl flex gap-2 animate-scale-in cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
         {renderPiece('Q', 'q')}
         {renderPiece('N', 'n')}
         {renderPiece('R', 'r')}

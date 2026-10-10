@@ -119,8 +119,8 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
     handlePieceDropEnd();
     if (!args.targetSquare) return false;
 
-    const isPawn = chess.get(args.sourceSquare as any)?.type === 'p';
-    const isPromotion = isPawn && (args.targetSquare[1] === '8' || args.targetSquare[1] === '1');
+    const legalMoves = chess.moves({ square: args.sourceSquare as any, verbose: true });
+    const isPromotion = legalMoves.some(m => m.to === args.targetSquare && m.promotion);
 
     if (isPromotion) {
       if (settings.autoQueen) {
@@ -456,12 +456,12 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                   if (gameData.status !== 'active') return;
                   const move = handleSquareClick(args.square);
                   if (move) {
-                    const isPawn = chess.get(move.from as any)?.type === 'p';
-                    const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
+                    const legalMoves = chess.moves({ square: move.from as any, verbose: true });
+                    const isPromotion = legalMoves.some(m => m.to === move.to && m.promotion);
                     if (isPromotion && !settings.autoQueen) {
                       setPromotionState({ sourceSquare: move.from, targetSquare: move.to, color: chess.turn() });
                     } else {
-                      doMove(move.from, move.to, 'q');
+                      doMove(move.from, move.to, isPromotion ? 'q' : undefined);
                     }
                   }
                 },
@@ -483,6 +483,7 @@ export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, 
                   doMove(promotionState.sourceSquare, promotionState.targetSquare, piece);
                   setPromotionState(null);
                 }}
+                onCancel={() => setPromotionState(null)}
               />
             )}
             {gameData.status === 'completed' && showGameOverModal && (

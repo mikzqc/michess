@@ -202,8 +202,8 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
     handlePieceDropEnd();
     if (!args.targetSquare) return false;
     
-    const isPawn = game.get(args.sourceSquare as any)?.type === 'p';
-    const isPromotion = isPawn && (args.targetSquare[1] === '8' || args.targetSquare[1] === '1');
+    const legalMoves = game.moves({ square: args.sourceSquare as any, verbose: true });
+    const isPromotion = legalMoves.some(m => m.to === args.targetSquare && m.promotion);
 
     if (isPromotion) {
       if (settings.autoQueen) {
@@ -291,12 +291,12 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
                   if (isGameOver) return;
                   const move = handleSquareClick(args.square);
                   if (move) {
-                    const isPawn = game.get(move.from as any)?.type === 'p';
-                    const isPromotion = isPawn && (move.to[1] === '8' || move.to[1] === '1');
+                    const legalMoves = game.moves({ square: move.from as any, verbose: true });
+                    const isPromotion = legalMoves.some(m => m.to === move.to && m.promotion);
                     if (isPromotion && !settings.autoQueen) {
                       setPromotionState({ sourceSquare: move.from, targetSquare: move.to, color: game.turn() });
                     } else {
-                      doMove(move.from, move.to, 'q');
+                      doMove(move.from, move.to, isPromotion ? 'q' : undefined);
                     }
                   }
                 },
@@ -318,6 +318,7 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
                   doMove(promotionState.sourceSquare, promotionState.targetSquare, piece);
                   setPromotionState(null);
                 }}
+                onCancel={() => setPromotionState(null)}
               />
             )}
             {isGameOver && showGameOverModal && (
