@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './useAuth';
-import type { DirectMessage, MessageReport } from '../types/chat';
+import type { DirectMessage, MessageReport, ReportPayload } from '../types/chat';
 
 export function useDirectChat(activeFriendId?: string | null) {
   const { user } = useAuth();
@@ -135,11 +135,13 @@ export function useDirectChat(activeFriendId?: string | null) {
           if (activeFriendId && newMsg.sender_id === activeFriendId) {
             setMessages(prev => [...prev, { ...newMsg, read: true }]);
             // Mark as read in db immediately
-            supabase
-              .from('direct_messages')
-              .update({ read: true })
-              .eq('id', newMsg.id)
-              .then(() => {});
+            if (supabase) {
+              supabase
+                .from('direct_messages')
+                .update({ read: true })
+                .eq('id', newMsg.id)
+                .then(() => {});
+            }
           }
         }
       )
@@ -354,16 +356,25 @@ export function useDirectChat(activeFriendId?: string | null) {
   };
 
   // Report a message or user
-  const reportMessage = async (report: Omit<MessageReport, 'reporter_id'>) => {
+  const reportMessage = async (report: ReportPayload | Omit<MessageReport, 'reporter_id'>) => {
     if (!user || !supabase) return { success: false, error: 'Not logged in' };
     try {
+      const targetUserId = report.reported_user_id || (report as ReportPayload).reportedUserId;
+      if (!targetUserId) {
+        return { success: false, error: 'Reported user ID is required' };
+      }
+
+      const rawMessageId = report.message_id || (report as ReportPayload).messageId;
+      const isValidUuid = !!(rawMessageId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawMessageId));
+      const messageIdToSave = isValidUuid ? rawMessageId : null;
+
       const { error: repErr } = await supabase
         .from('message_reports')
         .insert({
           reporter_id: user.id,
-          reported_user_id: report.reported_user_id,
-          message_id: report.message_id,
-          message_type: report.message_type,
+          reported_user_id: targetUserId,
+          message_id: messageIdToSave,
+          message_type: report.message_type || (report as ReportPayload).messageType || 'direct',
           reason: report.reason,
           details: report.details || ''
         });

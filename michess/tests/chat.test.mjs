@@ -104,17 +104,70 @@ describe('Chat System Logic & Validation', () => {
   });
 
   // 5. Report Submission Validation
-  function validateReport(report) {
-    if (!report.reporter_id) return { valid: false, error: 'Must be logged in to report' };
-    if (!report.reported_user_id) return { valid: false, error: 'Reported user missing' };
+  function normalizeReportPayload(report, reporterId) {
+    if (!reporterId) return { valid: false, error: 'Must be logged in to report' };
+    const targetUserId = report.reported_user_id || report.reportedUserId;
+    if (!targetUserId) return { valid: false, error: 'Reported user missing' };
     if (!report.reason || !report.reason.trim()) return { valid: false, error: 'Reason required' };
-    return { valid: true };
+
+    const rawMessageId = report.message_id || report.messageId;
+    const isValidUuid = !!(rawMessageId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawMessageId));
+
+    return {
+      valid: true,
+      data: {
+        reporter_id: reporterId,
+        reported_user_id: targetUserId,
+        message_id: isValidUuid ? rawMessageId : null,
+        message_type: report.message_type || report.messageType || 'direct',
+        reason: report.reason,
+        details: report.details || ''
+      }
+    };
   }
 
   it('validates report requests before submission', () => {
-    assert.equal(validateReport({ reporter_id: '', reported_user_id: 'user1', reason: 'Spam' }).valid, false);
-    assert.equal(validateReport({ reporter_id: 'me', reported_user_id: '', reason: 'Spam' }).valid, false);
-    assert.equal(validateReport({ reporter_id: 'me', reported_user_id: 'user1', reason: '' }).valid, false);
-    assert.equal(validateReport({ reporter_id: 'me', reported_user_id: 'user1', reason: 'Harassment' }).valid, true);
+    assert.equal(normalizeReportPayload({ reported_user_id: 'user1', reason: 'Spam' }, '').valid, false);
+    assert.equal(normalizeReportPayload({ reported_user_id: '', reason: 'Spam' }, 'me').valid, false);
+    assert.equal(normalizeReportPayload({ reported_user_id: 'user1', reason: '' }, 'me').valid, false);
+    assert.equal(normalizeReportPayload({ reported_user_id: 'user1', reason: 'Harassment' }, 'me').valid, true);
+  });
+
+  it('correctly handles both camelCase and snake_case report payloads and sanitizes message IDs', () => {
+    // CamelCase payload (as sent from React components)
+    const camelResult = normalizeReportPayload({
+      reportedUserId: 'friend-123',
+      messageId: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+      messageType: 'game',
+      reason: 'Spam',
+      details: 'Spamming emojis'
+    }, 'current-user-uuid');
+
+    assert.equal(camelResult.valid, true);
+    assert.equal(camelResult.data.reported_user_id, 'friend-123');
+    assert.equal(camelResult.data.message_id, 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d');
+    assert.equal(camelResult.data.message_type, 'game');
+
+    // Snake_case payload
+    const snakeResult = normalizeReportPayload({
+      reported_user_id: 'friend-456',
+      message_id: 'b1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6e',
+      message_type: 'direct',
+      reason: 'Abusive language'
+    }, 'current-user-uuid');
+
+    assert.equal(snakeResult.valid, true);
+    assert.equal(snakeResult.data.reported_user_id, 'friend-456');
+    assert.equal(snakeResult.data.message_id, 'b1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6e');
+
+    // Optimistic temporary message ID (not a UUID) -> converted to null
+    const tempIdResult = normalizeReportPayload({
+      reportedUserId: 'friend-789',
+      messageId: 'temp-1728567890',
+      reason: 'Harassment'
+    }, 'current-user-uuid');
+
+    assert.equal(tempIdResult.valid, true);
+    assert.equal(tempIdResult.data.message_id, null);
   });
 });

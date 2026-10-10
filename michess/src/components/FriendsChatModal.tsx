@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  X, Send, User, Search, MoreVertical, ShieldAlert, Ban, Check, CheckCheck, 
+  X, Send, User, Search, MoreVertical, Ban, Check, CheckCheck, 
   Swords, Flag, ArrowLeft, MessageSquare, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useSocial } from '../hooks/useSocial';
 import { useDirectChat } from '../hooks/useDirectChat';
-import type { Friendship } from '../hooks/useSocial';
 import type { DirectMessage } from '../types/chat';
 import { ReportModal } from './ReportModal';
 import { useToast } from './Toast';
@@ -137,7 +136,7 @@ export const FriendsChatModal: React.FC<FriendsChatModalProps> = ({
       else addToast(res.error || 'Failed to unblock user', 'error');
     } else {
       const res = await blockUser(selectedFriendId);
-      if (res.success) addToast('User blocked', 'warning');
+      if (res.success) addToast('User blocked', 'info');
       else addToast(res.error || 'Failed to block user', 'error');
     }
   };
@@ -514,7 +513,7 @@ export const FriendsChatModal: React.FC<FriendsChatModalProps> = ({
       {reportingMessage && activeFriendProfile && (
         <ReportModal
           reportedUserName={activeFriendProfile.username}
-          reportedUserId={reportingMessage.sender_id}
+          reportedUserId={reportingMessage.sender_id || activeFriendProfile.id || selectedFriendId || ''}
           messageId={reportingMessage.id}
           messageType="direct"
           onClose={() => setReportingMessage(null)}
@@ -530,7 +529,7 @@ export const FriendsChatModal: React.FC<FriendsChatModalProps> = ({
       {reportingUser && activeFriendProfile && (
         <ReportModal
           reportedUserName={activeFriendProfile.username}
-          reportedUserId={reportingUser}
+          reportedUserId={reportingUser || activeFriendProfile.id || selectedFriendId || ''}
           messageType="direct"
           onClose={() => setReportingUser(null)}
           onSubmit={async (rep) => {

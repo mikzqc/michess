@@ -33,3 +33,14 @@ export interface MessageReport {
   details?: string;
   created_at?: string;
 }
+
+export interface ReportPayload {
+  reported_user_id?: string;
+  reportedUserId?: string;
+  message_id?: string;
+  messageId?: string;
+  message_type?: 'direct' | 'game';
+  messageType?: 'direct' | 'game';
+  reason: string;
+  details?: string;
+}

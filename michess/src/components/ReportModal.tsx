@@ -10,8 +10,11 @@ interface ReportModalProps {
   onClose: () => void;
   onSubmit: (report: {
     reportedUserId: string;
+    reported_user_id?: string;
     messageId?: string;
+    message_id?: string;
     messageType: 'direct' | 'game';
+    message_type?: 'direct' | 'game';
     reason: string;
     details: string;
   }) => Promise<{ success: boolean; error?: string }>;
@@ -44,10 +47,20 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     setSubmitting(true);
     setErrorMessage(null);
 
+    const targetUserId = reportedUserId?.trim();
+    if (!targetUserId) {
+      setErrorMessage('User information is missing for this report.');
+      setSubmitting(false);
+      return;
+    }
+
     const res = await onSubmit({
-      reportedUserId,
+      reportedUserId: targetUserId,
+      reported_user_id: targetUserId,
       messageId,
+      message_id: messageId,
       messageType,
+      message_type: messageType,
       reason,
       details: details.trim()
     });

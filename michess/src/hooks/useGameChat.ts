@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './useAuth';
-import type { GameMessage, MessageReport } from '../types/chat';
+import type { GameMessage, MessageReport, ReportPayload } from '../types/chat';
 
 interface UseGameChatProps {
   gameId: string | undefined;
@@ -137,15 +137,24 @@ export function useGameChat({ gameId, playerId, playerName, isChatOpen }: UseGam
   };
 
   // Report message
-  const reportGameMessage = async (report: Omit<MessageReport, 'reporter_id'>) => {
+  const reportGameMessage = async (report: ReportPayload | Omit<MessageReport, 'reporter_id'>) => {
     if (!user || !supabase) return { success: false, error: 'Must be logged in to report' };
     try {
+      const targetUserId = report.reported_user_id || (report as ReportPayload).reportedUserId;
+      if (!targetUserId) {
+        return { success: false, error: 'Reported user ID is required' };
+      }
+
+      const rawMessageId = report.message_id || (report as ReportPayload).messageId;
+      const isValidUuid = !!(rawMessageId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawMessageId));
+      const messageIdToSave = isValidUuid ? rawMessageId : null;
+
       const { error: repErr } = await supabase
         .from('message_reports')
         .insert({
           reporter_id: user.id,
-          reported_user_id: report.reported_user_id,
-          message_id: report.message_id,
+          reported_user_id: targetUserId,
+          message_id: messageIdToSave,
           message_type: 'game',
           reason: report.reason,
           details: report.details || ''
