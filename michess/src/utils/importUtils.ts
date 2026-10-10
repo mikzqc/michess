@@ -15,6 +15,7 @@ export interface ImportedGameMeta {
 
 // Simple hash function for PGN if no ID is provided
 function hashString(str: string): string {
+  if (!str || typeof str !== 'string') return Math.random().toString(36).substring(2, 9);
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -25,6 +26,21 @@ function hashString(str: string): string {
 }
 
 export function parsePgnMetadata(pgn: string, providedId?: string): ImportedGameMeta {
+  if (!pgn || typeof pgn !== 'string' || !pgn.trim()) {
+    return {
+      id: providedId || hashString(pgn || ''),
+      white: 'Unknown',
+      black: 'Unknown',
+      result: '*',
+      date: 'Unknown',
+      event: 'Unknown',
+      opening: 'Unknown',
+      isValid: false,
+      error: 'Empty or invalid PGN string.',
+      pgn: pgn || ''
+    };
+  }
+
   try {
     const chess = new Chess();
     // Validate PGN by attempting to load it

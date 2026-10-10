@@ -42,6 +42,11 @@ export function useLocalClock(options: UseLocalClockOptions): LocalClockState & 
   const incrementRef = useRef(incrementMs);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Keep incrementRef updated if incrementMs changes
+  useEffect(() => {
+    incrementRef.current = incrementMs;
+  }, [incrementMs]);
+
   // Start ticking when game begins
   useEffect(() => {
     if (!isTimed) return;
@@ -86,16 +91,26 @@ export function useLocalClock(options: UseLocalClockOptions): LocalClockState & 
 
   // Called after a successful move
   const onMoveMade = useCallback((byColor: 'w' | 'b') => {
-    if (!isTimed || clockStartedRef.current === null) return;
+    if (!isTimed) return;
 
-    const elapsed = Date.now() - clockStartedRef.current;
-    
-    if (byColor === 'w') {
-      whiteTimeRef.current = Math.max(0, whiteTimeRef.current - elapsed) + incrementRef.current;
-      setWhiteTimeMs(whiteTimeRef.current);
+    if (clockStartedRef.current !== null) {
+      const elapsed = Date.now() - clockStartedRef.current;
+      if (byColor === 'w') {
+        whiteTimeRef.current = Math.max(0, whiteTimeRef.current - elapsed) + incrementRef.current;
+        setWhiteTimeMs(whiteTimeRef.current);
+      } else {
+        blackTimeRef.current = Math.max(0, blackTimeRef.current - elapsed) + incrementRef.current;
+        setBlackTimeMs(blackTimeRef.current);
+      }
     } else {
-      blackTimeRef.current = Math.max(0, blackTimeRef.current - elapsed) + incrementRef.current;
-      setBlackTimeMs(blackTimeRef.current);
+      // First move made before clock was running
+      if (byColor === 'w') {
+        whiteTimeRef.current = whiteTimeRef.current + incrementRef.current;
+        setWhiteTimeMs(whiteTimeRef.current);
+      } else {
+        blackTimeRef.current = blackTimeRef.current + incrementRef.current;
+        setBlackTimeMs(blackTimeRef.current);
+      }
     }
 
     // Reset clock start for the next player

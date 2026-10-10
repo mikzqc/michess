@@ -18,7 +18,11 @@ export function useSocial() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchFriends = async () => {
-    if (!user || !supabase) return;
+    if (!user || !supabase) {
+      setFriends([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       // Fetch where user is either sender or receiver
@@ -54,6 +58,19 @@ export function useSocial() {
 
   const sendRequest = async (friendId: string) => {
     if (!user || !supabase) return { success: false, error: 'Not logged in' };
+    if (user.id === friendId) return { success: false, error: 'Cannot send friend request to yourself' };
+
+    const existing = friends.find(f => 
+      (f.user_id === user.id && f.friend_id === friendId) || 
+      (f.user_id === friendId && f.friend_id === user.id)
+    );
+    if (existing) {
+      return { 
+        success: false, 
+        error: existing.status === 'accepted' ? 'Already friends' : 'Friend request already sent' 
+      };
+    }
+
     try {
       const { error } = await supabase.from('friendships').insert({
         user_id: user.id,

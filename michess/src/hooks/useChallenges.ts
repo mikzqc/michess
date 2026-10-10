@@ -21,7 +21,11 @@ export function useChallenges() {
   const [loading, setLoading] = useState(true);
 
   const fetchChallenges = async () => {
-    if (!user || !supabase) return;
+    if (!user || !supabase) {
+      setChallenges([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -84,6 +88,17 @@ export function useChallenges() {
 
   const sendChallenge = async (receiverId: string, timeControl: string) => {
     if (!user || !supabase) return { success: false, error: 'Not logged in' };
+    if (user.id === receiverId) return { success: false, error: 'Cannot challenge yourself' };
+
+    const existing = challenges.find(c => 
+      c.status === 'pending' && 
+      c.sender_id === user.id && 
+      c.receiver_id === receiverId
+    );
+    if (existing) {
+      return { success: false, error: 'Challenge already pending' };
+    }
+
     try {
       // 1. Create the challenge
       const { data: challenge, error } = await supabase.from('challenges').insert({

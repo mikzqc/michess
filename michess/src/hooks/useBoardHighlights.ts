@@ -30,7 +30,7 @@ export function useBoardHighlights({ game, history, playerColor, showLegalMoves 
       }
     }
     return null;
-  }, [game]);
+  }, [game, history]);
 
   // Last Move Squares
   const lastMove = useMemo(() => {

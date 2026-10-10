@@ -44,7 +44,24 @@ export function usePuzzle() {
   const puzzleIndexRef = useRef(puzzleIndex);
   puzzleIndexRef.current = puzzleIndex;
 
+  const opponentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearOpponentTimeout = useCallback(() => {
+    if (opponentTimeoutRef.current) {
+      clearTimeout(opponentTimeoutRef.current);
+      opponentTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      clearOpponentTimeout();
+    };
+  }, [clearOpponentTimeout]);
+
   const loadPuzzleAtIndex = useCallback(async (targetIndex: number) => {
+    clearOpponentTimeout();
     setIsLoading(true);
     setIsSolved(false);
     setIsFailed(false);
@@ -129,7 +146,9 @@ export function usePuzzle() {
           const nextMoveIndex = moveIndex + 1;
           setIsOpponentMoving(true);
 
-          setTimeout(() => {
+          clearOpponentTimeout();
+          opponentTimeoutRef.current = setTimeout(() => {
+            opponentTimeoutRef.current = null;
             const oppMove = puzzle.moves[nextMoveIndex];
             chess.move({
               from: oppMove.substring(0, 2),
@@ -197,6 +216,7 @@ export function usePuzzle() {
   }, [loadPuzzleAtIndex]);
 
   const retry = useCallback(() => {
+    clearOpponentTimeout();
     if (puzzle) {
       setIsFailed(false);
       setIsSolved(false);
@@ -212,7 +232,7 @@ export function usePuzzle() {
       setFen(chess.fen());
       setMoveIndex(1);
     }
-  }, [chess, puzzle]);
+  }, [chess, puzzle, clearOpponentTimeout]);
 
   const loadDailyPuzzle = useCallback(() => {
     // Generate an index based on the current date

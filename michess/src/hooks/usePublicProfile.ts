@@ -8,15 +8,22 @@ export function usePublicProfile(username: string | null) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchProfile() {
       if (!username) {
-        setProfile(null);
-        setLoading(false);
+        if (isMounted) {
+          setProfile(null);
+          setLoading(false);
+          setError(null);
+        }
         return;
       }
 
-      setLoading(true);
-      setError(null);
+      if (isMounted) {
+        setLoading(true);
+        setError(null);
+      }
 
       try {
         if (!supabase) throw new Error('Database connection not available');
@@ -27,16 +34,27 @@ export function usePublicProfile(username: string | null) {
           .single();
 
         if (err) throw err;
-        setProfile(data as UserProfile);
+        if (isMounted) {
+          setProfile(data as UserProfile);
+        }
       } catch (err: any) {
         console.error('Error fetching public profile:', err);
-        setError(err.message || 'Profile not found');
+        if (isMounted) {
+          setProfile(null);
+          setError(err.message || 'Profile not found');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
   }, [username]);
 
   return { profile, loading, error };

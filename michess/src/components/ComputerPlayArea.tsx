@@ -10,7 +10,7 @@ import { useSettings } from '../hooks/useSettings';
 import { copyToClipboard } from '../utils/clipboard';
 import { useLocalClock } from '../hooks/useLocalClock';
 import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
-import { calculateMaterial } from '../utils/material';
+import { calculateMaterial, hasSufficientMaterial } from '../utils/material';
 import { CapturedPieces } from './CapturedPieces';
 import { useToast } from './Toast';
 import { ChessClock } from './ChessClock';
@@ -66,7 +66,7 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
   }, [fen]);
 
   const isGameOver = gameOverResult !== null || timeoutResult !== null;
-  const isGameStarted = history.length > 0;
+  const isGameStarted = !isGameOver;
 
   const clock = useLocalClock({
     initialTimeMs,
@@ -86,12 +86,21 @@ export const ComputerPlayArea: React.FC<ComputerPlayAreaProps> = ({ difficulty, 
     
     if (activeTimeMs <= 0) {
       timeoutClaimedRef.current = true;
-      const winner = clock.isWhiteActive ? 'Black wins on time' : 'White wins on time';
-      setTimeoutResult(winner);
-      setGameOverResult(winner);
+      const opponentColor = clock.isWhiteActive ? 'b' : 'w';
+      const hasMaterial = hasSufficientMaterial(game.fen(), opponentColor);
+      let outcome: string;
+      if (!hasMaterial) {
+        outcome = clock.isWhiteActive 
+          ? 'Draw — Black has insufficient mating material'
+          : 'Draw — White has insufficient mating material';
+      } else {
+        outcome = clock.isWhiteActive ? 'Black wins on time' : 'White wins on time';
+      }
+      setTimeoutResult(outcome);
+      setGameOverResult(outcome);
       stockfishEngine.stop();
     }
-  }, [clock.whiteTimeMs, clock.blackTimeMs, clock.isWhiteActive, clock.isTimed, isGameOver]);
+  }, [clock.whiteTimeMs, clock.blackTimeMs, clock.isWhiteActive, clock.isTimed, isGameOver, game]);
 
   // Need useEffect because getPgn is returned by useComputerGame
   React.useEffect(() => {

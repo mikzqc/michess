@@ -8,7 +8,7 @@ import { Copy, RotateCcw, Flag, Eraser } from 'lucide-react';
 import { copyToClipboard } from '../utils/clipboard';
 import { useSettings } from '../hooks/useSettings';
 import { useLocalClock } from '../hooks/useLocalClock';
-import { calculateMaterial } from '../utils/material';
+import { calculateMaterial, hasSufficientMaterial } from '../utils/material';
 import { CapturedPieces } from './CapturedPieces';
 import { ChessClock } from './ChessClock';
 import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
@@ -47,7 +47,7 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
   }, [fen]);
 
   const isGameOver = game.isGameOver() || resignation !== null || timeoutResult !== null;
-  const isGameStarted = history.length > 0;
+  const isGameStarted = !isGameOver;
 
   const clock = useLocalClock({
     initialTimeMs,
@@ -67,10 +67,19 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
     
     if (activeTimeMs <= 0) {
       timeoutClaimedRef.current = true;
-      const winner = clock.isWhiteActive ? 'Black wins on time' : 'White wins on time';
-      setTimeoutResult(winner);
+      const opponentColor = clock.isWhiteActive ? 'b' : 'w';
+      const hasMaterial = hasSufficientMaterial(game.fen(), opponentColor);
+      let outcome: string;
+      if (!hasMaterial) {
+        outcome = clock.isWhiteActive 
+          ? 'Draw — Black has insufficient mating material'
+          : 'Draw — White has insufficient mating material';
+      } else {
+        outcome = clock.isWhiteActive ? 'Black wins on time' : 'White wins on time';
+      }
+      setTimeoutResult(outcome);
     }
-  }, [clock.whiteTimeMs, clock.blackTimeMs, clock.isWhiteActive, clock.isTimed, isGameOver]);
+  }, [clock.whiteTimeMs, clock.blackTimeMs, clock.isWhiteActive, clock.isTimed, isGameOver, game]);
 
   const toggleOrientation = () => {
     const newOrientation = boardOrientation === 'white' ? 'black' : 'white';
@@ -85,7 +94,9 @@ export const PlayArea: React.FC<PlayAreaProps> = ({ onReview, onSaveGame, onHome
       if (resignation === 'w') result = '0-1';
       else if (resignation === 'b') result = '1-0';
       else if (timeoutResult) {
-        result = timeoutResult.includes('White') ? '1-0' : '0-1';
+        if (timeoutResult.includes('Draw')) result = '1/2-1/2';
+        else if (timeoutResult.includes('White wins')) result = '1-0';
+        else if (timeoutResult.includes('Black wins')) result = '0-1';
       }
       else if (game.isCheckmate()) result = game.turn() === 'w' ? '0-1' : '1-0';
       else if (game.isDraw() || game.isStalemate() || game.isThreefoldRepetition() || game.isInsufficientMaterial()) result = '1/2-1/2';

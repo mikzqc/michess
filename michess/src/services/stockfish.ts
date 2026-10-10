@@ -24,6 +24,7 @@ export class StockfishEngine {
   private currentAnalysisReject: ((reason: Error) => void) | null = null;
   private currentAnalysisId: number = 0;
   private latestInfo: EngineInfo = {};
+  private initPromise: Promise<void> | null = null;
   
   private engineScript: string;
 
@@ -35,13 +36,16 @@ export class StockfishEngine {
    * Initializes the engine and waits for it to be ready.
    */
   public async init(): Promise<void> {
-    if (this.state === 'ready' || this.state === 'loading') {
-      return; // Already initialized or initializing
+    if (this.state === 'ready') {
+      return;
+    }
+    if (this.state === 'loading' && this.initPromise) {
+      return this.initPromise;
     }
 
     this.state = 'loading';
 
-    return new Promise((resolve, reject) => {
+    this.initPromise = new Promise<void>((resolve, reject) => {
       try {
         this.worker = new Worker(this.engineScript);
         this.worker.onmessage = (e) => this.handleMessage(e);
@@ -56,6 +60,7 @@ export class StockfishEngine {
           if (typeof e.data === 'string' && e.data === 'readyok') {
             this.state = 'ready';
             this.worker?.removeEventListener('message', onReadyMessage);
+            this.initPromise = null;
             resolve();
           }
         };
@@ -66,9 +71,12 @@ export class StockfishEngine {
 
       } catch (err) {
         this.state = 'error';
+        this.initPromise = null;
         reject(err);
       }
     });
+
+    return this.initPromise;
   }
 
   /**
@@ -100,6 +108,9 @@ export class StockfishEngine {
   public stop() {
     if (this.state === 'thinking') {
       this.send('stop');
+      if (this.currentAnalysisReject) {
+        this.currentAnalysisReject(new Error('Analysis stopped'));
+      }
       this.clearAnalysisState();
       this.state = 'ready';
     }
@@ -109,17 +120,17 @@ export class StockfishEngine {
    * Terminate the worker completely.
    */
   public terminate() {
+    if (this.currentAnalysisReject) {
+      this.currentAnalysisReject(new Error('Engine terminated'));
+    }
     this.stop();
     if (this.worker) {
       this.worker.terminate();
       this.worker = null;
     }
+    this.initPromise = null;
+    this.clearAnalysisState();
     this.state = 'stopped';
-    
-    if (this.currentAnalysisReject) {
-      this.currentAnalysisReject(new Error('Engine terminated'));
-      this.clearAnalysisState();
-    }
   }
 
   /**

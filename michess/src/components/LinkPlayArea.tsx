@@ -12,14 +12,13 @@ import { copyToClipboard } from '../utils/clipboard';
 import { BOARD_THEMES, getCustomPieces } from '../utils/themes';
 import { useToast } from './Toast';
 import { useSettings } from '../hooks/useSettings';
-import { calculateMaterial } from '../utils/material';
+import { calculateMaterial, hasSufficientMaterial } from '../utils/material';
 import { CapturedPieces } from './CapturedPieces';
 import { PlayerAvatar } from './PlayerAvatar';
 import { audioService } from '../services/audio';
 import { ConfirmModal } from './ConfirmModal';
 import { PromotionDialog } from './PromotionDialog';
 import { GameOverModal } from './GameOverModal';
-import { Chess } from 'chess.js';
 import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
 
 interface LinkPlayAreaProps {
@@ -28,31 +27,6 @@ interface LinkPlayAreaProps {
   onReview?: (pgn: string) => void;
   onSaveGame?: (pgn: string, white: string, black: string, result: string, date: string, event: string) => void;
   onRequireAuth: () => void;
-}
-
-/**
- * Checks if a side has sufficient mating material.
- * Used for timeout draws: if the winning side can't possibly checkmate, result is a draw.
- */
-function hasSufficientMaterial(fen: string, color: 'w' | 'b'): boolean {
-  const testChess = new Chess(fen);
-  const board = testChess.board();
-  const pieces: string[] = [];
-  
-  for (const row of board) {
-    for (const sq of row) {
-      if (sq && sq.color === color && sq.type !== 'k') {
-        pieces.push(sq.type);
-      }
-    }
-  }
-  
-  // No pieces besides king = insufficient
-  if (pieces.length === 0) return false;
-  // Single bishop or knight = insufficient
-  if (pieces.length === 1 && (pieces[0] === 'b' || pieces[0] === 'n')) return false;
-  // Any other combination (pawn, rook, queen, two bishops, etc.) = sufficient
-  return true;
 }
 
 export const LinkPlayArea: React.FC<LinkPlayAreaProps> = ({ inviteCode, onExit, onReview, onSaveGame, onRequireAuth }) => {

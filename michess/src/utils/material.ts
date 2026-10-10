@@ -65,3 +65,33 @@ export function calculateMaterial(fen: string): MaterialState {
     blackAdvantage: netAdvantage < 0 ? -netAdvantage : 0
   };
 }
+
+/**
+ * Checks if a side has sufficient mating material.
+ * Used for timeout draws: under FIDE Article 6.9, if the surviving player cannot
+ * possibly checkmate the opponent by any series of legal moves, the result is a draw.
+ */
+export function hasSufficientMaterial(fen: string, color: 'w' | 'b'): boolean {
+  const boardFen = fen.split(' ')[0];
+  const pieces: string[] = [];
+  
+  for (let i = 0; i < boardFen.length; i++) {
+    const char = boardFen[i];
+    if (char === '/' || (char >= '1' && char <= '8')) continue;
+    
+    const isPieceWhite = char === char.toUpperCase();
+    if ((color === 'w' && isPieceWhite) || (color === 'b' && !isPieceWhite)) {
+      const lower = char.toLowerCase();
+      if (lower !== 'k') {
+        pieces.push(lower);
+      }
+    }
+  }
+
+  // Bare king = insufficient
+  if (pieces.length === 0) return false;
+  // Single minor piece (1 bishop or 1 knight) = insufficient
+  if (pieces.length === 1 && (pieces[0] === 'b' || pieces[0] === 'n')) return false;
+
+  return true;
+}

@@ -58,15 +58,15 @@ export const ReviewStats: React.FC<ReviewStatsProps> = ({ analyzedMoves, whiteAc
       <div className="grid grid-cols-3 text-center divide-x divide-slate-700">
         <div className="flex flex-col">
           <span className="text-sm text-content-3">White</span>
-          <span className="text-xl font-bold text-content-1">{whiteAccuracy?.toFixed(1)}%</span>
+          <span className="text-xl font-bold text-content-1">{whiteAccuracy != null ? `${whiteAccuracy.toFixed(1)}%` : '-'}</span>
         </div>
         <div className="flex flex-col">
           <span className="text-sm text-content-3">Black</span>
-          <span className="text-xl font-bold text-content-1">{blackAccuracy?.toFixed(1)}%</span>
+          <span className="text-xl font-bold text-content-1">{blackAccuracy != null ? `${blackAccuracy.toFixed(1)}%` : '-'}</span>
         </div>
         <div className="flex flex-col">
           <span className="text-sm text-content-3">Overall</span>
-          <span className="text-xl font-bold text-success">{overallAccuracy?.toFixed(1)}%</span>
+          <span className="text-xl font-bold text-success">{overallAccuracy != null ? `${overallAccuracy.toFixed(1)}%` : '-'}</span>
         </div>
       </div>
 

@@ -175,13 +175,13 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onR
                     {game.result}
                   </div>
 
-                  {game.reviewed && (game.whiteAccuracy || game.blackAccuracy) && (
+                  {Boolean(game.reviewed && (game.whiteAccuracy != null || game.blackAccuracy != null)) && (
                     <div className="flex flex-col items-center justify-center bg-surface-3 rounded-lg px-3 py-1.5 min-w-[80px]">
                       <span className="text-xs text-content-3 mb-0.5">Accuracy</span>
                       <div className="flex items-center gap-2 text-sm font-bold">
-                        <span className="text-content-1">{game.whiteAccuracy ? game.whiteAccuracy.toFixed(1) : '-'}</span>
+                        <span className="text-content-1">{game.whiteAccuracy != null ? game.whiteAccuracy.toFixed(1) : '-'}</span>
                         <span className="text-content-3">/</span>
-                        <span className="text-content-2">{game.blackAccuracy ? game.blackAccuracy.toFixed(1) : '-'}</span>
+                        <span className="text-content-2">{game.blackAccuracy != null ? game.blackAccuracy.toFixed(1) : '-'}</span>
                       </div>
                     </div>
                   )}
