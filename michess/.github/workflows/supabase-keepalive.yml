@@ -21,6 +21,6 @@ jobs:
 
       - name: Run Heartbeat Keep-Alive
         env:
-          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://azcgiieritmsabfomqow.supabase.co' }}
-          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'sb_publishable_LGNAOAaNN43C0caiFD_VjQ_6atOakWA' }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: node scripts/keepalive.js

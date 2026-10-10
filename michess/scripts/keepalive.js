@@ -33,17 +33,22 @@ const localEnv = {
   ...loadEnvFile('.env.local'),
 };
 
+const DEFAULT_SUPABASE_URL = 'https://azcgiieritmsabfomqow.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_LGNAOAaNN43C0caiFD_VjQ_6atOakWA';
+
 const supabaseUrl = 
   process.env.VITE_SUPABASE_URL ||
   process.env.SUPABASE_URL ||
   localEnv.VITE_SUPABASE_URL ||
-  localEnv.SUPABASE_URL;
+  localEnv.SUPABASE_URL ||
+  DEFAULT_SUPABASE_URL;
 
 const supabaseKey = 
   process.env.VITE_SUPABASE_ANON_KEY ||
   process.env.SUPABASE_ANON_KEY ||
   localEnv.VITE_SUPABASE_ANON_KEY ||
-  localEnv.SUPABASE_ANON_KEY;
+  localEnv.SUPABASE_ANON_KEY ||
+  DEFAULT_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('[Heartbeat Error] Missing Supabase URL or Anon Key.');
