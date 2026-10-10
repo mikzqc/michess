@@ -31,10 +31,12 @@ import { AboutArea } from './components/AboutArea';
 import { SupportArea } from './components/SupportArea';
 import { NotFoundArea } from './components/NotFoundArea';
 import { NotificationDropdown } from './components/NotificationDropdown';
+import { OpeningExplorerPage } from './components/OpeningExplorerPage';
 import { useChallenges } from './hooks/useChallenges';
+import { BookOpen } from 'lucide-react';
 import heroImage from './assets/hero.png';
 
-type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'about' | 'support' | '404';
+type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'openings' | 'about' | 'support' | '404';
 
 function App() {
   const [view, setView] = useState<ViewState>('home');
@@ -72,6 +74,8 @@ function App() {
         setView('public-profile');
       } else if (path === '/puzzles') {
         setView('puzzles');
+      } else if (path === '/openings') {
+        setView('openings');
       } else if (path === '/about') {
         setView('about');
       } else if (path === '/support') {
@@ -124,6 +128,8 @@ function App() {
       window.history.pushState({}, '', '/');
     } else if (v === 'puzzles') {
       window.history.pushState({}, '', '/puzzles');
+    } else if (v === 'openings') {
+      window.history.pushState({}, '', '/openings');
     } else if (v === 'about') {
       window.history.pushState({}, '', '/about');
     } else if (v === 'support') {
@@ -239,6 +245,13 @@ function App() {
             className={getNavBtnClass(view === 'puzzles')}
           >
             <PuzzleIcon size={18} /> Puzzles
+          </button>
+
+          <button 
+            onClick={() => handleSetView('openings')} 
+            className={getNavBtnClass(view === 'openings')}
+          >
+            <BookOpen size={18} /> Openings
           </button>
 
           <button 
@@ -568,6 +581,11 @@ function App() {
         )}
         {view === 'puzzles' && (
           <PuzzleArea 
+            onExit={() => handleSetView('home')} 
+          />
+        )}
+        {view === 'openings' && (
+          <OpeningExplorerPage 
             onExit={() => handleSetView('home')} 
           />
         )}
