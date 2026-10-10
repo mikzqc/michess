@@ -232,18 +232,8 @@ function App() {
           <Swords className={view === '404' ? 'text-red-700 animate-pulse' : 'text-accent'} />
           <span>Mi<span className={view === '404' ? 'text-red-900' : 'text-accent'}>chess</span></span>
         </h1>
-        <nav className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar flex-nowrap w-full sm:w-auto">
-          <button 
-            onClick={() => setShowSettings(true)}
-            className={`${view === '404' ? 'text-red-900 hover:text-red-500 hover:bg-red-950/30' : 'text-content-3 hover:text-content-1 hover:bg-surface-3'} p-2 rounded-lg transition-colors flex items-center justify-center active:scale-95`}
-            title="Settings"
-            aria-label="Open Settings"
-          >
-            <SettingsIcon size={20} />
-          </button>
-
-          <div className={`h-6 w-px hidden md:block ${view === '404' ? 'bg-red-900/30' : 'bg-border-1'}`}></div>
-
+        {/* Navigation Links (Scrollable on small viewports) */}
+        <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar flex-nowrap flex-1 min-w-0">
           <button 
             onClick={() => handleSetView('puzzles')} 
             className={getNavBtnClass(view === 'puzzles')}
@@ -278,9 +268,23 @@ function App() {
           >
             <Users size={18} /> Social
           </button>
+        </div>
+
+        {/* User Utilities & Auth Actions (Unclipped for dropdown visibility) */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button 
+            onClick={() => setShowSettings(true)}
+            className={`${view === '404' ? 'text-red-900 hover:text-red-500 hover:bg-red-950/30' : 'text-content-3 hover:text-content-1 hover:bg-surface-3'} p-2 rounded-lg transition-colors flex items-center justify-center active:scale-95 cursor-pointer`}
+            title="Settings"
+            aria-label="Open Settings"
+          >
+            <SettingsIcon size={20} />
+          </button>
+
+          <div className={`h-6 w-px hidden sm:block ${view === '404' ? 'bg-red-900/30' : 'bg-border-1'}`}></div>
 
           {!authLoading && (
-            <div className={`ml-1 sm:ml-2 pl-3 sm:pl-6 border-l shrink-0 flex items-center gap-2 ${view === '404' ? 'border-red-900/30' : 'border-border-1'}`}>
+            <div className="flex items-center gap-2">
               {user ? (
                 <>
                   <NotificationDropdown 
@@ -323,7 +327,7 @@ function App() {
                   />
                   <button 
                     onClick={() => handleSetView('profile')}
-                    className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 flex items-center justify-center min-w-[80px] min-h-[38px] ${view === '404' ? 'bg-red-950/20 border-red-900/30 text-red-700 hover:text-red-500 hover:bg-red-900/40' : (view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1')}`}
+                    className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 flex items-center justify-center min-w-[80px] min-h-[38px] cursor-pointer ${view === '404' ? 'bg-red-950/20 border-red-900/30 text-red-700 hover:text-red-500 hover:bg-red-900/40' : (view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1')}`}
                   >
                   {profileLoading ? (
                     <div className="w-12 h-3 animate-pulse bg-content-3/30 rounded-full" />
@@ -344,14 +348,14 @@ function App() {
               ) : (
                 <button 
                   onClick={() => setShowAuth(true)}
-                  className="bg-accent hover:bg-accent-hover px-5 py-2 rounded-lg transition-colors font-bold text-sm text-white active:scale-95 shadow-md"
+                  className="bg-accent hover:bg-accent-hover px-5 py-2 rounded-lg transition-colors font-bold text-sm text-white active:scale-95 shadow-md cursor-pointer"
                 >
                   Log In
                 </button>
               )}
             </div>
           )}
-        </nav>
+        </div>
       </header>
 
       {/* Main Content */}

@@ -48,19 +48,22 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg transition-colors text-content-3 hover:text-content-1 hover:bg-surface-3 active:scale-95"
+        className="relative p-2 rounded-lg transition-colors text-content-3 hover:text-content-1 hover:bg-surface-3 active:scale-95 cursor-pointer"
+        aria-label="Notifications"
+        title="Notifications"
       >
         <Bell size={20} />
         {totalCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-error text-white text-[10px] font-bold flex items-center justify-center rounded-full">
+          <span className="absolute top-1 right-1 w-4 h-4 bg-error text-white text-[10px] font-bold flex items-center justify-center rounded-full pointer-events-none">
             {totalCount > 9 ? '9+' : totalCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-80 bg-surface-2 border border-border-1 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col max-h-[80vh]">
+        <div className="absolute top-full right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-surface-2 border border-border-1 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col max-h-[80vh]">
           <div className="p-3 border-b border-border-1 flex items-center justify-between bg-surface-3">
             <h3 className="font-bold text-content-1">Notifications</h3>
             {totalCount > 0 && (
