@@ -1,10 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { PlayArea } from './components/PlayArea';
 import { GameSetupModal, type SetupMode, type TimeControl } from './components/GameSetupModal';
 import { ComputerPlayArea } from './components/ComputerPlayArea';
 import { ImportGame } from './components/ImportGame';
 import type { Difficulty, PlayerColor } from './hooks/useComputerGame';
-import { Swords, Bot, Settings as SettingsIcon, Upload, Clock } from 'lucide-react';
+import { Swords, Bot, Settings as SettingsIcon, Upload, Clock, ChevronDown, Sparkles } from 'lucide-react';
 import { SettingsModal } from './components/SettingsModal';
 import { ReviewArea } from './components/ReviewArea';
 import { useHistory } from './hooks/useHistory';
@@ -19,7 +19,6 @@ import { useProfile } from './hooks/useProfile';
 import { useAchievementTracker } from './hooks/useAchievementTracker';
 import { supabase } from './services/supabase';
 import { generateUUID } from './utils/uuid';
-import { useEffect } from 'react';
 import { Link, Users } from 'lucide-react';
 import { useToast } from './components/Toast';
 import { PublicProfile } from './components/PublicProfile';
@@ -47,6 +46,8 @@ function App() {
   const [reviewPgn, setReviewPgn] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showNavMenu, setShowNavMenu] = useState(false);
+  const navMenuRef = useRef<HTMLDivElement>(null);
   const [linkInviteCode, setLinkInviteCode] = useState<string | null>(null);
   const [setupMode, setSetupMode] = useState<SetupMode | null>(null);
   const [challengeTargetId, setChallengeTargetId] = useState<string | null>(null);
@@ -56,6 +57,19 @@ function App() {
   const { profile, loading: profileLoading, refreshProfile } = useProfile();
   const { sendChallenge, respondToChallenge } = useChallenges();
   useAchievementTracker();
+
+  // Close nav menu on click outside
+  useEffect(() => {
+    const handleMenuClickOutside = (e: MouseEvent) => {
+      if (navMenuRef.current && !navMenuRef.current.contains(e.target as Node)) {
+        setShowNavMenu(false);
+      }
+    };
+    if (showNavMenu) {
+      document.addEventListener('mousedown', handleMenuClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleMenuClickOutside);
+  }, [showNavMenu]);
 
   const { user, loading: authLoading } = useAuth();
   const { history, addGame, removeGame, clearHistory, updateGameReviewStats, migrateLocalGames, skipMigration, needsMigration } = useHistory();
@@ -76,6 +90,18 @@ function App() {
         setView('puzzles');
       } else if (path === '/openings') {
         setView('openings');
+      } else if (path === '/history') {
+        setView('history');
+      } else if (path === '/computer' || path === '/play-computer') {
+        setSetupMode('computer');
+        setView('home');
+      } else if (path === '/local' || path === '/play-local') {
+        setSetupMode('local');
+        setView('home');
+      } else if (path === '/social') {
+        setView('social');
+      } else if (path === '/import') {
+        setView('import');
       } else if (path === '/about') {
         setView('about');
       } else if (path === '/support') {
@@ -130,6 +156,16 @@ function App() {
       window.history.pushState({}, '', '/puzzles');
     } else if (v === 'openings') {
       window.history.pushState({}, '', '/openings');
+    } else if (v === 'history') {
+      window.history.pushState({}, '', '/history');
+    } else if (v === 'social') {
+      window.history.pushState({}, '', '/social');
+    } else if (v === 'import') {
+      window.history.pushState({}, '', '/import');
+    } else if (v === 'local') {
+      window.history.pushState({}, '', '/local');
+    } else if (v === 'play-computer') {
+      window.history.pushState({}, '', '/computer');
     } else if (v === 'about') {
       window.history.pushState({}, '', '/about');
     } else if (v === 'support') {
@@ -219,82 +255,171 @@ function App() {
     });
   };
 
-  const getNavBtnClass = (isActive: boolean) => {
-    const base = 'transition-colors font-semibold flex items-center gap-2 text-[15px] active:scale-95 px-3 py-2 rounded-lg';
-    if (view === '404') {
-      return `${base} text-red-900 hover:text-red-500 hover:bg-red-950/30`;
-    }
-    return `${base} ${isActive ? 'text-accent bg-accent/10' : 'text-content-2 hover:text-content-1 hover:bg-surface-3'}`;
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <header className={`${view === '404' ? 'bg-black border-b border-red-900/30 text-red-500/80 transition-colors duration-1000' : 'bg-surface-2 border-b border-border-1'} px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 relative z-50`}>
+      <header className={`${view === '404' ? 'bg-black border-b border-red-900/30 text-red-500/80 transition-colors duration-1000' : 'bg-surface-2 border-b border-border-1'} px-4 md:px-6 h-16 flex items-center justify-between gap-3 sm:gap-6 relative z-50`}>
+        {/* Logo */}
         <h1 
-          className={`text-2xl font-bold tracking-wider cursor-pointer flex items-center gap-2 active:scale-95 transition-transform shrink-0 ${view === '404' ? 'text-red-700/80 drop-shadow-[0_0_8px_rgba(255,0,0,0.3)]' : 'text-content-1'}`}
+          className={`text-xl sm:text-2xl font-bold tracking-wider cursor-pointer flex items-center gap-2 active:scale-95 transition-transform shrink-0 ${view === '404' ? 'text-red-700/80 drop-shadow-[0_0_8px_rgba(255,0,0,0.3)]' : 'text-content-1'}`}
           onClick={() => handleSetView('home')}
         >
-          <Swords className={view === '404' ? 'text-red-700 animate-pulse' : 'text-accent'} />
+          <Swords className={view === '404' ? 'text-red-700 animate-pulse' : 'text-accent'} size={24} />
           <span>Mi<span className={view === '404' ? 'text-red-900' : 'text-accent'}>chess</span></span>
         </h1>
-        {/* Navigation Links (Scrollable on small viewports) */}
-        <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar flex-nowrap flex-1 min-w-0">
-          <button 
-            onClick={() => handleSetView('puzzles')} 
-            className={getNavBtnClass(view === 'puzzles')}
-          >
-            <PuzzleIcon size={18} /> Puzzles
-          </button>
 
-          <button 
-            onClick={() => handleSetView('openings')} 
-            className={getNavBtnClass(view === 'openings')}
-          >
-            <BookOpen size={18} /> Openings
-          </button>
+        {/* Middle Spacer */}
+        <div className="flex-1"></div>
 
-          <button 
-            onClick={() => handleSetView('history')} 
-            className={getNavBtnClass(view === 'history')}
-          >
-            <Clock size={18} /> History
-          </button>
+        {/* User Utilities & Navigation Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Navigation Dropdown (Upside down "^" / ChevronDown) */}
+          <div className="relative" ref={navMenuRef}>
+            <button
+              onClick={() => setShowNavMenu(prev => !prev)}
+              className={`p-2 rounded-lg transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer border ${
+                showNavMenu 
+                  ? 'bg-accent/15 border-accent text-accent shadow-sm' 
+                  : 'bg-surface-3/80 hover:bg-surface-3 border-border-1 text-content-2 hover:text-content-1'
+              }`}
+              title="Explore & Play Modes"
+              aria-label="Navigation Menu"
+              aria-expanded={showNavMenu}
+            >
+              <ChevronDown 
+                size={18} 
+                className={`transition-transform duration-200 ${showNavMenu ? 'rotate-180 text-accent' : ''}`} 
+              />
+            </button>
 
-          <button 
-            onClick={() => setSetupMode('computer')} 
-            className={getNavBtnClass(view === 'play-computer')}
-          >
-            <Bot size={18} /> Play vs Computer
-          </button>
-          
-          <button 
-            onClick={() => setSetupMode('local')} 
-            className={getNavBtnClass(view === 'local')}
-          >
-            <Swords size={18} /> Local Play
-          </button>
+            {/* Dropdown Menu */}
+            {showNavMenu && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-surface-2 border border-border-1 rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 animate-scale-in">
+                <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-content-3 border-b border-border-1/50 flex items-center gap-1.5">
+                  <Sparkles size={12} className="text-accent" />
+                  <span>Navigate</span>
+                </div>
 
-          <button 
-            onClick={() => handleSetView('social')} 
-            className={getNavBtnClass(view === 'social')}
-          >
-            <Users size={18} /> Social
-          </button>
-        </div>
+                <div className="p-1 space-y-0.5">
+                  <a
+                    href="/puzzles"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSetView('puzzles');
+                      setShowNavMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                      view === 'puzzles'
+                        ? 'bg-accent/15 text-accent font-semibold'
+                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                    }`}
+                  >
+                    <PuzzleIcon size={16} className={view === 'puzzles' ? 'text-accent' : 'text-content-3'} />
+                    <span>Puzzles</span>
+                  </a>
 
-        {/* User Utilities & Auth Actions (Unclipped for dropdown visibility) */}
-        <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href="/openings"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSetView('openings');
+                      setShowNavMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                      view === 'openings'
+                        ? 'bg-accent/15 text-accent font-semibold'
+                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                    }`}
+                  >
+                    <BookOpen size={16} className={view === 'openings' ? 'text-accent' : 'text-content-3'} />
+                    <span>Openings</span>
+                  </a>
+
+                  <a
+                    href="/history"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSetView('history');
+                      setShowNavMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                      view === 'history'
+                        ? 'bg-accent/15 text-accent font-semibold'
+                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                    }`}
+                  >
+                    <Clock size={16} className={view === 'history' ? 'text-accent' : 'text-content-3'} />
+                    <span>History</span>
+                  </a>
+
+                  <div className="h-px bg-border-1/50 my-1"></div>
+
+                  <a
+                    href="/computer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSetupMode('computer');
+                      setShowNavMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                      view === 'play-computer'
+                        ? 'bg-accent/15 text-accent font-semibold'
+                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                    }`}
+                  >
+                    <Bot size={16} className={view === 'play-computer' ? 'text-accent' : 'text-content-3'} />
+                    <span>Play vs Computer</span>
+                  </a>
+
+                  <a
+                    href="/local"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSetupMode('local');
+                      setShowNavMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                      view === 'local'
+                        ? 'bg-accent/15 text-accent font-semibold'
+                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                    }`}
+                  >
+                    <Swords size={16} className={view === 'local' ? 'text-accent' : 'text-content-3'} />
+                    <span>Local Play</span>
+                  </a>
+
+                  <a
+                    href="/social"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSetView('social');
+                      setShowNavMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                      view === 'social'
+                        ? 'bg-accent/15 text-accent font-semibold'
+                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                    }`}
+                  >
+                    <Users size={16} className={view === 'social' ? 'text-accent' : 'text-content-3'} />
+                    <span>Social & Friends</span>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Settings Button */}
           <button 
             onClick={() => setShowSettings(true)}
             className={`${view === '404' ? 'text-red-900 hover:text-red-500 hover:bg-red-950/30' : 'text-content-3 hover:text-content-1 hover:bg-surface-3'} p-2 rounded-lg transition-colors flex items-center justify-center active:scale-95 cursor-pointer`}
             title="Settings"
             aria-label="Open Settings"
           >
-            <SettingsIcon size={20} />
+            <SettingsIcon size={18} />
           </button>
 
-          <div className={`h-6 w-px hidden sm:block ${view === '404' ? 'bg-red-900/30' : 'bg-border-1'}`}></div>
+          <div className={`h-5 w-px hidden sm:block ${view === '404' ? 'bg-red-900/30' : 'bg-border-1'}`}></div>
 
           {!authLoading && (
             <div className="flex items-center gap-2">
@@ -340,7 +465,7 @@ function App() {
                   />
                   <button 
                     onClick={() => handleSetView('profile')}
-                    className={`px-4 py-2 rounded-lg border transition-colors font-bold text-sm active:scale-95 flex items-center justify-center min-w-[80px] min-h-[38px] cursor-pointer ${view === '404' ? 'bg-red-950/20 border-red-900/30 text-red-700 hover:text-red-500 hover:bg-red-900/40' : (view === 'profile' ? 'bg-accent border-accent text-white' : 'bg-surface-3 border-border-2 hover:bg-border-1 text-content-1')}`}
+                    className={`px-3 py-1.5 rounded-lg border transition-colors font-medium text-sm active:scale-95 flex items-center justify-center min-h-[34px] cursor-pointer ${view === '404' ? 'bg-red-950/20 border-red-900/30 text-red-700 hover:text-red-500 hover:bg-red-900/40' : (view === 'profile' ? 'bg-accent border-accent text-white font-semibold' : 'bg-surface-3 border-border-1 hover:bg-surface-2 text-content-1')}`}
                   >
                   {profileLoading ? (
                     <div className="w-12 h-3 animate-pulse bg-content-3/30 rounded-full" />
@@ -350,10 +475,10 @@ function App() {
                         <img 
                           src={profile.avatar_url} 
                           alt="Avatar" 
-                          className="w-5 h-5 rounded-full object-cover" 
+                          className="w-5 h-5 rounded-full object-cover shrink-0" 
                         />
                       )}
-                      <span>{profile?.username || 'Profile'}</span>
+                      <span className="truncate max-w-[110px]">{profile?.username || 'Profile'}</span>
                     </div>
                   )}
                 </button>
@@ -361,7 +486,7 @@ function App() {
               ) : (
                 <button 
                   onClick={() => setShowAuth(true)}
-                  className="bg-accent hover:bg-accent-hover px-5 py-2 rounded-lg transition-colors font-bold text-sm text-white active:scale-95 shadow-md cursor-pointer"
+                  className="bg-accent hover:bg-accent-hover px-4 py-1.5 rounded-lg transition-colors font-semibold text-sm text-white active:scale-95 shadow-sm cursor-pointer"
                 >
                   Log In
                 </button>
