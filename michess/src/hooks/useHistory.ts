@@ -151,7 +151,7 @@ export function useHistory() {
         white_accuracy: game.whiteAccuracy,
         black_accuracy: game.blackAccuracy,
         overall_accuracy: game.overallAccuracy,
-        move_count: game.moveCount,
+        move_count: Number(game.moveCount ?? (game.pgn ? Math.max(0, game.pgn.split('. ').length - 1) : 0)),
         classifications: game.classifications
       }).select('id').single();
       
