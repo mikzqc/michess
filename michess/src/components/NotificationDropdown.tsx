@@ -5,6 +5,7 @@ import type { AppNotification } from '../hooks/useNotifications';
 import { useChallenges } from '../hooks/useChallenges';
 import type { Challenge } from '../hooks/useChallenges';
 import { useSocial } from '../hooks/useSocial';
+import { useAuth } from '../hooks/useAuth';
 import { Button } from './ui/Button';
 
 interface Props {
@@ -15,7 +16,8 @@ interface Props {
 }
 
 export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGame, onAcceptChallenge, isNotFound }) => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { user } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications } = useNotifications();
   const { challenges, respondToChallenge } = useChallenges();
   const { acceptRequest } = useSocial();
   const [isOpen, setIsOpen] = useState(false);
@@ -31,7 +33,30 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalCount = unreadCount + challenges.length;
+  const incomingChallenges = user 
+    ? challenges.filter(c => c.receiver_id === user.id && c.status === 'pending')
+    : [];
+
+  const displayNotifications = notifications.filter(notif => 
+    !(notif.type === 'challenge' && incomingChallenges.some(c => c.id === notif.related_id))
+  );
+
+  const totalCount = unreadCount;
+
+  const handleToggle = () => {
+    const nextOpen = !isOpen;
+    setIsOpen(nextOpen);
+    if (nextOpen && unreadCount > 0) {
+      markAllAsRead();
+    }
+  };
+
+  const handleClearAll = async () => {
+    await deleteAllNotifications();
+    for (const challenge of incomingChallenges) {
+      await respondToChallenge(challenge.id, false);
+    }
+  };
 
   const handleNotificationClick = async (notification: AppNotification) => {
     markAsRead(notification.id);
@@ -50,7 +75,7 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
     <div className="relative" ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className={`relative p-2 rounded-lg transition-colors active:scale-95 cursor-pointer ${
           isNotFound
             ? 'text-red-900 hover:text-red-500 hover:bg-red-950/30'
@@ -79,10 +104,10 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
             isNotFound ? 'bg-red-950/40 border-red-900/40' : 'bg-surface-3 border-border-1'
           }`}>
             <h3 className={`font-bold ${isNotFound ? 'text-red-500' : 'text-content-1'}`}>Notifications</h3>
-            {totalCount > 0 && (
+            {(displayNotifications.length > 0 || incomingChallenges.length > 0) && (
               <button 
-                onClick={markAllAsRead}
-                className={`text-xs font-medium ${isNotFound ? 'text-red-400 hover:text-red-300' : 'text-accent hover:text-accent-hover'}`}
+                onClick={handleClearAll}
+                className={`text-xs font-medium cursor-pointer ${isNotFound ? 'text-red-400 hover:text-red-300' : 'text-accent hover:text-accent-hover'}`}
               >
                 Clear all
               </button>
@@ -90,7 +115,7 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
           </div>
           
           <div className="overflow-y-auto flex-1 p-2 flex flex-col gap-1">
-            {challenges.map(challenge => (
+            {incomingChallenges.map(challenge => (
               <div key={challenge.id} className="p-3 rounded-lg border flex flex-col gap-2 bg-accent/5 border-accent/20">
                 <div className="flex items-start gap-3">
                   {challenge.sender_profile?.avatar_url ? (
@@ -120,7 +145,7 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
               </div>
             ))}
 
-            {notifications.map(notif => (
+            {displayNotifications.map(notif => (
               <div 
                 key={notif.id} 
                 className={`p-3 rounded-lg border flex flex-col gap-2 transition-colors cursor-pointer ${
@@ -160,7 +185,7 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
                     <Button size="sm" onClick={(e) => handleFriendAccept(e, notif.sender_id!, notif.id)}>
                       <Check size={14} className="mr-1" /> Accept
                     </Button>
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}>
                       <X size={14} className="mr-1" /> Dismiss
                     </Button>
                   </div>
@@ -168,7 +193,7 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
               </div>
             ))}
 
-            {challenges.length === 0 && notifications.length === 0 && (
+            {incomingChallenges.length === 0 && displayNotifications.length === 0 && (
               <div className="p-4 text-center text-content-3 text-sm">
                 No new notifications
               </div>
