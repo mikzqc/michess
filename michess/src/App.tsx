@@ -502,26 +502,81 @@ function App() {
                       handleSetView('link-game');
                     }}
                     onAcceptChallenge={async (challenge) => {
-                      if (!supabase) return;
-                      // Create game
+                      if (!supabase || !user) return;
+                      // Generate invite code and randomize colors
                       const inviteCode = Math.random().toString(36).substring(2, 9);
                       const isWhite = Math.random() > 0.5;
                       
-                      let tcObj = null;
+                      let tcStr: string | null = null;
+                      let initialMs: number | null = null;
+                      let incMs = 0;
                       if (challenge.time_control && challenge.time_control !== 'untimed') {
                         const [min, inc] = challenge.time_control.split('+').map(Number);
-                        tcObj = { minutes: min, increment: inc };
+                        if (!isNaN(min)) {
+                          tcStr = challenge.time_control;
+                          initialMs = min * 60 * 1000;
+                          incMs = (inc || 0) * 1000;
+                        }
                       }
 
-                      const { error } = await supabase.from('link_games').insert({
-                        id: inviteCode,
-                        white_id: isWhite ? user.id : challenge.sender_id,
-                        black_id: isWhite ? challenge.sender_id : user.id,
-                        time_control: tcObj,
-                        created_by: user.id
-                      });
+                      const whitePlayer = isWhite ? user.id : challenge.sender_id;
+                      const blackPlayer = isWhite ? challenge.sender_id : user.id;
 
-                      if (error) {
+                      let created = false;
+
+                      // 1. Try create_challenge_game RPC
+                      try {
+                        const { data: rpcGame, error: rpcErr } = await supabase.rpc('create_challenge_game', {
+                          p_invite_code: inviteCode,
+                          p_white_player: whitePlayer,
+                          p_black_player: blackPlayer,
+                          p_time_control: tcStr,
+                          p_initial_time_ms: initialMs,
+                          p_increment_ms: incMs
+                        });
+                        if (!rpcErr && rpcGame) {
+                          created = true;
+                        }
+                      } catch {}
+
+                      // 2. Fallback: try standard create_link_game RPC
+                      if (!created) {
+                        try {
+                          const { error: linkErr } = await supabase.rpc('create_link_game', {
+                            p_invite_code: inviteCode,
+                            p_creator_id: user.id,
+                            p_is_white: isWhite,
+                            p_time_control: tcStr,
+                            p_initial_time_ms: initialMs,
+                            p_increment_ms: incMs
+                          });
+                          if (!linkErr) {
+                            created = true;
+                          }
+                        } catch {}
+                      }
+
+                      // 3. Fallback: direct table insert with correct schema
+                      if (!created) {
+                        try {
+                          const { error: insErr } = await supabase.from('link_games').insert({
+                            invite_code: inviteCode,
+                            white_player: whitePlayer,
+                            black_player: blackPlayer,
+                            status: 'active',
+                            time_control: tcStr,
+                            initial_time_ms: initialMs,
+                            increment_ms: incMs,
+                            white_time_ms: initialMs,
+                            black_time_ms: initialMs
+                          });
+                          if (!insErr) {
+                            created = true;
+                          }
+                        } catch {}
+                      }
+
+                      if (!created) {
                         addToast('Failed to create challenge game', 'error');
                         return;
                       }

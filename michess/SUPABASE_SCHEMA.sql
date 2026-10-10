@@ -1727,3 +1727,54 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.message_reports;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.moderation_actions;
+
+-- 10. Challenge Game Creation RPC & Policy
+CREATE OR REPLACE FUNCTION public.create_challenge_game(
+    p_invite_code text,
+    p_white_player text,
+    p_black_player text,
+    p_time_control text DEFAULT NULL,
+    p_initial_time_ms integer DEFAULT NULL,
+    p_increment_ms integer DEFAULT 0
+) RETURNS public.link_games AS $$
+DECLARE
+    v_game public.link_games;
+BEGIN
+    IF auth.uid()::text IS NULL OR (auth.uid()::text != p_white_player AND auth.uid()::text != p_black_player) THEN
+        RAISE EXCEPTION 'Authentication required as one of the players';
+    END IF;
+
+    INSERT INTO public.link_games (
+        invite_code, 
+        white_player, 
+        black_player, 
+        status,
+        time_control,
+        initial_time_ms,
+        increment_ms,
+        white_time_ms,
+        black_time_ms,
+        last_move_at
+    ) VALUES (
+        p_invite_code,
+        p_white_player,
+        p_black_player,
+        'active',
+        p_time_control,
+        p_initial_time_ms,
+        p_increment_ms,
+        p_initial_time_ms,
+        p_initial_time_ms,
+        CASE WHEN p_initial_time_ms IS NOT NULL THEN CURRENT_TIMESTAMP ELSE NULL END
+    ) RETURNING * INTO v_game;
+    
+    RETURN v_game;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP POLICY IF EXISTS "Authenticated users can create challenge games" ON public.link_games;
+CREATE POLICY "Authenticated users can create challenge games" ON public.link_games
+    FOR INSERT WITH CHECK (
+        auth.uid() IS NOT NULL AND 
+        (auth.uid()::text = white_player OR auth.uid()::text = black_player)
+    );

@@ -97,8 +97,8 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
                 <User size={32} className="text-content-3" />
               )}
             </div>
-            <div className="min-w-0">
-              <h1 className="text-3xl font-bold text-content-1 mb-1 min-h-[36px] flex items-center break-all">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-content-1 mb-1 min-h-[36px] flex items-center break-words" title={profile?.username}>
                 {loading ? (
                   <div className="w-32 h-6 animate-pulse bg-content-3/30 rounded-full" />
                 ) : (
