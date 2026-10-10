@@ -11,9 +11,10 @@ interface Props {
   onViewProfile: (username: string) => void;
   onJoinGame: (gameId: string) => void;
   onAcceptChallenge?: (challenge: Challenge) => void;
+  isNotFound?: boolean;
 }
 
-export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGame, onAcceptChallenge }) => {
+export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGame, onAcceptChallenge, isNotFound }) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { challenges, respondToChallenge } = useChallenges();
   const { acceptRequest } = useSocial();
@@ -50,26 +51,38 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg transition-colors text-content-3 hover:text-content-1 hover:bg-surface-3 active:scale-95 cursor-pointer"
+        className={`relative p-2 rounded-lg transition-colors active:scale-95 cursor-pointer ${
+          isNotFound
+            ? 'text-red-900 hover:text-red-500 hover:bg-red-950/30'
+            : 'text-content-3 hover:text-content-1 hover:bg-surface-3'
+        }`}
         aria-label="Notifications"
         title="Notifications"
       >
-        <Bell size={20} />
+        <Bell size={18} />
         {totalCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-error text-white text-[10px] font-bold flex items-center justify-center rounded-full pointer-events-none">
+          <span className={`absolute top-1 right-1 w-4 h-4 text-white text-[10px] font-bold flex items-center justify-center rounded-full pointer-events-none ${
+            isNotFound ? 'bg-red-700 animate-pulse shadow-[0_0_8px_rgba(255,0,0,0.6)]' : 'bg-error'
+          }`}>
             {totalCount > 9 ? '9+' : totalCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-surface-2 border border-border-1 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col max-h-[80vh]">
-          <div className="p-3 border-b border-border-1 flex items-center justify-between bg-surface-3">
-            <h3 className="font-bold text-content-1">Notifications</h3>
+        <div className={`absolute top-full right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] border rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[80vh] animate-scale-in ${
+          isNotFound 
+            ? 'bg-black/95 border-red-900/60 shadow-[0_0_25px_rgba(255,0,0,0.2)] text-red-100' 
+            : 'bg-surface-2 border-border-1'
+        }`}>
+          <div className={`p-3 border-b flex items-center justify-between ${
+            isNotFound ? 'bg-red-950/40 border-red-900/40' : 'bg-surface-3 border-border-1'
+          }`}>
+            <h3 className={`font-bold ${isNotFound ? 'text-red-500' : 'text-content-1'}`}>Notifications</h3>
             {totalCount > 0 && (
               <button 
                 onClick={markAllAsRead}
-                className="text-xs text-accent hover:text-accent-hover font-medium"
+                className={`text-xs font-medium ${isNotFound ? 'text-red-400 hover:text-red-300' : 'text-accent hover:text-accent-hover'}`}
               >
                 Clear all
               </button>

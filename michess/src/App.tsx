@@ -278,9 +278,13 @@ function App() {
             <button
               onClick={() => setShowNavMenu(prev => !prev)}
               className={`p-2 rounded-lg transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer border ${
-                showNavMenu 
-                  ? 'bg-accent/15 border-accent text-accent shadow-sm' 
-                  : 'bg-surface-3/80 hover:bg-surface-3 border-border-1 text-content-2 hover:text-content-1'
+                view === '404'
+                  ? (showNavMenu
+                      ? 'bg-red-950/60 border-red-700 text-red-500 shadow-[0_0_12px_rgba(255,0,0,0.4)]'
+                      : 'bg-black/60 hover:bg-red-950/30 border-red-900/40 text-red-700 hover:text-red-500')
+                  : (showNavMenu 
+                      ? 'bg-accent/15 border-accent text-accent shadow-sm' 
+                      : 'bg-surface-3/80 hover:bg-surface-3 border-border-1 text-content-2 hover:text-content-1')
               }`}
               title="Explore & Play Modes"
               aria-label="Navigation Menu"
@@ -288,15 +292,25 @@ function App() {
             >
               <ChevronDown 
                 size={18} 
-                className={`transition-transform duration-200 ${showNavMenu ? 'rotate-180 text-accent' : ''}`} 
+                className={`transition-transform duration-200 ${
+                  showNavMenu 
+                    ? (view === '404' ? 'rotate-180 text-red-500' : 'rotate-180 text-accent') 
+                    : (view === '404' ? 'text-red-700' : '')
+                }`} 
               />
             </button>
 
             {/* Dropdown Menu */}
             {showNavMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-surface-2 border border-border-1 rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 animate-scale-in">
-                <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-content-3 border-b border-border-1/50 flex items-center gap-1.5">
-                  <Sparkles size={12} className="text-accent" />
+              <div className={`absolute right-0 top-full mt-2 w-56 border rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 animate-scale-in ${
+                view === '404'
+                  ? 'bg-black/95 border-red-900/60 shadow-[0_0_25px_rgba(255,0,0,0.2)] text-red-200'
+                  : 'bg-surface-2 border-border-1'
+              }`}>
+                <div className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border-b flex items-center gap-1.5 ${
+                  view === '404' ? 'border-red-900/40 text-red-500' : 'text-content-3 border-border-1/50'
+                }`}>
+                  <Sparkles size={12} className={view === '404' ? 'text-red-600' : 'text-accent'} />
                   <span>Navigate</span>
                 </div>
 
@@ -309,12 +323,14 @@ function App() {
                       setShowNavMenu(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
-                      view === 'puzzles'
-                        ? 'bg-accent/15 text-accent font-semibold'
-                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                      view === '404'
+                        ? 'text-red-400 hover:text-red-200 hover:bg-red-950/40'
+                        : (view === 'puzzles'
+                            ? 'bg-accent/15 text-accent font-semibold'
+                            : 'text-content-2 hover:text-content-1 hover:bg-surface-3')
                     }`}
                   >
-                    <PuzzleIcon size={16} className={view === 'puzzles' ? 'text-accent' : 'text-content-3'} />
+                    <PuzzleIcon size={16} className={view === '404' ? 'text-red-500' : (view === 'puzzles' ? 'text-accent' : 'text-content-3')} />
                     <span>Puzzles</span>
                   </a>
 
@@ -326,12 +342,14 @@ function App() {
                       setShowNavMenu(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
-                      view === 'openings'
-                        ? 'bg-accent/15 text-accent font-semibold'
-                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                      view === '404'
+                        ? 'text-red-400 hover:text-red-200 hover:bg-red-950/40'
+                        : (view === 'openings'
+                            ? 'bg-accent/15 text-accent font-semibold'
+                            : 'text-content-2 hover:text-content-1 hover:bg-surface-3')
                     }`}
                   >
-                    <BookOpen size={16} className={view === 'openings' ? 'text-accent' : 'text-content-3'} />
+                    <BookOpen size={16} className={view === '404' ? 'text-red-500' : (view === 'openings' ? 'text-accent' : 'text-content-3')} />
                     <span>Openings</span>
                   </a>
 
@@ -343,16 +361,18 @@ function App() {
                       setShowNavMenu(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
-                      view === 'history'
-                        ? 'bg-accent/15 text-accent font-semibold'
-                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                      view === '404'
+                        ? 'text-red-400 hover:text-red-200 hover:bg-red-950/40'
+                        : (view === 'history'
+                            ? 'bg-accent/15 text-accent font-semibold'
+                            : 'text-content-2 hover:text-content-1 hover:bg-surface-3')
                     }`}
                   >
-                    <Clock size={16} className={view === 'history' ? 'text-accent' : 'text-content-3'} />
+                    <Clock size={16} className={view === '404' ? 'text-red-500' : (view === 'history' ? 'text-accent' : 'text-content-3')} />
                     <span>History</span>
                   </a>
 
-                  <div className="h-px bg-border-1/50 my-1"></div>
+                  <div className={`h-px my-1 ${view === '404' ? 'bg-red-900/40' : 'bg-border-1/50'}`}></div>
 
                   <a
                     href="/computer"
@@ -362,12 +382,14 @@ function App() {
                       setShowNavMenu(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
-                      view === 'play-computer'
-                        ? 'bg-accent/15 text-accent font-semibold'
-                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                      view === '404'
+                        ? 'text-red-400 hover:text-red-200 hover:bg-red-950/40'
+                        : (view === 'play-computer'
+                            ? 'bg-accent/15 text-accent font-semibold'
+                            : 'text-content-2 hover:text-content-1 hover:bg-surface-3')
                     }`}
                   >
-                    <Bot size={16} className={view === 'play-computer' ? 'text-accent' : 'text-content-3'} />
+                    <Bot size={16} className={view === '404' ? 'text-red-500' : (view === 'play-computer' ? 'text-accent' : 'text-content-3')} />
                     <span>Play vs Computer</span>
                   </a>
 
@@ -379,12 +401,14 @@ function App() {
                       setShowNavMenu(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
-                      view === 'local'
-                        ? 'bg-accent/15 text-accent font-semibold'
-                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                      view === '404'
+                        ? 'text-red-400 hover:text-red-200 hover:bg-red-950/40'
+                        : (view === 'local'
+                            ? 'bg-accent/15 text-accent font-semibold'
+                            : 'text-content-2 hover:text-content-1 hover:bg-surface-3')
                     }`}
                   >
-                    <Swords size={16} className={view === 'local' ? 'text-accent' : 'text-content-3'} />
+                    <Swords size={16} className={view === '404' ? 'text-red-500' : (view === 'local' ? 'text-accent' : 'text-content-3')} />
                     <span>Local Play</span>
                   </a>
 
@@ -396,12 +420,14 @@ function App() {
                       setShowNavMenu(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
-                      view === 'social'
-                        ? 'bg-accent/15 text-accent font-semibold'
-                        : 'text-content-2 hover:text-content-1 hover:bg-surface-3'
+                      view === '404'
+                        ? 'text-red-400 hover:text-red-200 hover:bg-red-950/40'
+                        : (view === 'social'
+                            ? 'bg-accent/15 text-accent font-semibold'
+                            : 'text-content-2 hover:text-content-1 hover:bg-surface-3')
                     }`}
                   >
-                    <Users size={16} className={view === 'social' ? 'text-accent' : 'text-content-3'} />
+                    <Users size={16} className={view === '404' ? 'text-red-500' : (view === 'social' ? 'text-accent' : 'text-content-3')} />
                     <span>Social & Friends</span>
                   </a>
                 </div>
@@ -426,6 +452,7 @@ function App() {
               {user ? (
                 <>
                   <NotificationDropdown 
+                    isNotFound={view === '404'}
                     onViewProfile={handleViewProfile} 
                     onJoinGame={(gameId) => {
                       setLinkInviteCode(gameId);
