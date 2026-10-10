@@ -61,8 +61,10 @@ async function pingDatabase() {
   const timestamp = new Date().toISOString();
   
   try {
-    // Ping profiles table count - minimal load, validates database connection
-    const targetUrl = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/profiles?select=count`;
+    // Directly queries PostgREST (SELECT id FROM profiles LIMIT 1).
+    // This executes an actual SQL query on the Postgres engine, ensuring Supabase
+    // pause monitor detects live database activity.
+    const targetUrl = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/profiles?select=id&limit=1`;
     const response = await fetch(targetUrl, {
       method: 'GET',
       headers: {
@@ -75,7 +77,7 @@ async function pingDatabase() {
     const duration = Date.now() - start;
     if (response.ok) {
       const data = await response.json();
-      console.log(`[${timestamp}] Heartbeat SUCCESS (${duration}ms) - Database is active! Record count:`, data);
+      console.log(`[${timestamp}] Heartbeat SUCCESS (${duration}ms) - Postgres query executed! Result:`, data);
       return true;
     } else {
       const text = await response.text();
