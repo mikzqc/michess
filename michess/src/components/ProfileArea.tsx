@@ -75,7 +75,7 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
   }
 
   return (
-    <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 h-full flex flex-col py-6">
+    <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 h-full flex flex-col py-6">
       <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" onClick={onExit} className="pl-0">
           <ArrowLeft size={20} className="mr-2" /> Back
@@ -84,11 +84,11 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
         <div className="w-20"></div> {/* Spacer for centering */}
       </div>
 
-      <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-8 relative overflow-hidden shadow-sm animate-slide-up">
+      <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-6 sm:p-8 relative overflow-hidden shadow-sm animate-slide-up">
         {/* Background decorative element */}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-accent/20 to-surface-2/0 z-0"></div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 relative z-10">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 relative z-10">
           <div className="flex items-center gap-4 min-w-0 flex-1">
             <div className="w-16 h-16 shrink-0 bg-surface-3 rounded-full flex items-center justify-center border-2 border-border-2 overflow-hidden shadow-sm">
               {profile?.avatar_url ? (
@@ -98,9 +98,9 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-content-1 mb-1 min-h-[36px] flex items-center break-words" title={profile?.username}>
+              <h1 className="text-2xl sm:text-3xl font-bold text-content-1 mb-1 min-h-[36px] truncate block" title={profile?.username}>
                 {loading ? (
-                  <div className="w-32 h-6 animate-pulse bg-content-3/30 rounded-full" />
+                  <span className="inline-block w-32 h-6 animate-pulse bg-content-3/30 rounded-full" />
                 ) : (
                   profile?.username || 'Player'
                 )}
@@ -110,12 +110,12 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
               </p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0">
             {onViewProfile && profile?.username && (
               <Button 
                 variant="primary"
                 onClick={() => onViewProfile(profile.username)}
-                className="w-full sm:w-auto"
+                className="flex-1 sm:flex-initial"
               >
                 <User size={16} className="mr-2" /> View Public Profile
               </Button>
@@ -123,7 +123,7 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
             <Button 
               variant="destructive"
               onClick={handleSignOut}
-              className="w-full sm:w-auto"
+              className="flex-1 sm:flex-initial"
             >
               <LogOut size={16} className="mr-2" /> Log Out
             </Button>
