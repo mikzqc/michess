@@ -27,6 +27,14 @@ export interface UserProfile {
   created_at: string;
   updated_at: string;
   last_username_change: string | null;
+  is_banned?: boolean;
+  banned_at?: string | null;
+  banned_reason?: string | null;
+  suspended_until?: string | null;
+  suspension_reason?: string | null;
+  warning_count?: number;
+  reporter_warning_count?: number;
+  is_admin?: boolean;
 }
 
 export function useProfile() {

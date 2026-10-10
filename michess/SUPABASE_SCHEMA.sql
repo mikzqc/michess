@@ -1273,3 +1273,457 @@ CREATE POLICY "Users can file message reports" ON public.message_reports
 
 CREATE POLICY "Users can view their own reports" ON public.message_reports
     FOR SELECT USING (auth.uid() = reporter_id);
+
+
+-- ==============================================================================
+-- Phase 20: Admin Panel, Moderation System & User Reports Management
+-- ==============================================================================
+
+-- 1. Extend Profiles Table for Moderation Status
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS banned_reason TEXT,
+ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS suspension_reason TEXT,
+ADD COLUMN IF NOT EXISTS warning_count INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS reporter_warning_count INTEGER DEFAULT 0;
+
+-- 2. Extend Message Reports Table
+ALTER TABLE public.message_reports 
+ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending',
+ADD COLUMN IF NOT EXISTS admin_notes TEXT,
+ADD COLUMN IF NOT EXISTS resolved_by UUID REFERENCES public.profiles(id),
+ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS resolution_action TEXT,
+ADD COLUMN IF NOT EXISTS resolution_reason TEXT,
+ADD COLUMN IF NOT EXISTS game_id TEXT;
+
+CREATE INDEX IF NOT EXISTS message_reports_status_idx ON public.message_reports(status);
+CREATE INDEX IF NOT EXISTS message_reports_created_at_idx ON public.message_reports(created_at DESC);
+CREATE INDEX IF NOT EXISTS message_reports_reported_user_idx ON public.message_reports(reported_user_id);
+CREATE INDEX IF NOT EXISTS message_reports_reporter_id_idx ON public.message_reports(reporter_id);
+
+-- 3. Admin Roles Table (allowlist)
+CREATE TABLE IF NOT EXISTS public.admin_roles (
+    user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    role TEXT NOT NULL DEFAULT 'admin',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can check their admin role" ON public.admin_roles;
+CREATE POLICY "Anyone can check their admin role" ON public.admin_roles
+    FOR SELECT USING (auth.uid() = user_id OR EXISTS (
+        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND lower(username) = 'mikzqc'
+    ));
+
+-- 4. Server-Side is_admin() Function
+CREATE OR REPLACE FUNCTION public.is_admin(p_uid uuid DEFAULT auth.uid()) 
+RETURNS boolean AS $$
+DECLARE
+    v_username text;
+BEGIN
+    IF p_uid IS NULL THEN
+        RETURN false;
+    END IF;
+    
+    -- Check if username is mikzqc
+    SELECT username INTO v_username FROM public.profiles WHERE id = p_uid;
+    IF lower(COALESCE(v_username, '')) = 'mikzqc' THEN
+        RETURN true;
+    END IF;
+
+    -- Check admin_roles table
+    IF EXISTS (SELECT 1 FROM public.admin_roles WHERE user_id = p_uid AND role = 'admin') THEN
+        RETURN true;
+    END IF;
+
+    RETURN false;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+-- Client-callable RPC to check admin status
+CREATE OR REPLACE FUNCTION public.check_is_admin()
+RETURNS boolean AS $$
+BEGIN
+    RETURN public.is_admin(auth.uid());
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+-- 5. Moderation Actions / Audit Log Table
+CREATE TABLE IF NOT EXISTS public.moderation_actions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    target_user_id TEXT NOT NULL,
+    action_type TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    details TEXT,
+    duration_hours INTEGER,
+    report_id UUID REFERENCES public.message_reports(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+ALTER TABLE public.moderation_actions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can view all moderation actions" ON public.moderation_actions;
+CREATE POLICY "Admins can view all moderation actions" ON public.moderation_actions
+    FOR SELECT USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Users can view warnings issued against them" ON public.moderation_actions;
+CREATE POLICY "Users can view warnings issued against them" ON public.moderation_actions
+    FOR SELECT USING (auth.uid()::text = target_user_id AND action_type IN ('warn', 'warn_reporter'));
+
+DROP POLICY IF EXISTS "Admins can insert moderation actions" ON public.moderation_actions;
+CREATE POLICY "Admins can insert moderation actions" ON public.moderation_actions
+    FOR INSERT WITH CHECK (public.is_admin());
+
+CREATE INDEX IF NOT EXISTS mod_actions_target_idx ON public.moderation_actions(target_user_id);
+CREATE INDEX IF NOT EXISTS mod_actions_report_idx ON public.moderation_actions(report_id);
+CREATE INDEX IF NOT EXISTS mod_actions_created_idx ON public.moderation_actions(created_at DESC);
+
+-- 6. Private Admin Notes Table
+CREATE TABLE IF NOT EXISTS public.admin_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    target_user_id TEXT NOT NULL,
+    report_id UUID REFERENCES public.message_reports(id) ON DELETE CASCADE,
+    note TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+ALTER TABLE public.admin_notes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Only admins can access admin notes" ON public.admin_notes;
+CREATE POLICY "Only admins can access admin notes" ON public.admin_notes
+    FOR ALL USING (public.is_admin());
+
+CREATE INDEX IF NOT EXISTS admin_notes_report_idx ON public.admin_notes(report_id);
+CREATE INDEX IF NOT EXISTS admin_notes_target_idx ON public.admin_notes(target_user_id);
+
+-- 7. Update RLS on message_reports to grant Admin full access
+DROP POLICY IF EXISTS "Users can view their own reports" ON public.message_reports;
+DROP POLICY IF EXISTS "Users can view their own reports or Admins view all" ON public.message_reports;
+CREATE POLICY "Users can view their own reports or Admins view all" ON public.message_reports
+    FOR SELECT USING (auth.uid() = reporter_id OR public.is_admin());
+
+DROP POLICY IF EXISTS "Admins can update message reports" ON public.message_reports;
+CREATE POLICY "Admins can update message reports" ON public.message_reports
+    FOR UPDATE USING (public.is_admin());
+
+-- 8. Admin RPCs for Moderation Operations
+
+CREATE OR REPLACE FUNCTION public.admin_update_report_status(
+    p_report_id UUID,
+    p_status TEXT,
+    p_notes TEXT DEFAULT NULL,
+    p_action TEXT DEFAULT NULL,
+    p_reason TEXT DEFAULT NULL
+) RETURNS public.message_reports AS $$
+DECLARE
+    v_report public.message_reports;
+BEGIN
+    IF NOT public.is_admin(auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied. Administrator privileges required.';
+    END IF;
+
+    UPDATE public.message_reports SET
+        status = p_status,
+        admin_notes = COALESCE(p_notes, admin_notes),
+        resolved_by = CASE WHEN p_status IN ('resolved', 'dismissed') THEN auth.uid() ELSE resolved_by END,
+        resolved_at = CASE WHEN p_status IN ('resolved', 'dismissed') THEN CURRENT_TIMESTAMP ELSE resolved_at END,
+        resolution_action = COALESCE(p_action, resolution_action),
+        resolution_reason = COALESCE(p_reason, resolution_reason)
+    WHERE id = p_report_id
+    RETURNING * INTO v_report;
+
+    IF p_status = 'resolved' THEN
+        INSERT INTO public.notifications (user_id, sender_id, type, message, related_id)
+        VALUES (v_report.reporter_id, auth.uid(), 'report_resolved', 'Your report has been reviewed and resolved. Thank you for helping keep Michess safe.', v_report.id::text);
+    ELSIF p_status = 'dismissed' THEN
+        INSERT INTO public.notifications (user_id, sender_id, type, message, related_id)
+        VALUES (v_report.reporter_id, auth.uid(), 'report_dismissed', 'Your report has been reviewed and concluded.', v_report.id::text);
+    END IF;
+
+    RETURN v_report;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.admin_warn_user(
+    p_target_user_id TEXT,
+    p_reason TEXT,
+    p_report_id UUID DEFAULT NULL
+) RETURNS public.moderation_actions AS $$
+DECLARE
+    v_action public.moderation_actions;
+    v_target_uuid uuid;
+BEGIN
+    IF NOT public.is_admin(auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied. Administrator privileges required.';
+    END IF;
+
+    BEGIN
+        v_target_uuid := p_target_user_id::uuid;
+        UPDATE public.profiles SET
+            warning_count = COALESCE(warning_count, 0) + 1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = v_target_uuid;
+
+        INSERT INTO public.notifications (user_id, sender_id, type, message, related_id)
+        VALUES (v_target_uuid, auth.uid(), 'moderation_warning', 'You have received an official moderation warning: ' || p_reason, p_report_id::text);
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    INSERT INTO public.moderation_actions (admin_id, target_user_id, action_type, reason, report_id)
+    VALUES (auth.uid(), p_target_user_id, 'warn', p_reason, p_report_id)
+    RETURNING * INTO v_action;
+
+    IF p_report_id IS NOT NULL THEN
+        UPDATE public.message_reports SET
+            status = 'resolved',
+            resolved_by = auth.uid(),
+            resolved_at = CURRENT_TIMESTAMP,
+            resolution_action = 'warn',
+            resolution_reason = p_reason
+        WHERE id = p_report_id;
+    END IF;
+
+    RETURN v_action;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.admin_suspend_user(
+    p_target_user_id TEXT,
+    p_hours INTEGER,
+    p_reason TEXT,
+    p_report_id UUID DEFAULT NULL
+) RETURNS public.moderation_actions AS $$
+DECLARE
+    v_action public.moderation_actions;
+    v_target_uuid uuid;
+    v_suspended_until timestamptz;
+BEGIN
+    IF NOT public.is_admin(auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied. Administrator privileges required.';
+    END IF;
+
+    v_suspended_until := CURRENT_TIMESTAMP + (p_hours || ' hours')::interval;
+
+    BEGIN
+        v_target_uuid := p_target_user_id::uuid;
+        UPDATE public.profiles SET
+            suspended_until = v_suspended_until,
+            suspension_reason = p_reason,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = v_target_uuid;
+
+        INSERT INTO public.notifications (user_id, sender_id, type, message, related_id)
+        VALUES (v_target_uuid, auth.uid(), 'moderation_suspension', 'Your account has been temporarily suspended until ' || to_char(v_suspended_until, 'YYYY-MM-DD HH24:MI') || ' UTC. Reason: ' || p_reason, p_report_id::text);
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    INSERT INTO public.moderation_actions (admin_id, target_user_id, action_type, reason, duration_hours, report_id)
+    VALUES (auth.uid(), p_target_user_id, 'suspend', p_reason, p_hours, p_report_id)
+    RETURNING * INTO v_action;
+
+    IF p_report_id IS NOT NULL THEN
+        UPDATE public.message_reports SET
+            status = 'resolved',
+            resolved_by = auth.uid(),
+            resolved_at = CURRENT_TIMESTAMP,
+            resolution_action = 'suspend',
+            resolution_reason = p_reason
+        WHERE id = p_report_id;
+    END IF;
+
+    RETURN v_action;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.admin_ban_user(
+    p_target_user_id TEXT,
+    p_reason TEXT,
+    p_report_id UUID DEFAULT NULL
+) RETURNS public.moderation_actions AS $$
+DECLARE
+    v_action public.moderation_actions;
+    v_target_uuid uuid;
+BEGIN
+    IF NOT public.is_admin(auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied. Administrator privileges required.';
+    END IF;
+
+    BEGIN
+        v_target_uuid := p_target_user_id::uuid;
+        UPDATE public.profiles SET
+            is_banned = true,
+            banned_at = CURRENT_TIMESTAMP,
+            banned_reason = p_reason,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = v_target_uuid;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    INSERT INTO public.moderation_actions (admin_id, target_user_id, action_type, reason, report_id)
+    VALUES (auth.uid(), p_target_user_id, 'ban', p_reason, p_report_id)
+    RETURNING * INTO v_action;
+
+    IF p_report_id IS NOT NULL THEN
+        UPDATE public.message_reports SET
+            status = 'resolved',
+            resolved_by = auth.uid(),
+            resolved_at = CURRENT_TIMESTAMP,
+            resolution_action = 'ban',
+            resolution_reason = p_reason
+        WHERE id = p_report_id;
+    END IF;
+
+    RETURN v_action;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.admin_unban_user(
+    p_target_user_id TEXT,
+    p_reason TEXT
+) RETURNS public.moderation_actions AS $$
+DECLARE
+    v_action public.moderation_actions;
+    v_target_uuid uuid;
+BEGIN
+    IF NOT public.is_admin(auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied. Administrator privileges required.';
+    END IF;
+
+    BEGIN
+        v_target_uuid := p_target_user_id::uuid;
+        UPDATE public.profiles SET
+            is_banned = false,
+            banned_at = NULL,
+            banned_reason = NULL,
+            suspended_until = NULL,
+            suspension_reason = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = v_target_uuid;
+
+        INSERT INTO public.notifications (user_id, sender_id, type, message)
+        VALUES (v_target_uuid, auth.uid(), 'moderation_unban', 'Your account restrictions have been lifted: ' || p_reason);
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    INSERT INTO public.moderation_actions (admin_id, target_user_id, action_type, reason)
+    VALUES (auth.uid(), p_target_user_id, 'unban', p_reason)
+    RETURNING * INTO v_action;
+
+    RETURN v_action;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.admin_warn_reporter(
+    p_report_id UUID,
+    p_reporter_id UUID,
+    p_reason TEXT,
+    p_details TEXT DEFAULT NULL
+) RETURNS public.moderation_actions AS $$
+DECLARE
+    v_action public.moderation_actions;
+BEGIN
+    IF NOT public.is_admin(auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied. Administrator privileges required.';
+    END IF;
+
+    UPDATE public.profiles SET
+        reporter_warning_count = COALESCE(reporter_warning_count, 0) + 1,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = p_reporter_id;
+
+    INSERT INTO public.moderation_actions (admin_id, target_user_id, action_type, reason, details, report_id)
+    VALUES (auth.uid(), p_reporter_id::text, 'warn_reporter', p_reason, p_details, p_report_id)
+    RETURNING * INTO v_action;
+
+    INSERT INTO public.notifications (user_id, sender_id, type, message, related_id)
+    VALUES (
+        p_reporter_id,
+        auth.uid(),
+        'reporter_warning',
+        'Official Notice: A warning has been issued regarding report #' || substring(p_report_id::text, 1, 8) || '. Reason: ' || p_reason || '. Michess takes false or abusive reports seriously.',
+        p_report_id::text
+    );
+
+    UPDATE public.message_reports SET
+        status = 'dismissed',
+        resolved_by = auth.uid(),
+        resolved_at = CURRENT_TIMESTAMP,
+        resolution_action = 'warn_reporter',
+        resolution_reason = p_reason
+    WHERE id = p_report_id;
+
+    RETURN v_action;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.admin_reverse_reporter_warning(
+    p_action_id UUID,
+    p_reason TEXT
+) RETURNS public.moderation_actions AS $$
+DECLARE
+    v_orig_action public.moderation_actions;
+    v_rev_action public.moderation_actions;
+    v_target_uuid uuid;
+BEGIN
+    IF NOT public.is_admin(auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied. Administrator privileges required.';
+    END IF;
+
+    SELECT * INTO v_orig_action FROM public.moderation_actions WHERE id = p_action_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Moderation action not found';
+    END IF;
+
+    BEGIN
+        v_target_uuid := v_orig_action.target_user_id::uuid;
+        UPDATE public.profiles SET
+            reporter_warning_count = GREATEST(0, COALESCE(reporter_warning_count, 0) - 1),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = v_target_uuid;
+
+        INSERT INTO public.notifications (user_id, sender_id, type, message, related_id)
+        VALUES (v_target_uuid, auth.uid(), 'reporter_warning_reversed', 'A previous warning regarding a submitted report has been reviewed and removed.', v_orig_action.report_id::text);
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    INSERT INTO public.moderation_actions (admin_id, target_user_id, action_type, reason, details, report_id)
+    VALUES (auth.uid(), v_orig_action.target_user_id, 'reverse_reporter_warning', p_reason, 'Reversed action ' || p_action_id::text, v_orig_action.report_id)
+    RETURNING * INTO v_rev_action;
+
+    RETURN v_rev_action;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.admin_add_note(
+    p_target_user_id TEXT,
+    p_report_id UUID,
+    p_note TEXT
+) RETURNS public.admin_notes AS $$
+DECLARE
+    v_note public.admin_notes;
+BEGIN
+    IF NOT public.is_admin(auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied. Administrator privileges required.';
+    END IF;
+
+    INSERT INTO public.admin_notes (admin_id, target_user_id, report_id, note)
+    VALUES (auth.uid(), p_target_user_id, p_report_id, trim(p_note))
+    RETURNING * INTO v_note;
+
+    RETURN v_note;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.message_reports;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.moderation_actions;

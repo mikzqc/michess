@@ -89,6 +89,14 @@ export function useDirectChat(activeFriendId?: string | null) {
         setAllRecentMessages(prev =>
           prev.map(m => (unreadIds.includes(m.id) ? { ...m, read: true } : m))
         );
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('michess:direct_messages_read', {
+              detail: { friendId, readerId: user.id }
+            })
+          );
+        }
       }
     } catch (err: any) {
       console.error('Error fetching conversation:', err);
@@ -173,6 +181,24 @@ export function useDirectChat(activeFriendId?: string | null) {
           event: 'UPDATE',
           schema: 'public',
           table: 'direct_messages',
+          filter: `receiver_id=eq.${user.id}`
+        },
+        payload => {
+          const updated = payload.new as DirectMessage;
+          setAllRecentMessages(prev =>
+            prev.map(m => (m.id === updated.id ? updated : m))
+          );
+          setMessages(prev =>
+            prev.map(m => (m.id === updated.id ? updated : m))
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'direct_messages',
           filter: `sender_id=eq.${user.id}`
         },
         payload => {
@@ -191,6 +217,29 @@ export function useDirectChat(activeFriendId?: string | null) {
       supabase?.removeChannel(subscription);
     };
   }, [user, activeFriendId]);
+
+  // Synchronize read status across multiple hook instances within the browser
+  useEffect(() => {
+    if (!user || typeof window === 'undefined') return;
+
+    const handleReadEvent = (e: any) => {
+      const { friendId, readerId } = e.detail || {};
+      if (readerId === user.id && friendId) {
+        setAllRecentMessages(prev =>
+          prev.map(m =>
+            m.receiver_id === user.id && m.sender_id === friendId
+              ? { ...m, read: true }
+              : m
+          )
+        );
+      }
+    };
+
+    window.addEventListener('michess:direct_messages_read', handleReadEvent);
+    return () => {
+      window.removeEventListener('michess:direct_messages_read', handleReadEvent);
+    };
+  }, [user]);
 
   // Unread count per friend
   const unreadCounts = useMemo(() => {
@@ -301,6 +350,14 @@ export function useDirectChat(activeFriendId?: string | null) {
           : m
       )
     );
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('michess:direct_messages_read', {
+          detail: { friendId, readerId: user.id }
+        })
+      );
+    }
 
     try {
       await supabase

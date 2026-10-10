@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Check, X, Play } from 'lucide-react';
+import { Bell, Check, X, Play, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import type { AppNotification } from '../hooks/useNotifications';
 import { useChallenges } from '../hooks/useChallenges';
@@ -154,7 +154,15 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
                 onClick={() => handleNotificationClick(notif)}
               >
                 <div className="flex items-start gap-3">
-                  {notif.sender_profile?.avatar_url ? (
+                  {notif.type.startsWith('moderation_') || notif.type.startsWith('reporter_') ? (
+                    <div className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                      <ShieldAlert size={16} />
+                    </div>
+                  ) : notif.type.startsWith('report_') ? (
+                    <div className="w-8 h-8 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0">
+                      <ShieldCheck size={16} />
+                    </div>
+                  ) : notif.sender_profile?.avatar_url ? (
                     <img src={notif.sender_profile.avatar_url} className="w-8 h-8 rounded-full object-cover" alt="" />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-surface-3 flex items-center justify-center text-content-2 font-bold text-sm">
@@ -163,9 +171,15 @@ export const NotificationDropdown: React.FC<Props> = ({ onViewProfile, onJoinGam
                   )}
                   <div className="flex-1 text-sm">
                     <p className="text-content-1">
-                      <span className="font-bold cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); notif.sender_profile && onViewProfile(notif.sender_profile.username); }}>
-                        {notif.sender_profile?.username || 'Someone'}
-                      </span>
+                      {notif.type.startsWith('moderation_') || notif.type.startsWith('reporter_') ? (
+                        <span className="font-bold text-amber-400">Moderation Notice:</span>
+                      ) : notif.type.startsWith('report_') ? (
+                        <span className="font-bold text-accent">Report Update:</span>
+                      ) : (
+                        <span className="font-bold cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); notif.sender_profile && onViewProfile(notif.sender_profile.username); }}>
+                          {notif.sender_profile?.username || 'Someone'}
+                        </span>
+                      )}
                       {' '}{notif.message}
                     </p>
                     <p className="text-xs text-content-3 mt-1">

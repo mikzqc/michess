@@ -34,10 +34,12 @@ import { OpeningExplorerPage } from './components/OpeningExplorerPage';
 import { useChallenges } from './hooks/useChallenges';
 import { useDirectChat } from './hooks/useDirectChat';
 import { FriendsChatModal } from './components/FriendsChatModal';
-import { BookOpen, MessageSquare } from 'lucide-react';
+import { AdminArea } from './components/admin/AdminArea';
+import { AccountRestrictionBanner } from './components/AccountRestrictionBanner';
+import { BookOpen, MessageSquare, Shield } from 'lucide-react';
 import heroImage from './assets/hero.png';
 
-type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'openings' | 'about' | 'support' | '404';
+type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'openings' | 'about' | 'support' | 'admin' | '404';
 
 function App() {
   const [view, setView] = useState<ViewState>('home');
@@ -113,6 +115,8 @@ function App() {
         setView('support');
       } else if (path === '/profile') {
         setView('profile');
+      } else if (path === '/admin') {
+        setView('admin');
       } else if (path !== '/' && path !== '') {
         setView('404');
       } else {
@@ -177,11 +181,18 @@ function App() {
       window.history.pushState({}, '', '/support');
     } else if (v === 'profile') {
       window.history.pushState({}, '', '/profile');
+    } else if (v === 'admin') {
+      window.history.pushState({}, '', '/admin');
     }
     setView(v);
   };
 
   const handleCreateLinkGame = async (preferredColor: PlayerColor, timeControl: TimeControl | null = null) => {
+    if (profile?.is_banned || (profile?.suspended_until && new Date(profile.suspended_until) > new Date())) {
+      addToast("Your account is currently restricted from creating online games.", "error");
+      return;
+    }
+
     if (!supabase) {
       addToast("Database not configured", "error");
       return;
@@ -435,6 +446,33 @@ function App() {
                     <Users size={16} className={view === '404' ? 'text-red-500' : (view === 'social' ? 'text-accent' : 'text-content-3')} />
                     <span>Social & Friends</span>
                   </a>
+
+                  {profile?.username?.toLowerCase() === 'mikzqc' && (
+                    <>
+                      <div className={`h-px my-1 ${view === '404' ? 'bg-red-900/40' : 'bg-border-1/50'}`}></div>
+                      <a
+                        href="/admin"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleSetView('admin');
+                          setShowNavMenu(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                          view === '404'
+                            ? 'text-red-400 hover:text-red-200 hover:bg-red-950/40'
+                            : (view === 'admin'
+                                ? 'bg-accent/15 text-accent font-semibold'
+                                : 'text-accent hover:text-accent-hover hover:bg-accent/10')
+                        }`}
+                      >
+                        <Shield size={16} className="text-accent" />
+                        <span className="flex-1 font-bold">Admin Panel</span>
+                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-accent/20 text-accent border border-accent/30">
+                          mikzqc
+                        </span>
+                      </a>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -547,6 +585,9 @@ function App() {
           )}
         </div>
       </header>
+
+      {/* Moderation Restriction Notice */}
+      <AccountRestrictionBanner profile={profile} onOpenSupport={() => handleSetView('support')} />
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
@@ -779,6 +820,9 @@ function App() {
         )}
         {view === 'support' && (
           <SupportArea onExit={() => handleSetView('home')} />
+        )}
+        {view === 'admin' && (
+          <AdminArea onBack={() => handleSetView('home')} onViewProfile={handleViewProfile} />
         )}
         {view === '404' && (
           <NotFoundArea onExit={() => handleSetView('home')} />

@@ -64,8 +64,9 @@ export const FriendsChatModal: React.FC<FriendsChatModalProps> = ({
     if (initialFriendId) {
       setSelectedFriendId(initialFriendId);
       setMobileView('chat');
+      markConversationAsRead(initialFriendId);
     }
-  }, [initialFriendId]);
+  }, [initialFriendId, markConversationAsRead]);
 
   // Close actions menu on click outside
   useEffect(() => {
