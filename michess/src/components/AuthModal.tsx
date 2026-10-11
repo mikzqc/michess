@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle, User } from 'lucide-react';
 import { useToast } from './Toast';
 import { Modal } from './ui/Modal';
 import { Input } from './ui/Input';
@@ -13,6 +13,7 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +26,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const getHumanErrorMessage = (errMessage: string) => {
     const lower = errMessage.toLowerCase();
     if (lower.includes('rate limit')) return "Too many attempts. Please try again later.";
-    if (lower.includes('invalid login')) return "Incorrect email or password.";
+    if (lower.includes('invalid login')) return "Incorrect email, username, or password.";
     if (lower.includes('already registered')) return "An account with this email already exists.";
     if (lower.includes('password should be')) return "Password must be at least 6 characters.";
     if (lower.includes('networkerror') || lower.includes('failed to fetch')) return "Network Error: Please disable your Adblocker / Brave Shields, or check your internet connection.";
@@ -44,15 +45,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
     try {
       if (isForgotPassword) {
-        if (!email) throw new Error('Please enter your email address');
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const trimmed = identifier.trim();
+        if (!trimmed) throw new Error('Please enter your email or username');
+
+        let targetEmail = trimmed;
+        if (!trimmed.includes('@')) {
+          const { data: resolvedEmail, error: rpcErr } = await supabase.rpc('get_email_by_username', {
+            p_username: trimmed
+          });
+          if (rpcErr || !resolvedEmail) {
+            throw new Error('No account found with this username.');
+          }
+          targetEmail = resolvedEmail;
+        }
+
+        const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
           redirectTo: window.location.origin,
         });
         if (error) throw error;
         addToast('Password reset email sent!', 'success');
         setIsForgotPassword(false);
       } else if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const trimmed = identifier.trim();
+        if (!trimmed) throw new Error('Please enter your email or username');
+        if (!password) throw new Error('Please enter your password');
+
+        let targetEmail = trimmed;
+        if (!trimmed.includes('@')) {
+          // Resolve username to email
+          const { data: resolvedEmail, error: rpcErr } = await supabase.rpc('get_email_by_username', {
+            p_username: trimmed
+          });
+
+          if (rpcErr || !resolvedEmail) {
+            throw new Error('No account found with this username.');
+          }
+          targetEmail = resolvedEmail;
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({ email: targetEmail, password });
         if (error) throw error;
         onClose();
       } else {
@@ -60,7 +91,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
           throw new Error('Username must be at least 3 characters');
         }
         const { error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             data: {
@@ -79,6 +110,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     }
   };
 
+  const handleToggleMode = () => {
+    if (isLogin) {
+      if (identifier.includes('@')) {
+        setEmail(identifier.trim());
+      } else if (identifier.trim()) {
+        setUsername(identifier.trim());
+      }
+    } else {
+      if (email.trim()) {
+        setIdentifier(email.trim());
+      } else if (username.trim()) {
+        setIdentifier(username.trim());
+      }
+    }
+    setIsLogin(!isLogin);
+    setError(null);
+  };
+
   return (
     <Modal isOpen={true} onClose={onClose} title={isForgotPassword ? 'Reset Password' : (isLogin ? 'Log In' : 'Sign Up')} maxWidth="md">
       <div className="p-5">
@@ -90,29 +139,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <Input 
-          label="Email"
-          type="email" 
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-          disabled={loading}
-          icon={<Mail size={18} />}
-          placeholder="you@example.com"
-        />
-
-        {!isForgotPassword && !isLogin && (
+        {isLogin || isForgotPassword ? (
           <Input 
-            label="Username"
+            label="Email or Username"
             type="text" 
-            value={username}
-            onChange={e => setUsername(e.target.value)}
+            value={identifier}
+            onChange={e => setIdentifier(e.target.value)}
             required
             disabled={loading}
-            placeholder="Choose a username"
-            minLength={3}
-            maxLength={20}
+            icon={isForgotPassword ? <Mail size={18} /> : <User size={18} />}
+            placeholder="you@example.com or username"
+            autoComplete="username"
           />
+        ) : (
+          <>
+            <Input 
+              label="Email"
+              type="email" 
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              icon={<Mail size={18} />}
+              placeholder="you@example.com"
+              autoComplete="email"
+            />
+            <Input 
+              label="Username"
+              type="text" 
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
+              disabled={loading}
+              placeholder="Choose a username"
+              minLength={3}
+              maxLength={20}
+              autoComplete="username"
+            />
+          </>
         )}
 
         {!isForgotPassword && (
@@ -188,7 +252,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <button 
               type="button"
-              onClick={() => { setIsLogin(!isLogin); setError(null); }}
+              onClick={handleToggleMode}
               className="text-accent hover:text-accent-hover font-bold transition-colors"
             >
               {isLogin ? 'Sign Up' : 'Log In'}

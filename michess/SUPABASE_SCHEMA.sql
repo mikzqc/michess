@@ -173,13 +173,13 @@ BEGIN
         UPDATE public.link_games SET 
             white_player = p_joiner_id, 
             status = 'active',
-            last_move_at = CASE WHEN initial_time_ms IS NOT NULL THEN CURRENT_TIMESTAMP ELSE NULL END
+            last_move_at = NULL
         WHERE id = p_game_id RETURNING * INTO v_game;
     ELSIF v_game.black_player IS NULL AND v_game.white_player != p_joiner_id THEN
         UPDATE public.link_games SET 
             black_player = p_joiner_id, 
             status = 'active',
-            last_move_at = CASE WHEN initial_time_ms IS NOT NULL THEN CURRENT_TIMESTAMP ELSE NULL END
+            last_move_at = NULL
         WHERE id = p_game_id RETURNING * INTO v_game;
     ELSE
         RAISE EXCEPTION 'Cannot join this game';
@@ -250,8 +250,38 @@ BEGIN
     END IF;
 
     -- Phase 12: Server-authoritative clock logic for timed games
-    IF v_game.initial_time_ms IS NOT NULL AND p_fen IS NOT NULL AND v_game.last_move_at IS NOT NULL THEN
-        -- Calculate elapsed time since the active clock started
+    IF v_game.initial_time_ms IS NOT NULL AND p_fen IS NOT NULL THEN
+        -- Check if clock has not started yet (before both players play their first move)
+        IF v_game.last_move_at IS NULL THEN
+            IF v_game.current_turn = 'w' THEN
+                -- White just played move 1. Black still needs to play move 1, so clock remains unstarted.
+                UPDATE public.link_games SET
+                    fen = p_fen,
+                    pgn = COALESCE(p_pgn, pgn),
+                    current_turn = COALESCE(p_turn, current_turn),
+                    status = COALESCE(p_status, status),
+                    winner = COALESCE(p_winner, winner),
+                    last_move_at = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = p_game_id RETURNING * INTO v_game;
+            ELSE
+                -- Black just played move 1! Both players have now played their first move.
+                -- Start the clock now for White on move 2!
+                UPDATE public.link_games SET
+                    fen = p_fen,
+                    pgn = COALESCE(p_pgn, pgn),
+                    current_turn = COALESCE(p_turn, current_turn),
+                    status = COALESCE(p_status, status),
+                    winner = COALESCE(p_winner, winner),
+                    last_move_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = p_game_id RETURNING * INTO v_game;
+            END IF;
+
+            RETURN v_game;
+        END IF;
+
+        -- Calculate elapsed time since the active clock started (move 2 onward)
         v_elapsed_ms := GREATEST(0, (extract(epoch from (CURRENT_TIMESTAMP - v_game.last_move_at)) * 1000)::integer);
         
         -- Determine which player just moved based on the CURRENT turn (before update)
@@ -1765,7 +1795,7 @@ BEGIN
         p_increment_ms,
         p_initial_time_ms,
         p_initial_time_ms,
-        CASE WHEN p_initial_time_ms IS NOT NULL THEN CURRENT_TIMESTAMP ELSE NULL END
+        NULL  -- Clock only starts after both players play their first move!
     ) RETURNING * INTO v_game;
     
     RETURN v_game;
@@ -1778,3 +1808,25 @@ CREATE POLICY "Authenticated users can create challenge games" ON public.link_ga
         auth.uid() IS NOT NULL AND 
         (auth.uid()::text = white_player OR auth.uid()::text = black_player)
     );
+
+-- 11. Helper Function to Resolve Email by Username for Login
+CREATE OR REPLACE FUNCTION public.get_email_by_username(p_username text)
+RETURNS text AS $$
+DECLARE
+    v_email text;
+BEGIN
+    IF p_username IS NULL OR trim(p_username) = '' THEN
+        RETURN NULL;
+    END IF;
+
+    SELECT u.email INTO v_email
+    FROM auth.users u
+    JOIN public.profiles p ON p.id = u.id
+    WHERE lower(trim(p.username)) = lower(trim(p_username))
+    LIMIT 1;
+
+    RETURN v_email;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_email_by_username(text) TO anon, authenticated;
