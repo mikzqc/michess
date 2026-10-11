@@ -3,7 +3,7 @@ import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { useGameReview } from '../hooks/useGameReview';
 import { EvaluationBar } from './EvaluationBar';
-import { Bot, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Info, AlertTriangle, User, Copy, Sparkles, Eraser } from 'lucide-react';
+import { Bot, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Info, AlertTriangle, User, Copy, Sparkles, Eraser, Activity, ListOrdered } from 'lucide-react';
 import { CLASSIFICATIONS, type MoveClassificationType } from '../types/classification';
 import { getClassificationExplanation } from '../utils/classification';
 import { calculateGameAccuracy } from '../utils/accuracy';
@@ -19,6 +19,7 @@ import { useToast } from './Toast';
 import { getOpeningsDB, findOpening } from '../utils/openings';
 import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
 import { analyzeGameMovesForIntelligence } from '../utils/intelligence';
+import { CoachPanel } from './coach/CoachPanel';
 
 interface ReviewAreaProps {
   pgn: string;
@@ -42,6 +43,11 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
   const [userArrows, setUserArrows] = useState<any[]>([]);
   const [showMoves, setShowMoves] = useState(true);
 
+  // Review right panel tabs and variation exploration
+  const [activeTab, setActiveTab] = useState<'coach' | 'moves' | 'stats'>('coach');
+  const [explorationFen, setExplorationFen] = useState<string | null>(null);
+  const [isExploringAlternative, setIsExploringAlternative] = useState(false);
+
   useEffect(() => {
     setShowBestMoveArrow(settings.showBestMoveArrow ?? true);
   }, [settings.showBestMoveArrow]);
@@ -49,7 +55,37 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
   useEffect(() => {
     setSelectedSquare(null);
     setUserArrows([]);
+    setExplorationFen(null);
+    setIsExploringAlternative(false);
   }, [currentMoveIndex]);
+
+  const handleExploreLine = useCallback((pvTokens: string[]) => {
+    const move = currentMoveIndex >= 0 ? analyzedMoves[currentMoveIndex] : analyzedMoves[0];
+    if (!move) return;
+    try {
+      const c = new Chess(move.fenBefore);
+      for (const tok of pvTokens) {
+        if (tok.length >= 4) {
+          c.move({
+            from: tok.slice(0, 2),
+            to: tok.slice(2, 4),
+            promotion: tok.length === 5 ? (tok[4] || '').toLowerCase() : undefined
+          });
+        } else {
+          c.move(tok);
+        }
+      }
+      setExplorationFen(c.fen());
+      setIsExploringAlternative(true);
+    } catch (err) {
+      console.warn('Could not explore alternative line:', err);
+    }
+  }, [currentMoveIndex, analyzedMoves]);
+
+  const handleExitExploration = useCallback(() => {
+    setExplorationFen(null);
+    setIsExploringAlternative(false);
+  }, []);
 
   useEffect(() => {
     startAnalysis();
@@ -472,7 +508,7 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
           <div className="relative aspect-square rounded-lg shadow-2xl">
             <Chessboard 
               options={{
-                  position: currentFen,
+                  position: explorationFen || currentFen,
                   showNotation: settings.showCoordinates,
                   boardOrientation: boardOrientation,
                   darkSquareStyle: { backgroundColor: activeTheme.dark },
@@ -586,8 +622,8 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Review Queue, Move List & Details */}
-      <div className="flex flex-col gap-4 h-full lg:h-[800px]">
+      {/* RIGHT COLUMN: AI Coach, Moves, and Game Stats */}
+      <div className="flex flex-col gap-3.5 h-full lg:h-[800px]">
         {/* Header / Queue Status */}
         <div className="glass-panel border-none ring-1 ring-border-1/50 p-4 rounded-lg flex flex-col justify-between shrink-0">
           <div className="flex justify-between items-start mb-2">
@@ -598,13 +634,13 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
           {isAnalyzing ? (
             <div className="flex flex-col gap-2">
               <div className="flex justify-between text-sm text-warning font-bold">
-                <span>Analyzing game...</span>
+                <span>Analyzing game with Stockfish...</span>
                 <span>{progress} / {totalPositions}</span>
               </div>
               <div className="w-full bg-surface-3 h-2 rounded overflow-hidden">
                 <div className="bg-warning h-full transition-all duration-300" style={{ width: `${(progress / totalPositions) * 100}%` }}></div>
               </div>
-              <button onClick={cancelAnalysis} className="text-xs text-content-3 hover:text-content-1 mt-1 self-start font-bold">Cancel Analysis</button>
+              <button onClick={cancelAnalysis} className="text-xs text-content-3 hover:text-content-1 mt-1 self-start font-bold cursor-pointer">Cancel Analysis</button>
             </div>
           ) : error ? (
             <div className="flex items-center gap-2 text-error text-sm font-bold bg-error/10 p-2 rounded">
@@ -617,73 +653,136 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
           )}
         </div>
 
-        {/* Game Stats & Graph */}
-        {!isAnalyzing && analyzedMoves.length > 0 && (
-          <div className="flex flex-col gap-4 shrink-0">
-            <ReviewStats 
+        {/* Tab Selector */}
+        <div className="flex items-center gap-1.5 p-1 bg-surface-2 border border-border-1 rounded-xl shrink-0 text-xs">
+          <button
+            onClick={() => setActiveTab('coach')}
+            className={`flex-1 py-1.5 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === 'coach'
+                ? 'bg-accent text-white shadow-sm'
+                : 'text-content-3 hover:text-content-1 hover:bg-surface-3'
+            }`}
+          >
+            <Bot size={14} />
+            <span>AI Coach</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('moves')}
+            className={`flex-1 py-1.5 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === 'moves'
+                ? 'bg-accent text-white shadow-sm'
+                : 'text-content-3 hover:text-content-1 hover:bg-surface-3'
+            }`}
+          >
+            <ListOrdered size={14} />
+            <span>Moves</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('stats')}
+            className={`flex-1 py-1.5 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === 'stats'
+                ? 'bg-accent text-white shadow-sm'
+                : 'text-content-3 hover:text-content-1 hover:bg-surface-3'
+            }`}
+          >
+            <Activity size={14} />
+            <span>Game Stats</span>
+          </button>
+        </div>
+
+        {/* Tab 1: AI Chess Coach Panel */}
+        {activeTab === 'coach' && (
+          <div className="flex-1 overflow-y-auto">
+            <CoachPanel
+              currentMoveIndex={currentMoveIndex}
               analyzedMoves={analyzedMoves}
-              whiteAccuracy={whiteAccuracy}
-              blackAccuracy={blackAccuracy}
-              overallAccuracy={overallAccuracy}
+              gameTitle={`${gameMeta.white} vs ${gameMeta.black}`}
               openingName={openingName || undefined}
               openingEco={openingEco || undefined}
-              onMoveSelect={setCurrentMoveIndex}
-            />
-            <EvaluationGraph 
-              analyzedMoves={analyzedMoves}
-              currentMoveIndex={currentMoveIndex}
-              onMoveSelect={setCurrentMoveIndex}
+              onSelectMove={setCurrentMoveIndex}
+              onShowBestMoveArrow={setShowBestMoveArrow}
+              onExploreLine={handleExploreLine}
+              isExploringAlternative={isExploringAlternative}
+              onExitExploration={handleExitExploration}
             />
           </div>
         )}
 
-        {/* Move Details Pane (Mobile/Tablet only) */}
-        {renderMoveDetails("xl:hidden")}
+        {/* Tab 2: Game Stats & Evaluation Graph */}
+        {activeTab === 'stats' && (
+          <div className="flex-1 overflow-y-auto space-y-4">
+            {!isAnalyzing && analyzedMoves.length > 0 && (
+              <div className="flex flex-col gap-4 shrink-0">
+                <ReviewStats 
+                  analyzedMoves={analyzedMoves}
+                  whiteAccuracy={whiteAccuracy}
+                  blackAccuracy={blackAccuracy}
+                  overallAccuracy={overallAccuracy}
+                  openingName={openingName || undefined}
+                  openingEco={openingEco || undefined}
+                  onMoveSelect={setCurrentMoveIndex}
+                />
+                <EvaluationGraph 
+                  analyzedMoves={analyzedMoves}
+                  currentMoveIndex={currentMoveIndex}
+                  onMoveSelect={setCurrentMoveIndex}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Move List */}
-        <div className={`glass-panel border-none ring-1 ring-border-1/50 rounded-lg flex flex-col ${showMoves ? 'flex-1 overflow-hidden' : 'shrink-0'}`}>
-          <button 
-            onClick={() => setShowMoves(!showMoves)}
-            className="w-full font-bold text-content-1 p-4 cursor-pointer select-none flex justify-between items-center outline-none bg-surface-2/50 border-b border-border-1 shrink-0"
-          >
-            <span>Moves Played</span>
-            <ChevronDown size={18} className={`transition-transform duration-200 ${showMoves ? 'rotate-180' : ''}`} />
-          </button>
-          
-          {showMoves && (
-            <div className="overflow-y-auto p-2 flex-1">
-            <div className="grid grid-cols-[40px_1fr_1fr] text-sm text-left">
-              {movePairs.map((pair) => {
-                const whiteIndex = pair.white ? analyzedMoves.indexOf(pair.white) : -1;
-                const blackIndex = pair.black ? analyzedMoves.indexOf(pair.black) : -1;
-                
-                return (
-                  <React.Fragment key={pair.moveNumber}>
-                    <div className="py-2.5 text-content-3 font-bold text-right pr-3 bg-slate-800/30 border-r border-border-1/50 my-0.5 rounded-l">{pair.moveNumber}.</div>
-                    
-                    <div 
-                      onClick={() => pair.white && setCurrentMoveIndex(whiteIndex)}
-                      className={`py-2 px-3 cursor-pointer font-bold flex justify-start items-center gap-2 my-0.5 transition-colors ${currentMoveIndex === whiteIndex ? 'bg-accent text-content-1 shadow-md z-10' : 'text-content-2 hover:bg-surface-3'}`}
-                    >
-                      <span>{pair.white?.san}</span>
-                      {settings.showHistoryClassifications && pair.white?.classification && <MoveClassificationBadge classification={pair.white.classification} />}
-                    </div>
-                    
-                    <div 
-                      onClick={() => pair.black && setCurrentMoveIndex(blackIndex)}
-                      className={`py-2 px-3 cursor-pointer font-bold flex justify-start items-center gap-2 my-0.5 rounded-r transition-colors ${!pair.black ? '' : currentMoveIndex === blackIndex ? 'bg-accent text-content-1 shadow-md z-10' : 'text-content-2 hover:bg-surface-3'}`}
-                    >
-                      <span>{pair.black?.san}</span>
-                      {settings.showHistoryClassifications && pair.black?.classification && <MoveClassificationBadge classification={pair.black.classification} />}
-                    </div>
-                  </React.Fragment>
-                );
-              })}
+        {/* Tab 3: Move List & Move Details */}
+        {activeTab === 'moves' && (
+          <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+            {/* Move Details Pane */}
+            {renderMoveDetails("shrink-0")}
+
+            {/* Move List */}
+            <div className={`glass-panel border-none ring-1 ring-border-1/50 rounded-lg flex flex-col ${showMoves ? 'flex-1 overflow-hidden' : 'shrink-0'}`}>
+              <button 
+                onClick={() => setShowMoves(!showMoves)}
+                className="w-full font-bold text-content-1 p-3.5 cursor-pointer select-none flex justify-between items-center outline-none bg-surface-2/50 border-b border-border-1 shrink-0 text-xs"
+              >
+                <span>Moves Played ({analyzedMoves.length})</span>
+                <ChevronDown size={16} className={`transition-transform duration-200 ${showMoves ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showMoves && (
+                <div className="overflow-y-auto p-2 flex-1">
+                  <div className="grid grid-cols-[40px_1fr_1fr] text-sm text-left">
+                    {movePairs.map((pair) => {
+                      const whiteIndex = pair.white ? analyzedMoves.indexOf(pair.white) : -1;
+                      const blackIndex = pair.black ? analyzedMoves.indexOf(pair.black) : -1;
+                      
+                      return (
+                        <React.Fragment key={pair.moveNumber}>
+                          <div className="py-2.5 text-content-3 font-bold text-right pr-3 bg-slate-800/30 border-r border-border-1/50 my-0.5 rounded-l">{pair.moveNumber}.</div>
+                          
+                          <div 
+                            onClick={() => pair.white && setCurrentMoveIndex(whiteIndex)}
+                            className={`py-2 px-3 cursor-pointer font-bold flex justify-start items-center gap-2 my-0.5 transition-colors ${currentMoveIndex === whiteIndex ? 'bg-accent text-content-1 shadow-md z-10' : 'text-content-2 hover:bg-surface-3'}`}
+                          >
+                            <span>{pair.white?.san}</span>
+                            {settings.showHistoryClassifications && pair.white?.classification && <MoveClassificationBadge classification={pair.white.classification} />}
+                          </div>
+                          
+                          <div 
+                            onClick={() => pair.black && setCurrentMoveIndex(blackIndex)}
+                            className={`py-2 px-3 cursor-pointer font-bold flex justify-start items-center gap-2 my-0.5 rounded-r transition-colors ${!pair.black ? '' : currentMoveIndex === blackIndex ? 'bg-accent text-content-1 shadow-md z-10' : 'text-content-2 hover:bg-surface-3'}`}
+                          >
+                            <span>{pair.black?.san}</span>
+                            {settings.showHistoryClassifications && pair.black?.classification && <MoveClassificationBadge classification={pair.black.classification} />}
+                          </div>
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          )}
-        </div>
-
+        )}
       </div>
     </div>
   );
