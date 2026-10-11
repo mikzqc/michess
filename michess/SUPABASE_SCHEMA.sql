@@ -1830,3 +1830,53 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.get_email_by_username(text) TO anon, authenticated;
+
+-- 12. Strict RLS Enforcement for Banned and Suspended Users
+-- Banned or suspended users cannot send direct messages
+DROP POLICY IF EXISTS "Users can insert direct messages they send" ON public.direct_messages;
+CREATE POLICY "Users can insert direct messages they send" ON public.direct_messages
+    FOR INSERT WITH CHECK (
+        auth.uid() = sender_id 
+        AND length(trim(content)) > 0 
+        AND length(content) <= 2000
+        AND NOT EXISTS (
+            SELECT 1 FROM public.profiles p 
+            WHERE p.id = auth.uid() 
+            AND (p.is_banned = true OR (p.suspended_until IS NOT NULL AND p.suspended_until > CURRENT_TIMESTAMP))
+        )
+    );
+
+-- Banned or suspended users cannot send challenges
+DROP POLICY IF EXISTS "Users can insert challenges" ON public.challenges;
+CREATE POLICY "Users can insert challenges" ON public.challenges
+    FOR INSERT WITH CHECK (
+        auth.uid() = sender_id
+        AND NOT EXISTS (
+            SELECT 1 FROM public.profiles p 
+            WHERE p.id = auth.uid() 
+            AND (p.is_banned = true OR (p.suspended_until IS NOT NULL AND p.suspended_until > CURRENT_TIMESTAMP))
+        )
+    );
+
+-- Banned or suspended users cannot send in-game chat messages
+DROP POLICY IF EXISTS "Players can insert game messages" ON public.game_messages;
+CREATE POLICY "Players can insert game messages" ON public.game_messages
+    FOR INSERT WITH CHECK (
+        length(trim(content)) > 0 
+        AND length(content) <= 500
+        AND NOT EXISTS (
+            SELECT 1 FROM public.profiles p 
+            WHERE p.id = auth.uid() 
+            AND (p.is_banned = true OR (p.suspended_until IS NOT NULL AND p.suspended_until > CURRENT_TIMESTAMP))
+        )
+        AND EXISTS (
+            SELECT 1 FROM public.link_games g 
+            WHERE g.id = game_id 
+            AND (
+                g.white_player = sender_id 
+                OR g.black_player = sender_id 
+                OR (auth.uid() IS NOT NULL AND (g.white_player = auth.uid()::text OR g.black_player = auth.uid()::text))
+            )
+        )
+    );
+

@@ -86,6 +86,30 @@ export function useProfile() {
 
   useEffect(() => {
     fetchProfile();
+
+    if (!user || !supabase) return;
+
+    const channel = supabase
+      .channel(`profile_realtime_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`
+        },
+        payload => {
+          if (payload.new) {
+            setProfile(payload.new as UserProfile);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase?.removeChannel(channel);
+    };
   }, [user, authLoading]);
 
   const updateUsername = async (newUsername: string) => {

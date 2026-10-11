@@ -36,6 +36,7 @@ import { useDirectChat } from './hooks/useDirectChat';
 import { FriendsChatModal } from './components/FriendsChatModal';
 import { AdminArea } from './components/admin/AdminArea';
 import { AccountRestrictionBanner } from './components/AccountRestrictionBanner';
+import { BannedLockScreen } from './components/BannedLockScreen';
 import { BookOpen, MessageSquare, Shield } from 'lucide-react';
 import heroImage from './assets/hero.png';
 
@@ -270,6 +271,21 @@ function App() {
       moveCount: pgn.split('. ').length - 1
     });
   };
+
+  const handleSignOut = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+      addToast('Logged out successfully', 'info');
+      handleSetView('home');
+    }
+  };
+
+  const isBanned = !!profile?.is_banned;
+  const isSuspended = !!(profile?.suspended_until && new Date(profile.suspended_until) > new Date());
+
+  if (user && profile && (isBanned || isSuspended)) {
+    return <BannedLockScreen profile={profile} onSignOut={handleSignOut} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

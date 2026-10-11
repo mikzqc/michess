@@ -287,6 +287,22 @@ export function useDirectChat(activeFriendId?: string | null) {
       return { success: false, error: 'You have blocked this user' };
     }
 
+    // Check if sender is banned or suspended
+    try {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('is_banned, suspended_until')
+        .eq('id', user.id)
+        .single();
+
+      if (prof?.is_banned) {
+        return { success: false, error: 'Your account is permanently banned.' };
+      }
+      if (prof?.suspended_until && new Date(prof.suspended_until) > new Date()) {
+        return { success: false, error: 'Your account is currently suspended.' };
+      }
+    } catch {}
+
     const optimisticMsg: DirectMessage = {
       id: `temp-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       sender_id: user.id,
