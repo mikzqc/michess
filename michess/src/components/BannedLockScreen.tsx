@@ -10,16 +10,21 @@ interface BannedLockScreenProps {
 }
 
 export const BannedLockScreen: React.FC<BannedLockScreenProps> = ({ profile, onSignOut }) => {
-  const isBanned = profile.is_banned;
-  const isSuspended = !!(profile.suspended_until && new Date(profile.suspended_until) > new Date());
+  const isBanned = !!profile?.is_banned;
+  const isSuspended = !!(profile?.suspended_until && !isNaN(new Date(profile.suspended_until).getTime()) && new Date(profile.suspended_until) > new Date());
 
   // Countdown timer for suspensions
   const [timeLeft, setTimeLeft] = useState<string>('');
   useEffect(() => {
-    if (!isSuspended || !profile.suspended_until) return;
+    if (!isSuspended || !profile?.suspended_until) return;
 
     const updateTimer = () => {
-      const diff = new Date(profile.suspended_until!).getTime() - Date.now();
+      const d = new Date(profile.suspended_until!);
+      if (isNaN(d.getTime())) {
+        setTimeLeft('Active');
+        return;
+      }
+      const diff = d.getTime() - Date.now();
       if (diff <= 0) {
         setTimeLeft('Expired (refresh page)');
         return;
@@ -40,7 +45,7 @@ export const BannedLockScreen: React.FC<BannedLockScreenProps> = ({ profile, onS
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [isSuspended, profile.suspended_until]);
+  }, [isSuspended, profile?.suspended_until]);
 
   // Appeal Modal State
   const [showAppealModal, setShowAppealModal] = useState(false);
@@ -57,9 +62,17 @@ export const BannedLockScreen: React.FC<BannedLockScreenProps> = ({ profile, onS
     setAppealError(null);
 
     try {
+      let resolvedId: string | undefined = profile?.id;
+      if (!resolvedId) {
+        const { data: authData } = await supabase.auth.getUser();
+        resolvedId = authData.user?.id;
+      }
+      if (!resolvedId) throw new Error('Account identification not found.');
+      const finalUserId: string = resolvedId;
+
       const { error } = await supabase.from('message_reports').insert({
-        reporter_id: profile.id,
-        reported_user_id: profile.id,
+        reporter_id: finalUserId,
+        reported_user_id: finalUserId,
         message_type: 'appeal',
         reason: isBanned ? 'Ban Appeal' : 'Suspension Appeal',
         details: appealText.trim(),
@@ -75,6 +88,14 @@ export const BannedLockScreen: React.FC<BannedLockScreenProps> = ({ profile, onS
       setSubmittingAppeal(false);
     }
   };
+
+  const enforcementTimeStr = (() => {
+    if (profile?.banned_at) {
+      const d = new Date(profile.banned_at);
+      if (!isNaN(d.getTime())) return d.toLocaleString();
+    }
+    return new Date().toLocaleString();
+  })();
 
   return (
     <div className="fixed inset-0 z-[99999] bg-[#050000] text-white flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto select-none">
@@ -122,34 +143,34 @@ export const BannedLockScreen: React.FC<BannedLockScreenProps> = ({ profile, onS
               SANCTION ENFORCEMENT RECORD
             </span>
             <span className="font-mono text-[11px] text-content-3">
-              ID: {profile.id.slice(0, 13)}...
+              ID: {profile?.id ? profile.id.slice(0, 13) : (profile?.username || 'ACCOUNT')}...
             </span>
           </div>
 
           <div className="space-y-3 font-mono text-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1 border-b border-red-950/60">
               <span className="text-red-400/80 font-bold uppercase">TARGET USER:</span>
-              <span className="text-white font-bold tracking-wide">{profile.username}</span>
+              <span className="text-white font-bold tracking-wide">{profile?.username || 'Current User'}</span>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1 border-b border-red-950/60">
               <span className="text-red-400/80 font-bold uppercase">PUNISHMENT:</span>
               <span className="text-red-400 font-bold">
-                {isBanned ? 'PERMANENT EXCLUSION' : `TEMPORARY SUSPENSION (${timeLeft})`}
+                {isBanned ? 'PERMANENT EXCLUSION' : `TEMPORARY SUSPENSION (${timeLeft || 'Active'})`}
               </span>
             </div>
 
             <div className="flex flex-col gap-1 py-1 border-b border-red-950/60">
               <span className="text-red-400/80 font-bold uppercase">REASON FOR ACTION:</span>
               <p className="text-red-200 bg-red-950/50 border border-red-900/40 rounded-lg p-2.5 italic font-sans text-xs mt-1">
-                "{isBanned ? (profile.banned_reason || 'Severe violation of fair play and community standards') : (profile.suspension_reason || 'Temporary disciplinary measure')}"
+                "{isBanned ? (profile?.banned_reason || 'Severe violation of fair play and community standards') : (profile?.suspension_reason || 'Temporary disciplinary measure')}"
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1">
               <span className="text-red-400/80 font-bold uppercase">TIME OF ENFORCEMENT:</span>
               <span className="text-content-3">
-                {profile.banned_at ? new Date(profile.banned_at).toLocaleString() : new Date().toLocaleString()}
+                {enforcementTimeStr}
               </span>
             </div>
           </div>

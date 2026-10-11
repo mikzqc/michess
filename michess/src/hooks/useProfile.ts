@@ -101,7 +101,11 @@ export function useProfile() {
         },
         payload => {
           if (payload.new) {
-            setProfile(payload.new as UserProfile);
+            setProfile(prev => {
+              if (!prev) return payload.new as UserProfile;
+              return { ...prev, ...(payload.new as Partial<UserProfile>) };
+            });
+            fetchProfile();
           }
         }
       )

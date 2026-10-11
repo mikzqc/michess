@@ -1880,3 +1880,12 @@ CREATE POLICY "Players can insert game messages" ON public.game_messages
         )
     );
 
+-- 13. Enable full replica identity for profiles realtime subscription
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END;
+$$;

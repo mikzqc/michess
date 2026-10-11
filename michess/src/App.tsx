@@ -15,7 +15,7 @@ import { AuthModal } from './components/AuthModal';
 import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { ProfileArea } from './components/ProfileArea';
 import { LinkPlayArea } from './components/LinkPlayArea';
-import { useProfile } from './hooks/useProfile';
+import { useProfile, type UserProfile } from './hooks/useProfile';
 import { useAchievementTracker } from './hooks/useAchievementTracker';
 import { supabase } from './services/supabase';
 import { generateUUID } from './utils/uuid';
@@ -281,10 +281,35 @@ function App() {
   };
 
   const isBanned = !!profile?.is_banned;
-  const isSuspended = !!(profile?.suspended_until && new Date(profile.suspended_until) > new Date());
+  const isSuspended = !!(profile?.suspended_until && !isNaN(new Date(profile.suspended_until).getTime()) && new Date(profile.suspended_until) > new Date());
 
-  if (user && profile && (isBanned || isSuspended)) {
-    return <BannedLockScreen profile={profile} onSignOut={handleSignOut} />;
+  if (user && (isBanned || isSuspended)) {
+    const safeProfile: UserProfile = profile || {
+      id: user.id,
+      username: user.user_metadata?.username || user.email?.split('@')[0] || 'User',
+      rating: 1200,
+      rating_bullet: 1200,
+      rating_blitz: 1200,
+      rating_rapid: 1200,
+      puzzle_rating: 1200,
+      puzzles_solved: 0,
+      puzzles_failed: 0,
+      puzzle_streak: 0,
+      puzzle_best_streak: 0,
+      highest_rating: 1200,
+      games_played: 0,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      current_streak: 0,
+      longest_win_streak: 0,
+      longest_game_moves: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_username_change: null,
+      is_banned: isBanned,
+    };
+    return <BannedLockScreen profile={safeProfile} onSignOut={handleSignOut} />;
   }
 
   return (
