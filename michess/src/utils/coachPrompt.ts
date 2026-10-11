@@ -72,13 +72,25 @@ Generate the coach explanation JSON now:`;
 /**
  * Validates and sanitizes raw JSON returned by the model.
  */
+export function extractJsonString(rawText: string): string | null {
+  if (!rawText || typeof rawText !== 'string') return null;
+  const trimmed = rawText.trim();
+  const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
+  }
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1).trim();
+  }
+  return trimmed;
+}
+
 export function validateCoachResponse(rawText: string, evidence: CoachMoveEvidence): CoachExplanation | null {
   try {
-    let cleanText = rawText.trim();
-    // Strip markdown code block wrappers if present (e.g. ```json ... ```)
-    if (cleanText.startsWith('```')) {
-      cleanText = cleanText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-    }
+    const cleanText = extractJsonString(rawText);
+    if (!cleanText) return null;
 
     const parsed = JSON.parse(cleanText);
 

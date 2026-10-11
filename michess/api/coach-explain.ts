@@ -81,14 +81,28 @@ export default async function handler(req: any, res: any) {
     return [primary, ...defaults.filter((m: string) => m !== primary)];
   };
 
-  const isValidCoachJson = (rawText: string): boolean => {
-    if (!rawText || typeof rawText !== 'string') return false;
-    let clean = rawText.trim();
-    if (clean.startsWith('```')) {
-      clean = clean.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  const extractJsonString = (rawText: string): string | null => {
+    if (!rawText || typeof rawText !== 'string') return null;
+    const trimmed = rawText.trim();
+    // 1. Match code fences ```json ... ```
+    const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (codeBlockMatch) {
+      return codeBlockMatch[1].trim();
     }
+    // 2. Match outermost braces { ... }
+    const firstBrace = trimmed.indexOf('{');
+    const lastBrace = trimmed.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      return trimmed.slice(firstBrace, lastBrace + 1).trim();
+    }
+    return trimmed;
+  };
+
+  const isValidCoachJson = (rawText: string): boolean => {
+    const jsonStr = extractJsonString(rawText);
+    if (!jsonStr) return false;
     try {
-      const parsed = JSON.parse(clean);
+      const parsed = JSON.parse(jsonStr);
       return Boolean(
         parsed &&
         typeof parsed === 'object' &&
@@ -113,7 +127,9 @@ export default async function handler(req: any, res: any) {
   for (let i = 0; i < models.length; i++) {
     const currentModel = models[i];
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 7500); // 7.5s short timeout
+    // 11s for primary, 9s for fallbacks to avoid timing out on normal inference
+    const timeoutMs = i === 0 ? 11000 : 9000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const upstream = await fetch(endpoint, {
@@ -129,7 +145,7 @@ export default async function handler(req: any, res: any) {
             { role: 'user', content: userPrompt }
           ],
           temperature: 0.3,
-          max_tokens: 650
+          max_tokens: 420
         }),
         signal: controller.signal
       });
@@ -155,14 +171,14 @@ export default async function handler(req: any, res: any) {
 
       // Valid explanation obtained
       console.log(`[AI Coach] Successfully generated explanation with model '${currentModel}' (attempt ${i + 1}/${models.length}).`);
-      finalContent = content;
+      finalContent = extractJsonString(content) || content;
       finalModel = currentModel;
       succeeded = true;
       break;
     } catch (err: any) {
       clearTimeout(timeoutId);
       const isTimeout = err?.name === 'AbortError';
-      const reason = isTimeout ? 'Timeout (7.5s)' : (err?.message || 'Network error');
+      const reason = isTimeout ? `Timeout (${timeoutMs / 1000}s)` : (err?.message || 'Network error');
       console.warn(`[AI Coach] Model '${currentModel}' failed (${reason}). Retrying next fallback...`);
       fallbackAttempts.push({ model: currentModel, error: reason });
     }
