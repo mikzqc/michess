@@ -204,7 +204,7 @@ export const IntelligenceDashboard: React.FC<IntelligenceDashboardProps> = ({ su
                   Endgame
                 </span>
                 <span className="text-xs font-bold text-emerald-400 font-mono">
-                  {phaseBreakdown.endgame.accuracy}% Acc
+                  {phaseBreakdown.endgame.accuracy > 0 ? `${phaseBreakdown.endgame.accuracy}% Acc` : 'N/A'}
                 </span>
               </div>
               <div className="w-full bg-surface-1 rounded-full h-1.5 mb-4 overflow-hidden border border-border-1/50">
@@ -217,7 +217,9 @@ export const IntelligenceDashboard: React.FC<IntelligenceDashboardProps> = ({ su
             <div className="space-y-1.5 text-xs font-mono pt-2 border-t border-border-1/50 text-content-3">
               <div className="flex justify-between">
                 <span>Centipawn Loss:</span>
-                <span className="text-content-1 font-bold">{phaseBreakdown.endgame.acpl} cp</span>
+                <span className="text-content-1 font-bold">
+                  {phaseBreakdown.endgame.accuracy > 0 || phaseBreakdown.endgame.acpl > 0 ? `${phaseBreakdown.endgame.acpl} cp` : 'N/A'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Blunder Frequency:</span>

@@ -142,9 +142,13 @@ export const RecurringMistakesView: React.FC<RecurringMistakesViewProps> = ({
         {filtered.length === 0 ? (
           <div className="text-center py-10 bg-surface-3/30 border border-border-1/40 rounded-xl">
             <CheckCircle2 size={32} className="text-green-400 mx-auto mb-2" />
-            <p className="text-sm font-bold text-content-1">No Mistakes Found In This Category</p>
+            <p className="text-sm font-bold text-content-1">
+              {mistakes.length === 0 ? 'No Mistakes Detected Yet' : 'No Mistakes Found In This Category'}
+            </p>
             <p className="text-xs text-content-3 mt-1">
-              Your analyzed games demonstrate solid precision in this area.
+              {mistakes.length === 0
+                ? 'Analyze your recent games to track recurring tactical errors and hanging pieces.'
+                : 'Your analyzed games demonstrate solid precision in this area.'}
             </p>
           </div>
         ) : (
@@ -164,7 +168,7 @@ export const RecurringMistakesView: React.FC<RecurringMistakesViewProps> = ({
                       </span>
                       <span className="font-semibold text-content-1">vs {m.opponent}</span>
                       <span className="text-[11px] text-content-3">({m.date})</span>
-                      <span className="font-mono text-content-3 font-semibold">Phase: {m.phase}</span>
+                      <span className="font-mono text-content-3 font-semibold capitalize">Phase: {m.phase}</span>
                     </div>
 
                     <div className="flex items-center gap-2 pt-1 font-mono">

@@ -69,7 +69,7 @@ export function detectHangingPiece(
   fenBefore: string,
   fenAfter: string
 ): 'q' | 'r' | 'b' | 'n' | 'p' | undefined {
-  if (move.evalLoss < 150) return undefined;
+  if (move.evalLoss < 80) return undefined;
 
   try {
     const from = move.uci.slice(0, 2);
@@ -102,24 +102,26 @@ export function detectHangingPiece(
     }
 
     // 2. Was another friendly piece left hanging?
-    const board = cAfter.board();
-    for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
-        const p = board[r][c];
-        if (!p || p.color !== move.color || p.type === 'k') continue;
-        const sq = String.fromCharCode('a'.charCodeAt(0) + c) + (8 - r);
-        const pVal = PIECE_VALUES[p.type] || 0;
-        if (pVal < 3) continue; // Focus on minors, rooks, queens
+    if (move.evalLoss >= 150) {
+      const board = cAfter.board();
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const p = board[r][c];
+          if (!p || p.color !== move.color || p.type === 'k') continue;
+          const sq = String.fromCharCode('a'.charCodeAt(0) + c) + (8 - r);
+          const pVal = PIECE_VALUES[p.type] || 0;
+          if (pVal < 3) continue; // Focus on minors, rooks, queens
 
-        const attacks = oppMoves.filter(m => m.to === sq && m.captured);
-        for (const atk of attacks) {
-          const atkVal = PIECE_VALUES[atk.piece] || 0;
-          if (atkVal < pVal) return p.type as any;
-          if (atkVal === pVal) {
-            const sim = new Chess(fenAfter);
-            sim.move(atk);
-            const recaptures = sim.moves({ verbose: true }).filter(m => m.to === sq && m.captured);
-            if (recaptures.length === 0) return p.type as any;
+          const attacks = oppMoves.filter(m => m.to === sq && m.captured);
+          for (const atk of attacks) {
+            const atkVal = PIECE_VALUES[atk.piece] || 0;
+            if (atkVal < pVal) return p.type as any;
+            if (atkVal === pVal) {
+              const sim = new Chess(fenAfter);
+              sim.move(atk);
+              const recaptures = sim.moves({ verbose: true }).filter(m => m.to === sq && m.captured);
+              if (recaptures.length === 0) return p.type as any;
+            }
           }
         }
       }
@@ -159,7 +161,16 @@ export function classifyMistakeType(
     return 'missed_tactic';
   }
 
-  if (phase === 'opening' && move.evalLoss >= 150) {
+  // Perspective-aware evaluations (positive = advantage for the moving player)
+  const playerBeforeScore = evalBefore?.type === 'cp' 
+    ? (move.color === 'w' ? evalBefore.value : -evalBefore.value)
+    : (evalBefore?.type === 'mate' ? (move.color === 'w' ? evalBefore.value * 1000 : -evalBefore.value * 1000) : 0);
+  const playerAfterScore = evalAfter?.type === 'cp'
+    ? (move.color === 'w' ? evalAfter.value : -evalAfter.value)
+    : (evalAfter?.type === 'mate' ? (move.color === 'w' ? evalAfter.value * 1000 : -evalAfter.value * 1000) : 0);
+
+  // Opening advantage loss: only when player held an advantage and threw it away
+  if (phase === 'opening' && move.evalLoss >= 150 && playerBeforeScore >= 100 && playerAfterScore < 50) {
     return 'opening_advantage_loss';
   }
 
@@ -496,8 +507,8 @@ export function generateWeaknessReports(analyses: GameIntelligenceAnalysis[]): W
   // 5. CALCULATION & MOVE ACCURACY
   const totalBlunders = allMistakes.filter(m => m.classification === 'blunder').length;
   const totalMistakes = allMistakes.filter(m => m.classification === 'mistake').length;
-  const avgOverallAcpl = Math.round(analyses.reduce((s, a) => s + a.userAcpl, 0) / totalGames);
-  const avgOverallAccuracy = Math.round(analyses.reduce((s, a) => s + a.userAccuracy, 0) / totalGames);
+  const avgOverallAcpl = Math.round(analyses.reduce((s, a) => s + (a.userAcpl || 0), 0) / (totalGames || 1));
+  const avgOverallAccuracy = Math.round(analyses.reduce((s, a) => s + (a.userAccuracy || 0), 0) / (totalGames || 1));
   const calcExamples = allMistakes.filter(m => m.classification === 'blunder').slice(0, 3);
 
   let calcSeverity: WeaknessReport['severity'] = 'solid';
@@ -597,14 +608,16 @@ export function generateTrainingRecommendations(
   }
 
   if (worstOpening) {
+    const openingEco = worstOpening.eco?.trim() || '';
+    const safeKey = openingEco || worstOpening.name.replace(/[^a-zA-Z0-9]/g, '_');
     recommendations.push({
-      id: `rec_opening_${worstOpening.eco}`,
+      id: `rec_opening_${safeKey}`,
       type: 'opening_explorer',
-      title: `Review: ${worstOpening.name} (${worstOpening.eco})`,
+      title: `Review: ${worstOpening.name}${openingEco ? ` (${openingEco})` : ''}`,
       description: `You have an average loss of ${Math.round(worstOpening.avgLoss)} cp in this line. Study the master moves and plans.`,
       actionText: 'Explore in Opening Book',
       category: 'openings',
-      eco: worstOpening.eco
+      eco: openingEco || undefined
     });
   }
 
@@ -690,15 +703,15 @@ export function computeIntelligenceSummary(
     else if (a.result === 'draw') draws++;
     else if (a.result === 'loss') losses++;
 
-    sumAcpl += a.userAcpl;
-    sumAcc += a.userAccuracy;
+    sumAcpl += a.userAcpl || 0;
+    sumAcc += a.userAccuracy || 0;
 
     for (const ph of ['opening', 'middlegame', 'endgame'] as GamePhase[]) {
       const pm = a.phases?.[ph];
       if (pm && pm.moveCount > 0) {
-        phaseSums[ph].acc += pm.accuracy;
-        phaseSums[ph].acpl += pm.acpl;
-        phaseSums[ph].blunders += pm.blunders;
+        phaseSums[ph].acc += pm.accuracy || 0;
+        phaseSums[ph].acpl += pm.acpl || 0;
+        phaseSums[ph].blunders += pm.blunders || 0;
         phaseSums[ph].count++;
       }
     }
@@ -726,32 +739,32 @@ export function computeIntelligenceSummary(
       if (a.result === 'win') cur.wins++;
       else if (a.result === 'draw') cur.draws++;
       else if (a.result === 'loss') cur.losses++;
-      cur.acplSum += a.userAcpl;
-      cur.accSum += a.userAccuracy;
+      cur.acplSum += a.userAcpl || 0;
+      cur.accSum += a.userAccuracy || 0;
       openingsStats.set(key, cur);
     }
   });
 
   const totalAnalyzed = analyses.length;
-  const overallAcpl = Math.round((sumAcpl / totalAnalyzed) * 10) / 10;
-  const overallAccuracy = Math.round((sumAcc / totalAnalyzed) * 10) / 10;
-  const winRate = Math.round((wins / totalAnalyzed) * 100);
+  const overallAcpl = totalAnalyzed > 0 ? Math.round((sumAcpl / totalAnalyzed) * 10) / 10 : 0;
+  const overallAccuracy = totalAnalyzed > 0 ? Math.round((sumAcc / totalAnalyzed) * 10) / 10 : 0;
+  const winRate = totalAnalyzed > 0 ? Math.round((wins / totalAnalyzed) * 100) : 0;
 
   const phaseBreakdown: Record<GamePhase, { accuracy: number, acpl: number, blunderRate: number }> = {
     opening: {
       accuracy: phaseSums.opening.count ? Math.round(phaseSums.opening.acc / phaseSums.opening.count) : 0,
       acpl: phaseSums.opening.count ? Math.round(phaseSums.opening.acpl / phaseSums.opening.count) : 0,
-      blunderRate: Math.round((phaseSums.opening.blunders / totalAnalyzed) * 10) / 10
+      blunderRate: totalAnalyzed > 0 ? Math.round((phaseSums.opening.blunders / totalAnalyzed) * 10) / 10 : 0
     },
     middlegame: {
       accuracy: phaseSums.middlegame.count ? Math.round(phaseSums.middlegame.acc / phaseSums.middlegame.count) : 0,
       acpl: phaseSums.middlegame.count ? Math.round(phaseSums.middlegame.acpl / phaseSums.middlegame.count) : 0,
-      blunderRate: Math.round((phaseSums.middlegame.blunders / totalAnalyzed) * 10) / 10
+      blunderRate: totalAnalyzed > 0 ? Math.round((phaseSums.middlegame.blunders / totalAnalyzed) * 10) / 10 : 0
     },
     endgame: {
       accuracy: phaseSums.endgame.count ? Math.round(phaseSums.endgame.acc / phaseSums.endgame.count) : 0,
       acpl: phaseSums.endgame.count ? Math.round(phaseSums.endgame.acpl / phaseSums.endgame.count) : 0,
-      blunderRate: Math.round((phaseSums.endgame.blunders / totalAnalyzed) * 10) / 10
+      blunderRate: totalAnalyzed > 0 ? Math.round((phaseSums.endgame.blunders / totalAnalyzed) * 10) / 10 : 0
     }
   };
 

@@ -45,7 +45,7 @@ function determineGamePhase(fen, moveNumber) {
 }
 
 function detectHangingPiece(move, fenBefore, fenAfter) {
-  if (move.evalLoss < 150) return undefined;
+  if (move.evalLoss < 80) return undefined;
 
   try {
     const from = move.uci.slice(0, 2);
@@ -124,7 +124,14 @@ function classifyMistakeType(move, phase, hangingPiece) {
     return 'missed_tactic';
   }
 
-  if (phase === 'opening' && move.evalLoss >= 150) {
+  const playerBeforeScore = evalBefore?.type === 'cp' 
+    ? (move.color === 'w' ? evalBefore.value : -evalBefore.value)
+    : (evalBefore?.type === 'mate' ? (move.color === 'w' ? evalBefore.value * 1000 : -evalBefore.value * 1000) : 0);
+  const playerAfterScore = evalAfter?.type === 'cp'
+    ? (move.color === 'w' ? evalAfter.value : -evalAfter.value)
+    : (evalAfter?.type === 'mate' ? (move.color === 'w' ? evalAfter.value * 1000 : -evalAfter.value * 1000) : 0);
+
+  if (phase === 'opening' && move.evalLoss >= 150 && playerBeforeScore >= 100 && playerAfterScore < 50) {
     return 'opening_advantage_loss';
   }
 
@@ -298,6 +305,97 @@ describe('Michess Game Intelligence Logic', () => {
     assert.equal(unanalyzed.length, 10);
     assert.equal(unanalyzed[0].id, 'g3');
     assert.equal(unanalyzed[9].id, 'g12');
+  });
+
+  it('correctly parses user game results from varied notations including descriptive results and spaces', () => {
+    const detectUserResult = (game, userColor) => {
+      const res = game.result?.trim().toLowerCase() || '';
+      if (res === '1/2-1/2' || res === '1/2 - 1/2' || res === 'draw' || res.includes('draw')) return 'draw';
+      if (res === '1-0' || res === '1 - 0' || res.includes('white wins')) return userColor === 'w' ? 'win' : 'loss';
+      if (res === '0-1' || res === '0 - 1' || res.includes('black wins')) return userColor === 'b' ? 'win' : 'loss';
+      if (res === 'win') return 'win';
+      if (res === 'loss') return 'loss';
+      return '*';
+    };
+
+    assert.equal(detectUserResult({ result: '1-0' }, 'w'), 'win');
+    assert.equal(detectUserResult({ result: '1-0' }, 'b'), 'loss');
+    assert.equal(detectUserResult({ result: '0 - 1' }, 'b'), 'win');
+    assert.equal(detectUserResult({ result: '1/2 - 1/2' }, 'w'), 'draw');
+    assert.equal(detectUserResult({ result: 'White wins by Resignation' }, 'w'), 'win');
+    assert.equal(detectUserResult({ result: 'Black wins on time' }, 'b'), 'win');
+    assert.equal(detectUserResult({ result: 'Draw by Stalemate' }, 'w'), 'draw');
+    assert.equal(detectUserResult({ result: 'win' }, 'w'), 'win');
+  });
+
+  it('correctly handles Black perspective for opening advantage loss', () => {
+    // Black had a winning advantage (-150 cp) in the opening and played an inaccuracy dropping to +20 cp (advantage lost!)
+    const blackAdvantageLost = {
+      color: 'b',
+      classification: 'blunder',
+      evalLoss: 170,
+      evalBefore: { score: { type: 'cp', value: -150 } }, // -150 White = +150 Black!
+      evalAfter: { score: { type: 'cp', value: 20 } }
+    };
+    assert.equal(classifyMistakeType(blackAdvantageLost, 'opening'), 'opening_advantage_loss');
+
+    // Black was ALREADY losing (+250 cp White) and made another blunder: NOT an opening advantage loss!
+    const blackAlreadyLosing = {
+      color: 'b',
+      classification: 'blunder',
+      evalLoss: 180,
+      evalBefore: { score: { type: 'cp', value: 250 } },
+      evalAfter: { score: { type: 'cp', value: 430 } }
+    };
+    assert.equal(classifyMistakeType(blackAlreadyLosing, 'opening'), 'blunder');
+  });
+
+  it('normalizes PGN dot dates to valid ISO date strings', () => {
+    const normalizeDate = (rawDate, timestamp) => {
+      let formatted = rawDate ? rawDate.replace(/\./g, '-') : '';
+      if (!formatted || isNaN(Date.parse(formatted))) {
+        formatted = new Date(timestamp || Date.now()).toISOString().split('T')[0];
+      }
+      return formatted;
+    };
+
+    assert.equal(normalizeDate('2026.10.11'), '2026-10-11');
+    assert.equal(normalizeDate('', 1760000000000), new Date(1760000000000).toISOString().split('T')[0]);
+  });
+
+  it('safely handles promotion moves in UCI notation with uppercase or lowercase letters', () => {
+    const parseBestMoveSan = (fenBefore, uci) => {
+      try {
+        const c = new Chess(fenBefore);
+        const from = uci.slice(0, 2);
+        const to = uci.slice(2, 4);
+        const promotion = (uci.slice(4, 5) || '').toLowerCase() || undefined;
+        const m = c.move({ from, to, promotion });
+        return m ? m.san : uci;
+      } catch {
+        return uci;
+      }
+    };
+
+    // Legal promotion position: White king on a1, Black king on h8, pawn on e7 (e8=Q gives check)
+    const promoFen = '7k/4P3/8/8/8/8/8/K7 w - - 0 1';
+    assert.equal(parseBestMoveSan(promoFen, 'e7e8q'), 'e8=Q+');
+    assert.equal(parseBestMoveSan(promoFen, 'e7e8Q'), 'e8=Q+'); // Uppercase UCI also works!
+  });
+
+  it('guards against NaN in overall ACPL and accuracy calculations', () => {
+    const mockAnalyses = [
+      { userAcpl: undefined, userAccuracy: undefined },
+      { userAcpl: 35, userAccuracy: 88 }
+    ];
+    const totalGames = mockAnalyses.length;
+    const avgOverallAcpl = Math.round(mockAnalyses.reduce((s, a) => s + (a.userAcpl || 0), 0) / (totalGames || 1));
+    const avgOverallAccuracy = Math.round(mockAnalyses.reduce((s, a) => s + (a.userAccuracy || 0), 0) / (totalGames || 1));
+
+    assert.equal(isNaN(avgOverallAcpl), false);
+    assert.equal(isNaN(avgOverallAccuracy), false);
+    assert.equal(avgOverallAcpl, 18);
+    assert.equal(avgOverallAccuracy, 44);
   });
 });
 

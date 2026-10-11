@@ -65,8 +65,8 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
       const c = new Chess(mistake.fenBefore);
       const from = mistake.bestMove.slice(0, 2);
       const to = mistake.bestMove.slice(2, 4);
-      const promotion = mistake.bestMove.slice(4, 5) || undefined;
-      const m = c.move({ from, to, promotion });
+      const promotion = (mistake.bestMove.slice(4, 5) || '').toLowerCase() || undefined;
+      const m = c.move({ from, to, promotion: promotion as any });
       return m ? m.san : mistake.bestMove;
     } catch {
       return mistake.bestMove;
@@ -163,8 +163,8 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
       const c = new Chess(mistake.fenBefore);
       const from = mistake.bestMove.slice(0, 2);
       const to = mistake.bestMove.slice(2, 4);
-      const promotion = mistake.bestMove.slice(4, 5) || undefined;
-      c.move({ from, to, promotion });
+      const promotion = (mistake.bestMove.slice(4, 5) || '').toLowerCase() || undefined;
+      c.move({ from, to, promotion: promotion as any });
       setChessInstance(c);
       setFen(c.fen());
       setShowSolution(true);
@@ -325,14 +325,20 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
             )}
 
             {/* Move Hint Banner */}
-            {showHint && status !== 'solved' && hintPieceInfo && (
+            {showHint && status !== 'solved' && (
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5 animate-fade-in">
                 <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold">Move Hint</p>
-                  <p className="mt-0.5 text-amber-200/90 leading-relaxed">
-                    Look for the winning move with your <span className="font-bold text-amber-300">{hintPieceInfo.name}</span> on <span className="font-mono font-bold text-amber-300">{hintPieceInfo.from}</span> (highlighted in gold).
-                  </p>
+                  {hintPieceInfo ? (
+                    <p className="mt-0.5 text-amber-200/90 leading-relaxed">
+                      Look for the winning move with your <span className="font-bold text-amber-300">{hintPieceInfo.name}</span> on <span className="font-mono font-bold text-amber-300">{hintPieceInfo.from}</span> (highlighted in gold).
+                    </p>
+                  ) : (
+                    <p className="mt-0.5 text-amber-200/90 leading-relaxed">
+                      Scan all enemy checks, unprotected pieces, and tactical alignments to find the best continuation.
+                    </p>
+                  )}
                 </div>
               </div>
             )}

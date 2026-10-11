@@ -163,10 +163,12 @@ export function useGameIntelligence() {
 
   // Determine game result from user's perspective
   const detectUserResult = useCallback((game: HistoryGame, userColor: 'w' | 'b'): 'win' | 'loss' | 'draw' | '*' => {
-    const res = game.result?.trim();
-    if (res === '1/2-1/2') return 'draw';
-    if (res === '1-0') return userColor === 'w' ? 'win' : 'loss';
-    if (res === '0-1') return userColor === 'b' ? 'win' : 'loss';
+    const res = game.result?.trim().toLowerCase() || '';
+    if (res === '1/2-1/2' || res === '1/2 - 1/2' || res === 'draw' || res.includes('draw')) return 'draw';
+    if (res === '1-0' || res === '1 - 0' || res.includes('white wins')) return userColor === 'w' ? 'win' : 'loss';
+    if (res === '0-1' || res === '0 - 1' || res.includes('black wins')) return userColor === 'b' ? 'win' : 'loss';
+    if (res === 'win') return 'win';
+    if (res === 'loss') return 'loss';
     return '*';
   }, []);
 
@@ -309,11 +311,15 @@ export function useGameIntelligence() {
       }
 
       const opponentName = userColor === 'w' ? (game.black || 'Opponent') : (game.white || 'Opponent');
+      let formattedDate = game.date ? game.date.replace(/\./g, '-') : '';
+      if (!formattedDate || isNaN(Date.parse(formattedDate))) {
+        formattedDate = new Date(game.timestamp || Date.now()).toISOString().split('T')[0];
+      }
 
       const intelligenceAnalysis = analyzeGameMovesForIntelligence(analyzedMoves, userColor, {
         gameId: game.id,
         pgn: game.pgn,
-        date: game.date || new Date(game.timestamp).toISOString().split('T')[0],
+        date: formattedDate,
         opponent: opponentName,
         result: userResult,
         source: game.source,
@@ -372,11 +378,21 @@ export function useGameIntelligence() {
         const game = unanalyzed[i];
         const title = `${game.white || 'White'} vs ${game.black || 'Black'}`;
 
+        let estimatedPositions = 20;
+        try {
+          const quickChess = new Chess();
+          quickChess.loadPgn(game.pgn);
+          const historyLen = quickChess.history().length;
+          estimatedPositions = historyLen > 0 ? historyLen + 1 : (game.moveCount ? game.moveCount * 2 + 1 : 20);
+        } catch {
+          estimatedPositions = game.moveCount ? game.moveCount * 2 + 1 : 20;
+        }
+
         setBatchProgress({
           currentGameIndex: i + 1,
           totalGames: unanalyzed.length,
           currentMoveIndex: 0,
-          totalMoves: game.moveCount || 20,
+          totalMoves: estimatedPositions,
           gameTitle: title
         });
 
@@ -417,10 +433,24 @@ export function useGameIntelligence() {
     });
   }, [analyses, colorFilter, sourceFilter]);
 
+  // Filtered history count matching current color and source filter
+  const filteredHistoryCount = useMemo(() => {
+    if (colorFilter === 'all' && sourceFilter === 'all') return history.length;
+    return history.filter(g => {
+      if (sourceFilter !== 'all' && g.source !== sourceFilter) return false;
+      if (colorFilter !== 'all') {
+        const c = detectUserColor(g);
+        if (colorFilter === 'white' && c !== 'w') return false;
+        if (colorFilter === 'black' && c !== 'b') return false;
+      }
+      return true;
+    }).length;
+  }, [history, colorFilter, sourceFilter, detectUserColor]);
+
   // Aggregated Intelligence Summary
   const summary: IntelligenceSummary = useMemo(() => {
-    return computeIntelligenceSummary(history.length, filteredAnalyses);
-  }, [history.length, filteredAnalyses]);
+    return computeIntelligenceSummary(filteredHistoryCount, filteredAnalyses);
+  }, [filteredHistoryCount, filteredAnalyses]);
 
   const unanalyzedCount = useMemo(() => {
     const existingIds = new Set(analyses.map(a => a.gameId));

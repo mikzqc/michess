@@ -66,8 +66,17 @@ export const WeaknessReportView: React.FC<WeaknessReportViewProps> = ({ reports,
         </p>
       </div>
 
-      <div className="space-y-5">
-        {reports.map((report) => {
+      {reports.length === 0 ? (
+        <div className="bg-surface-2 border border-border-1 rounded-2xl p-8 text-center">
+          <Brain size={36} className="text-accent mx-auto mb-2" />
+          <h4 className="text-base font-bold text-content-1">No Weakness Data Available Yet</h4>
+          <p className="text-xs text-content-3 mt-1 max-w-md mx-auto">
+            Analyze your games with Stockfish to unlock personalized diagnostics across tactics, openings, middlegame strategy, and endgames.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {reports.map((report) => {
           const badge = getSeverityBadge(report.severity);
 
           return (
@@ -178,7 +187,8 @@ export const WeaknessReportView: React.FC<WeaknessReportViewProps> = ({ reports,
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
