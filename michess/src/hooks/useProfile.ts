@@ -89,8 +89,9 @@ export function useProfile() {
 
     if (!user || !supabase) return;
 
+    const channelName = `profile_realtime_${user.id}_${Math.random().toString(36).substring(7)}`;
     const channel = supabase
-      .channel(`profile_realtime_${user.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
