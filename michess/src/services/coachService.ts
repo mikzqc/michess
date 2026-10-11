@@ -87,7 +87,8 @@ class CoachService {
       const payload = { evidence, prompt };
 
       let rawContent: string | null = null;
-      let modelUsed = 'deepseek-chat';
+      let modelUsed = 'z-ai/glm-5.3-flash';
+      let fallbackAttempts: Array<{ model: string; error: string }> | undefined = undefined;
       let apiError: string | null = null;
       let quotaExhausted = false;
 
@@ -101,11 +102,13 @@ class CoachService {
           if (!error && data?.success && data?.rawContent) {
             rawContent = data.rawContent;
             if (data.model) modelUsed = data.model;
+            if (data.fallbackAttempts) fallbackAttempts = data.fallbackAttempts;
           } else if (data?.error) {
             apiError = data.error;
             quotaExhausted = !!data.quotaExhausted;
+            if (data.fallbackAttempts) fallbackAttempts = data.fallbackAttempts;
           }
-        } catch (edgeErr: any) {
+        } catch {
           // Edge function may not be deployed, fall through to dev API
         }
       }
@@ -124,14 +127,17 @@ class CoachService {
             if (data?.success && data?.rawContent) {
               rawContent = data.rawContent;
               if (data.model) modelUsed = data.model;
+              if (data.fallbackAttempts) fallbackAttempts = data.fallbackAttempts;
             } else if (data?.error) {
               apiError = data.error;
               quotaExhausted = !!data.quotaExhausted;
+              if (data.fallbackAttempts) fallbackAttempts = data.fallbackAttempts;
             }
           } else {
             const errData = await res.json().catch(() => ({}));
             apiError = errData?.error || `Server responded with status ${res.status}`;
             quotaExhausted = res.status === 429 || !!errData?.quotaExhausted;
+            if (errData?.fallbackAttempts) fallbackAttempts = errData.fallbackAttempts;
           }
         } catch (fetchErr: any) {
           apiError = fetchErr?.message || 'Network error connecting to AI Coach endpoint';
@@ -143,6 +149,7 @@ class CoachService {
         const validated = validateCoachResponse(rawContent, evidence);
         if (validated) {
           validated.model = modelUsed;
+          validated.fallbackAttempts = fallbackAttempts;
           this.cache.set(key, validated);
           this.persistCache();
           return validated;
@@ -150,8 +157,10 @@ class CoachService {
       }
 
       // 4. Return reliable deterministic fallback with error context
+      // Note: Never modifies Stockfish's evaluation, best move, centipawn score, or classification.
       const fallback = generateFallbackCoachExplanation(evidence, apiError || undefined);
       fallback.model = modelUsed;
+      fallback.fallbackAttempts = fallbackAttempts;
       if (apiError) {
         fallback.summary += ` (AI Coach Note: ${apiError})`;
       }

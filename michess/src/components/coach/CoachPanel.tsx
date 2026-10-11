@@ -367,13 +367,29 @@ export const CoachPanel: React.FC<CoachPanelProps> = ({
             </div>
           )}
 
-          {/* Fallback Notice Banner (if API key not configured) */}
-          {explanation.fallback && (
+          {/* Model info or Fallback Notice Banner */}
+          {explanation.fallback ? (
             <div className="p-2.5 rounded-lg bg-surface-3/50 border border-border-1 text-[11px] text-content-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <AlertCircle size={13} className="text-amber-400 shrink-0" />
-                <span>Deterministic Stockfish analysis active. Configure TOKENREPLY_API_KEY for dynamic LLM coaching.</span>
+                <span>
+                  {explanation.fallbackAttempts && explanation.fallbackAttempts.length > 0
+                    ? `LLM unavailable (${explanation.fallbackAttempts.map(a => a.model).join(', ')} failed). Deterministic Stockfish analysis active.`
+                    : 'Deterministic Stockfish analysis active. Configure TOKENREPLY_API_KEY for dynamic LLM coaching.'}
+                </span>
               </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between text-[10px] text-content-3 font-mono px-1">
+              <span>
+                Model: {explanation.model || 'z-ai/glm-5.3-flash'}
+                {explanation.fallbackAttempts && explanation.fallbackAttempts.length > 0 && (
+                  <span className="text-amber-400/90 ml-1">
+                    (fallback from {explanation.fallbackAttempts[0].model})
+                  </span>
+                )}
+              </span>
+              {explanation.cached && <span className="text-accent/80">cached</span>}
             </div>
           )}
         </div>

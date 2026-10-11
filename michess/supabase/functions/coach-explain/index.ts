@@ -82,7 +82,6 @@ serve(async (req: Request) => {
 
   // Server-side environment variables
   const apiKey = Deno.env.get("TOKENREPLY_API_KEY");
-  const model = Deno.env.get("TOKENREPLY_MODEL") || "deepseek-chat";
   const baseUrl = Deno.env.get("TOKENREPLY_BASE_URL") || "https://api.tokenreply.com/v1";
 
   if (!apiKey) {
@@ -95,68 +94,137 @@ serve(async (req: Request) => {
     });
   }
 
+  // Model chain resolution (server-side configurable)
+  const resolveModelChain = (): string[] => {
+    const customModels = Deno.env.get("TOKENREPLY_MODELS");
+    if (customModels && customModels.trim()) {
+      const list = customModels.split(',').map(m => m.trim()).filter(Boolean);
+      if (list.length > 0) return list;
+    }
+
+    const primary = Deno.env.get("TOKENREPLY_MODEL") || "z-ai/glm-5.3-flash";
+    const customFallbacks = Deno.env.get("TOKENREPLY_FALLBACK_MODELS");
+
+    if (customFallbacks && customFallbacks.trim()) {
+      const fallbacks = customFallbacks.split(',').map(m => m.trim()).filter(Boolean);
+      return [primary, ...fallbacks];
+    }
+
+    if (primary === "z-ai/glm-5.3-flash") {
+      return ["z-ai/glm-5.3-flash", "openai/gpt-oss-20b", "north-mini-code"];
+    }
+
+    const defaults = ["z-ai/glm-5.3-flash", "openai/gpt-oss-20b", "north-mini-code"];
+    return [primary, ...defaults.filter(m => m !== primary)];
+  };
+
+  const isValidCoachJson = (rawText: string): boolean => {
+    if (!rawText || typeof rawText !== 'string') return false;
+    let clean = rawText.trim();
+    if (clean.startsWith('```')) {
+      clean = clean.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    }
+    try {
+      const parsed = JSON.parse(clean);
+      return Boolean(
+        parsed &&
+        typeof parsed === 'object' &&
+        typeof parsed.summary === 'string' &&
+        parsed.summary.trim().length > 0
+      );
+    } catch {
+      return false;
+    }
+  };
+
   const systemPrompt = prompt?.system || "You are an encouraging AI Chess Coach analyzing a move in a game.";
   const userPrompt = prompt?.user || `Explain move ${evidence.moveNumber}. ${evidence.san}.`;
 
-  try {
-    const endpoint = `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
+  const models = resolveModelChain();
+  const endpoint = `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
+  const fallbackAttempts: Array<{ model: string; error: string }> = [];
 
+  let succeeded = false;
+  let finalContent = "";
+  let finalModel = models[0];
+
+  for (let i = 0; i < models.length; i++) {
+    const currentModel = models[i];
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 7500); // 7.5s short timeout
 
-    const upstreamResponse = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 650
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!upstreamResponse.ok) {
-      const errText = await upstreamResponse.text();
-      let isQuota = upstreamResponse.status === 429 || errText.toLowerCase().includes("quota") || errText.toLowerCase().includes("balance");
-
-      return new Response(JSON.stringify({
-        error: `TokenReply API error (${upstreamResponse.status}): ${errText.slice(0, 200)}`,
-        quotaExhausted: isQuota,
-        success: false
-      }), {
-        status: upstreamResponse.status === 429 ? 429 : 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+    try {
+      const upstreamResponse = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: currentModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 650
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
+
+      if (!upstreamResponse.ok) {
+        const errText = await upstreamResponse.text();
+        const reason = `HTTP ${upstreamResponse.status}: ${errText.slice(0, 150)}`;
+        console.warn(`[AI Coach] Model '${currentModel}' failed (${reason}). Retrying next fallback...`);
+        fallbackAttempts.push({ model: currentModel, error: reason });
+        continue;
+      }
+
+      const data = await upstreamResponse.json();
+      const content = data?.choices?.[0]?.message?.content || "";
+
+      if (!isValidCoachJson(content)) {
+        console.warn(`[AI Coach] Model '${currentModel}' produced invalid non-JSON output. Retrying next fallback...`);
+        fallbackAttempts.push({ model: currentModel, error: "Invalid structured output" });
+        continue;
+      }
+
+      // Valid response obtained
+      console.log(`[AI Coach] Successfully generated explanation with model '${currentModel}' (attempt ${i + 1}/${models.length}).`);
+      finalContent = content;
+      finalModel = currentModel;
+      succeeded = true;
+      break;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      const isTimeout = err?.name === "AbortError";
+      const reason = isTimeout ? "Timeout (7.5s)" : (err?.message || "Network error");
+      console.warn(`[AI Coach] Model '${currentModel}' failed (${reason}). Retrying next fallback...`);
+      fallbackAttempts.push({ model: currentModel, error: reason });
     }
+  }
 
-    const data = await upstreamResponse.json();
-    const content = data?.choices?.[0]?.message?.content || "";
-
+  if (succeeded) {
     return new Response(JSON.stringify({
       success: true,
-      rawContent: content,
-      model
+      rawContent: finalContent,
+      model: finalModel,
+      fallbackAttempts: fallbackAttempts.length > 0 ? fallbackAttempts : undefined
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
-  } catch (err: any) {
-    const isTimeout = err?.name === "AbortError";
-    return new Response(JSON.stringify({
-      error: isTimeout ? "Request to TokenReply timed out after 20s" : (err?.message || "Internal server error"),
-      success: false
-    }), {
-      status: isTimeout ? 504 : 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
   }
+
+  console.warn(`[AI Coach] All models in fallback chain failed:`, fallbackAttempts);
+  return new Response(JSON.stringify({
+    success: false,
+    error: "All AI Coach models timed out or were unavailable. Deterministic Stockfish analysis remains available.",
+    fallbackAttempts
+  }), {
+    status: 502,
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
 });

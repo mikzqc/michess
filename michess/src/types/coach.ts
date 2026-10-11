@@ -39,6 +39,11 @@ export interface CoachMoveEvidence {
   };
 }
 
+export interface FallbackAttempt {
+  model: string;
+  error: string;
+}
+
 export interface CoachExplanation {
   summary: string;
   move_purpose: string;
@@ -51,6 +56,7 @@ export interface CoachExplanation {
   cached?: boolean;
   generatedAt: number;
   fallback?: boolean;
+  fallbackAttempts?: FallbackAttempt[];
 }
 
 export interface CoachRequestPayload {
@@ -60,8 +66,10 @@ export interface CoachRequestPayload {
 export interface CoachApiResponse {
   success: boolean;
   explanation?: CoachExplanation;
+  rawContent?: string;
   error?: string;
   model?: string;
+  fallbackAttempts?: FallbackAttempt[];
   quotaExhausted?: boolean;
   rateLimited?: boolean;
 }
