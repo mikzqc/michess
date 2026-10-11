@@ -5,6 +5,7 @@ import { X, CheckCircle2, AlertCircle, RotateCcw, Lightbulb, ChevronRight, Chevr
 import type { DetectedMistake } from '../../types/intelligence';
 import { useSettings } from '../../hooks/useSettings';
 import { useBoardHighlights } from '../../hooks/useBoardHighlights';
+import { PREMIUM_ARROW_OPTIONS } from '../../utils/arrows';
 import { BOARD_THEMES, getCustomPieces } from '../../utils/themes';
 import { Button } from '../ui/Button';
 
@@ -176,24 +177,67 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
   const currentIndex = mistakesList.findIndex(m => m.id === mistake.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < mistakesList.length - 1;
+  const hintPieceInfo = useMemo(() => {
+    if (!mistake.bestMove || mistake.bestMove.length < 2) return null;
+    const from = mistake.bestMove.slice(0, 2);
+    try {
+      const c = new Chess(mistake.fenBefore);
+      const piece = c.get(from as any);
+      if (!piece) return { from, name: 'piece' };
+      const names: Record<string, string> = {
+        p: 'Pawn',
+        n: 'Knight',
+        b: 'Bishop',
+        r: 'Rook',
+        q: 'Queen',
+        k: 'King'
+      };
+      return { from, name: names[piece.type] || 'piece' };
+    } catch {
+      return { from, name: 'piece' };
+    }
+  }, [mistake.bestMove, mistake.fenBefore]);
+
+  const handleToggleHint = () => {
+    const next = !showHint;
+    setShowHint(next);
+    if (next && mistake.bestMove && mistake.bestMove.length >= 2) {
+      const from = mistake.bestMove.slice(0, 2);
+      highlightSquareClick(from);
+    }
+  };
 
   const arrows: any[] = useMemo(() => {
     if (showSolution && mistake.bestMove && mistake.bestMove.length >= 4) {
       return [{
         startSquare: mistake.bestMove.slice(0, 2),
         endSquare: mistake.bestMove.slice(2, 4),
-        color: 'rgba(34, 197, 94, 0.85)'
+        color: 'rgba(34, 197, 94, 0.9)'
       }];
     }
-    if (showHint && mistake.bestMove && mistake.bestMove.length >= 2) {
+    if (showHint && mistake.bestMove && mistake.bestMove.length >= 4) {
       return [{
         startSquare: mistake.bestMove.slice(0, 2),
-        endSquare: mistake.bestMove.slice(0, 2),
-        color: 'rgba(234, 179, 8, 0.7)'
+        endSquare: mistake.bestMove.slice(2, 4),
+        color: 'rgba(245, 158, 11, 0.9)'
       }];
     }
     return [];
   }, [showSolution, showHint, mistake.bestMove]);
+
+  const combinedSquareStyles = useMemo(() => {
+    const styles = { ...squareStyles };
+    if (showHint && mistake.bestMove && mistake.bestMove.length >= 2) {
+      const bestFrom = mistake.bestMove.slice(0, 2);
+      styles[bestFrom] = {
+        ...styles[bestFrom],
+        backgroundColor: 'rgba(245, 158, 11, 0.45)',
+        boxShadow: 'inset 0 0 0 3px rgba(245, 158, 11, 0.9)',
+        transition: 'all 0.2s ease'
+      };
+    }
+    return styles;
+  }, [squareStyles, showHint, mistake.bestMove]);
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-fade-in">
@@ -244,8 +288,9 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
                   lightSquareStyle: { backgroundColor: activeTheme.light },
                   darkSquareNotationStyle: { color: activeTheme.light },
                   lightSquareNotationStyle: { color: activeTheme.dark },
+                  arrowOptions: PREMIUM_ARROW_OPTIONS as any,
                   arrows: arrows,
-                  squareStyles: squareStyles,
+                  squareStyles: combinedSquareStyles,
                   canDragPiece: () => status !== 'solved',
                   onPieceDrop: handlePieceDrop,
                   onPieceDrag: (args: any) => {
@@ -291,8 +336,21 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
               </div>
             )}
 
+            {/* Move Hint Banner */}
+            {showHint && status !== 'solved' && hintPieceInfo && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5 animate-fade-in">
+                <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Move Hint</p>
+                  <p className="mt-0.5 text-amber-200/90 leading-relaxed">
+                    Look for the winning continuation with your <span className="font-bold text-amber-300">{hintPieceInfo.name}</span> on <span className="font-mono font-bold text-amber-300">{hintPieceInfo.from}</span> (highlighted in gold with legal move dots).
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Instruction Prompt */}
-            {status === 'attempting' && (
+            {status === 'attempting' && !showHint && (
               <p className="text-xs text-content-3 italic">
                 Drag a piece on the board to find the strongest continuation that preserves your advantage.
               </p>
@@ -313,14 +371,15 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
               {status !== 'solved' && (
                 <>
                   <Button
-                    variant="secondary"
+                    variant={showHint ? "primary" : "secondary"}
                     size="sm"
-                    onClick={() => setShowHint(true)}
-                    disabled={showHint}
-                    className="flex items-center gap-1.5 cursor-pointer text-xs"
+                    onClick={handleToggleHint}
+                    className={`flex items-center gap-1.5 cursor-pointer text-xs font-semibold ${
+                      showHint ? "bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold border-amber-400" : ""
+                    }`}
                   >
-                    <Lightbulb size={14} className="text-amber-400" />
-                    <span>Hint</span>
+                    <Lightbulb size={14} className={showHint ? "text-slate-950" : "text-amber-400"} />
+                    <span>{showHint ? "Hide Hint" : "Hint"}</span>
                   </Button>
 
                   <Button
