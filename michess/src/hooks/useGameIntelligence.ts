@@ -349,7 +349,7 @@ export function useGameIntelligence() {
   }, [detectUserColor, detectUserResult, saveAnalysis, updateGameReviewStats]);
 
   // Batch analyze unanalyzed games
-  const startBatchAnalysis = useCallback(async (limit: number = 5) => {
+  const startBatchAnalysis = useCallback(async (limit: number = 10) => {
     if (isAnalyzingBatch) return;
 
     cancelBatchRef.current = false;

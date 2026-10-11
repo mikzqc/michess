@@ -285,4 +285,19 @@ describe('Michess Game Intelligence Logic', () => {
     assert.equal(qg.losses, 1);
     assert.equal(qg.draws, 1);
   });
+
+  it('correctly batches up to 10 unanalyzed games at once', () => {
+    const existingAnalyses = [{ gameId: 'g1' }, { gameId: 'g2' }];
+    const historyGames = Array.from({ length: 25 }, (_, i) => ({ id: `g${i + 1}` }));
+    const existingIds = new Set(existingAnalyses.map(a => a.gameId));
+
+    // Batch analysis with limit 10
+    const limit = 10;
+    const unanalyzed = historyGames.filter(g => !existingIds.has(g.id)).slice(0, limit);
+
+    assert.equal(unanalyzed.length, 10);
+    assert.equal(unanalyzed[0].id, 'g3');
+    assert.equal(unanalyzed[9].id, 'g12');
+  });
 });
+

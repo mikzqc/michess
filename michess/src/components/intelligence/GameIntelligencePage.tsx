@@ -62,6 +62,7 @@ export const GameIntelligencePage: React.FC<GameIntelligencePageProps> = ({
   const [showLinkedModal, setShowLinkedModal] = useState(false);
   const [activeTab, setActiveTab] = useState<IntelligenceTab>('dashboard');
   const [activeMistakeToTrain, setActiveMistakeToTrain] = useState<DetectedMistake | null>(null);
+  const [batchSize, setBatchSize] = useState<number>(10);
 
   const isAccountsLinked = !!(linkedConfig.chesscomUsername || linkedConfig.lichessUsername);
 
@@ -143,18 +144,38 @@ export const GameIntelligencePage: React.FC<GameIntelligencePageProps> = ({
 
           {/* Analyze Unanalyzed Games Button */}
           {unanalyzedCount > 0 && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => startBatchAnalysis(5)}
-              disabled={isAnalyzingBatch}
-              className="text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5"
-            >
-              <Sparkles size={14} />
-              <span>
-                {isAnalyzingBatch ? 'Analyzing...' : `Analyze Games (${unanalyzedCount})`}
-              </span>
-            </Button>
+            <div className="flex items-center bg-surface-2 border border-border-1 rounded-xl p-0.5">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => startBatchAnalysis(batchSize)}
+                disabled={isAnalyzingBatch}
+                className="text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5 rounded-lg"
+                title={`Analyze up to ${batchSize} games at once with Stockfish`}
+              >
+                <Sparkles size={14} />
+                <span>
+                  {isAnalyzingBatch
+                    ? 'Analyzing...'
+                    : `Analyze ${Math.min(batchSize, unanalyzedCount)} Games`}
+                </span>
+              </Button>
+              {unanalyzedCount > 5 && (
+                <select
+                  value={batchSize}
+                  onChange={(e) => setBatchSize(Number(e.target.value))}
+                  disabled={isAnalyzingBatch}
+                  className="bg-transparent text-xs font-bold text-content-2 hover:text-content-1 px-2 py-1 outline-none cursor-pointer border-l border-border-1 ml-0.5"
+                  title="Choose number of games to analyze at once"
+                >
+                  <option value={5} className="bg-surface-2 text-content-1">5 at once</option>
+                  <option value={10} className="bg-surface-2 text-content-1">10 at once</option>
+                  {unanalyzedCount >= 20 && (
+                    <option value={20} className="bg-surface-2 text-content-1">20 at once</option>
+                  )}
+                </select>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -203,7 +224,7 @@ export const GameIntelligencePage: React.FC<GameIntelligencePageProps> = ({
         <InsufficientDataCard
           analyzedCount={analyses.length}
           totalGames={history.length}
-          onStartAnalysis={() => startBatchAnalysis(5)}
+          onStartAnalysis={() => startBatchAnalysis(batchSize)}
           onPlayGame={onPlayGame}
           onImportGame={onImportGame}
         />
