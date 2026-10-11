@@ -1889,3 +1889,35 @@ EXCEPTION WHEN OTHERS THEN
     NULL;
 END;
 $$;
+
+-- 14. Game Intelligence Analyses Persistence
+CREATE TABLE IF NOT EXISTS public.game_analyses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) NOT NULL,
+    game_id TEXT NOT NULL,
+    analysis_data JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_game_analysis UNIQUE (user_id, game_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_analyses_user ON public.game_analyses(user_id);
+
+ALTER TABLE public.game_analyses ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own analyses" ON public.game_analyses;
+CREATE POLICY "Users can view own analyses" ON public.game_analyses
+    FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own analyses" ON public.game_analyses;
+CREATE POLICY "Users can insert own analyses" ON public.game_analyses
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own analyses" ON public.game_analyses;
+CREATE POLICY "Users can update own analyses" ON public.game_analyses
+    FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own analyses" ON public.game_analyses;
+CREATE POLICY "Users can delete own analyses" ON public.game_analyses
+    FOR DELETE USING (auth.uid() = user_id);
+

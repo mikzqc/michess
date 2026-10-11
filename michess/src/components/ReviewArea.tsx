@@ -18,6 +18,7 @@ import { CapturedPieces } from './CapturedPieces';
 import { useToast } from './Toast';
 import { getOpeningsDB, findOpening } from '../utils/openings';
 import { PREMIUM_ARROW_OPTIONS } from '../utils/arrows';
+import { analyzeGameMovesForIntelligence } from '../utils/intelligence';
 
 interface ReviewAreaProps {
   pgn: string;
@@ -165,8 +166,45 @@ export const ReviewArea: React.FC<ReviewAreaProps> = ({ pgn, onExit, onReviewCom
         overallAccuracy: overallAccuracy || undefined,
         classifications: counts
       });
+
+      // Synchronize into Game Intelligence analyses cache
+      try {
+        const userColor = boardOrientation === 'black' ? 'b' : 'w';
+        let hash = 0;
+        for (let i = 0; i < pgn.length; i++) {
+          hash = (hash << 5) - hash + pgn.charCodeAt(i);
+          hash |= 0;
+        }
+        const gameId = `rev_${Math.abs(hash).toString(36)}`;
+        const opponentName = userColor === 'w' ? (gameMeta?.black || 'Opponent') : (gameMeta?.white || 'Opponent');
+        const userResult = gameMeta?.result === '1-0' 
+          ? (userColor === 'w' ? 'win' : 'loss')
+          : gameMeta?.result === '0-1'
+          ? (userColor === 'b' ? 'win' : 'loss')
+          : gameMeta?.result === '1/2-1/2'
+          ? 'draw'
+          : '*';
+
+        const intelligenceAnalysis = analyzeGameMovesForIntelligence(analyzedMoves, userColor, {
+          gameId,
+          pgn,
+          date: gameMeta?.date || new Date().toISOString().split('T')[0],
+          opponent: opponentName,
+          result: userResult,
+          source: 'import',
+          opening: openingName ? { name: openingName, eco: openingEco || 'A00' } : undefined
+        });
+
+        const stored = localStorage.getItem('michess_game_analyses_v1');
+        const list = stored ? JSON.parse(stored) : [];
+        const next = list.filter((a: any) => a.gameId !== gameId && a.pgn !== pgn);
+        next.unshift(intelligenceAnalysis);
+        localStorage.setItem('michess_game_analyses_v1', JSON.stringify(next));
+      } catch (err) {
+        console.warn('Failed to cache review for Game Intelligence:', err);
+      }
     }
-  }, [isAnalyzing, analyzedMoves.length, onReviewComplete, pgn, whiteAccuracy, blackAccuracy, overallAccuracy]);
+  }, [isAnalyzing, analyzedMoves, onReviewComplete, pgn, whiteAccuracy, blackAccuracy, overallAccuracy, boardOrientation, gameMeta, openingName, openingEco]);
 
   const renderBoardAnnotation = () => {
     if (currentMoveIndex < 0 || !analyzedMoves[currentMoveIndex]) return null;

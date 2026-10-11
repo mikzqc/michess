@@ -37,10 +37,11 @@ import { FriendsChatModal } from './components/FriendsChatModal';
 import { AdminArea } from './components/admin/AdminArea';
 import { AccountRestrictionBanner } from './components/AccountRestrictionBanner';
 import { BannedLockScreen } from './components/BannedLockScreen';
-import { BookOpen, MessageSquare, Shield } from 'lucide-react';
+import { GameIntelligencePage } from './components/intelligence/GameIntelligencePage';
+import { BookOpen, MessageSquare, Shield, Brain } from 'lucide-react';
 import heroImage from './assets/hero.png';
 
-type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'openings' | 'about' | 'support' | 'admin' | '404';
+type ViewState = 'home' | 'local' | 'setup-computer' | 'play-computer' | 'review' | 'import' | 'history' | 'profile' | 'link-game' | 'social' | 'public-profile' | 'puzzles' | 'openings' | 'intelligence' | 'about' | 'support' | 'admin' | '404';
 
 function App() {
   const [view, setView] = useState<ViewState>('home');
@@ -98,6 +99,8 @@ function App() {
         setView('puzzles');
       } else if (path === '/openings') {
         setView('openings');
+      } else if (path === '/intelligence' || path === '/analytics') {
+        setView('intelligence');
       } else if (path === '/history') {
         setView('history');
       } else if (path === '/computer' || path === '/play-computer') {
@@ -166,6 +169,8 @@ function App() {
       window.history.pushState({}, '', '/puzzles');
     } else if (v === 'openings') {
       window.history.pushState({}, '', '/openings');
+    } else if (v === 'intelligence') {
+      window.history.pushState({}, '', '/intelligence');
     } else if (v === 'history') {
       window.history.pushState({}, '', '/history');
     } else if (v === 'social') {
@@ -408,6 +413,25 @@ function App() {
                   >
                     <BookOpen size={16} className={view === '404' ? 'text-red-500' : (view === 'openings' ? 'text-accent' : 'text-content-3')} />
                     <span>Openings</span>
+                  </a>
+
+                  <a
+                    href="/intelligence"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSetView('intelligence');
+                      setShowNavMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                      view === '404'
+                        ? 'text-red-400 hover:text-red-200 hover:bg-red-950/40'
+                        : (view === 'intelligence'
+                            ? 'bg-accent/15 text-accent font-semibold'
+                            : 'text-content-2 hover:text-content-1 hover:bg-surface-3')
+                    }`}
+                  >
+                    <Brain size={16} className={view === '404' ? 'text-red-500' : (view === 'intelligence' ? 'text-accent' : 'text-content-3')} />
+                    <span>Game Intelligence</span>
                   </a>
 
                   <a
@@ -731,7 +755,7 @@ function App() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full animate-slide-up" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 w-full animate-slide-up" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
               <button 
                 onClick={() => setSetupMode('computer')}
                 className="glass-panel p-6 rounded-2xl flex flex-col items-start text-left transition-all hover:-translate-y-2 hover:shadow-xl hover:border-accent/50 group cursor-pointer"
@@ -766,6 +790,17 @@ function App() {
               </button>
 
               <button 
+                onClick={() => handleSetView('intelligence')}
+                className="glass-panel p-6 rounded-2xl flex flex-col items-start text-left transition-all hover:-translate-y-2 hover:shadow-xl hover:border-accent/50 group cursor-pointer"
+              >
+                <div className="w-12 h-12 bg-accent/10 border border-accent/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-accent">
+                  <Brain size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-content-1 mb-2">Intelligence</h3>
+                <p className="text-content-3 text-sm">Personal weakness reports & training plan.</p>
+              </button>
+
+              <button 
                 onClick={() => handleSetView('import')}
                 className="glass-panel p-6 rounded-2xl flex flex-col items-start text-left transition-all hover:-translate-y-2 hover:shadow-xl hover:border-success/50 group cursor-pointer"
               >
@@ -773,7 +808,7 @@ function App() {
                   <Upload size={24} />
                 </div>
                 <h3 className="text-xl font-bold text-content-1 mb-2">Review Game</h3>
-                <p className="text-content-3 text-sm">Analyze your PGNs with powerful engine review.</p>
+                <p className="text-content-3 text-sm">Analyze your PGNs with engine review.</p>
               </button>
             </div>
 
@@ -840,7 +875,7 @@ function App() {
         {view === 'review' && reviewPgn && (
           <ReviewArea 
             pgn={reviewPgn} 
-            onExit={() => setView(previousView === 'history' ? 'history' : 'home')} 
+            onExit={() => setView(previousView === 'history' ? 'history' : previousView === 'intelligence' ? 'intelligence' : 'home')} 
             onReviewComplete={handleReviewComplete}
           />
         )}
@@ -909,6 +944,20 @@ function App() {
         {view === 'openings' && (
           <OpeningExplorerPage 
             onExit={() => handleSetView('home')} 
+          />
+        )}
+        {view === 'intelligence' && (
+          <GameIntelligencePage
+            onExit={() => handleSetView('home')}
+            onOpenReview={(pgn) => {
+              setPreviousView('intelligence');
+              setReviewPgn(pgn);
+              setView('review');
+            }}
+            onOpenPuzzles={() => handleSetView('puzzles')}
+            onOpenOpenings={(_eco) => handleSetView('openings')}
+            onPlayGame={() => setSetupMode('computer')}
+            onImportGame={() => handleSetView('import')}
           />
         )}
         {view === 'about' && (
