@@ -35,6 +35,10 @@ export interface UserProfile {
   warning_count?: number;
   reporter_warning_count?: number;
   is_admin?: boolean;
+  chesscom_username?: string | null;
+  lichess_username?: string | null;
+  sync_external_games?: boolean;
+  last_external_sync?: string | null;
 }
 
 export function useProfile() {
@@ -182,12 +186,35 @@ export function useProfile() {
     }
   };
 
+  const updateLinkedAccounts = async (updates: {
+    chesscom_username?: string | null;
+    lichess_username?: string | null;
+    sync_external_games?: boolean;
+    last_external_sync?: string | null;
+  }) => {
+    if (!supabase || !user) return { success: false, error: 'Not authenticated.' };
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) setProfile(data as UserProfile);
+      return { success: true, error: null };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
   return {
     profile,
     loading,
     updateUsername,
     updateAvatar,
     uploadAvatar,
+    updateLinkedAccounts,
     refreshProfile: fetchProfile,
     isOwner: profile?.username?.toLowerCase() === 'mikzqc',
   };

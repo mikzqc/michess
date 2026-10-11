@@ -10,6 +10,7 @@ import type {
   TrainingRecommendation,
   IntelligenceSummary
 } from '../types/intelligence';
+import type { GameSource } from '../types/history';
 
 const PIECE_VALUES: Record<string, number> = {
   p: 1,
@@ -194,7 +195,7 @@ export function analyzeGameMovesForIntelligence(
     date: string;
     opponent: string;
     result: 'win' | 'loss' | 'draw' | '*';
-    source: 'local' | 'computer' | 'import';
+    source: GameSource;
     opening?: { name: string; eco: string };
   }
 ): GameIntelligenceAnalysis {

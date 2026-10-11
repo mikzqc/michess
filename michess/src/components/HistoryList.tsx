@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, Search, Trash2, ShieldAlert, Play, BookOpen, Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { Clock, Search, Trash2, ShieldAlert, Play, BookOpen, Cloud, CloudOff, RefreshCw, Globe, ExternalLink } from 'lucide-react';
 import type { HistoryGame } from '../types/history';
+import { useLinkedAccounts } from '../hooks/useLinkedAccounts';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 
@@ -11,9 +12,11 @@ interface HistoryListProps {
   onClear: () => void;
   onClose: () => void;
   onViewProfile?: (username: string) => void;
+  onOpenLinkedAccounts?: () => void;
 }
 
-export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onRemove, onClear, onClose, onViewProfile }) => {
+export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onRemove, onClear, onClose, onViewProfile, onOpenLinkedAccounts }) => {
+  const { config, isSyncing, syncGames } = useLinkedAccounts();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -64,9 +67,32 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onR
           <Clock className="text-accent" size={32} />
           Game History
         </h2>
-        <Button variant="outline" onClick={onClose}>
-          Close
-        </Button>
+        <div className="flex items-center gap-2">
+          {(config.chesscomUsername || config.lichessUsername) ? (
+            <Button
+              variant="secondary"
+              onClick={() => syncGames({ showToast: true })}
+              disabled={isSyncing}
+              className="text-xs font-semibold flex items-center gap-1.5"
+            >
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin text-accent' : ''} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync Matches'}</span>
+            </Button>
+          ) : onOpenLinkedAccounts ? (
+            <Button
+              variant="secondary"
+              onClick={onOpenLinkedAccounts}
+              className="text-xs font-semibold flex items-center gap-1.5"
+            >
+              <Globe size={14} className="text-accent" />
+              <span>Link Accounts</span>
+            </Button>
+          ) : null}
+
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       </div>
 
       <div className="glass-panel border-none ring-1 ring-border-1/50 rounded-xl p-6 shadow-sm mb-6 animate-slide-up">
@@ -89,9 +115,11 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onR
             className="bg-surface-1 border border-border-1 rounded-lg p-2.5 text-content-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
           >
             <option value="all">All Sources</option>
-            <option value="local">Local Play</option>
+            <option value="chesscom">Chess.com</option>
+            <option value="lichess">Lichess</option>
             <option value="computer">Vs Computer</option>
-            <option value="import">Imported</option>
+            <option value="local">Local Play</option>
+            <option value="import">Imported PGN</option>
           </select>
 
           <select 
@@ -117,7 +145,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onR
           <div className="text-center py-16 bg-surface-1/50 rounded-lg border border-border-1 border-dashed">
             <BookOpen size={48} className="mx-auto text-content-3 mb-4" />
             <h3 className="text-xl font-bold text-content-1 mb-2">No games found</h3>
-            <p className="text-content-3">Play a game or import one to see it here.</p>
+            <p className="text-content-3">Play a game or link your Chess.com / Lichess account to see it here.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
@@ -127,9 +155,26 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onReview, onR
                 <div className="flex-1 min-w-0 w-full">
                   <div className="flex justify-between md:justify-start items-center gap-4 mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-content-3 bg-surface-3 px-2 py-1 rounded">
-                        {game.source}
+                      <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1 ${
+                        game.source === 'chesscom'
+                          ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/50'
+                          : game.source === 'lichess'
+                          ? 'bg-indigo-950/40 text-indigo-400 border border-indigo-800/50'
+                          : 'bg-surface-3 text-content-3'
+                      }`}>
+                        {game.source === 'chesscom' ? '♟ Chess.com' : game.source === 'lichess' ? '♞ Lichess' : game.source}
                       </span>
+                      {game.externalUrl && (
+                        <a 
+                          href={game.externalUrl} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="text-content-3 hover:text-accent transition-colors" 
+                          title={`View on ${game.source === 'chesscom' ? 'Chess.com' : 'Lichess'}`}
+                        >
+                          <ExternalLink size={13} />
+                        </a>
+                      )}
                       {game.syncStatus === 'synced' && (
                         <span className="text-success" title="Synced to cloud"><Cloud size={14} /></span>
                       )}

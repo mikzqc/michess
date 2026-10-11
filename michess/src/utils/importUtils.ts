@@ -11,6 +11,8 @@ export interface ImportedGameMeta {
   isValid: boolean;
   error?: string;
   pgn: string;
+  moveCount?: number;
+  startingFen?: string;
 }
 
 // Simple hash function for PGN if no ID is provided
@@ -48,6 +50,9 @@ export function parsePgnMetadata(pgn: string, providedId?: string): ImportedGame
     
     // Some headers might be undefined, fall back to "Unknown"
     const header = chess.header();
+    const historyMoves = chess.history();
+    const moveCount = historyMoves.length;
+    const startingFen = header['FEN'] || undefined;
     
     return {
       id: providedId || header['Link'] || header['Site'] || hashString(pgn),
@@ -58,7 +63,9 @@ export function parsePgnMetadata(pgn: string, providedId?: string): ImportedGame
       event: header['Event'] || 'Unknown',
       opening: header['ECO'] || header['Opening'] || 'Unknown',
       isValid: true,
-      pgn: pgn
+      pgn: pgn,
+      moveCount,
+      startingFen
     };
   } catch (err: any) {
     return {

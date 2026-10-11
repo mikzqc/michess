@@ -6,9 +6,12 @@ import {
   Target, 
   FileText, 
   Sparkles, 
-  ArrowLeft
+  ArrowLeft,
+  Globe,
+  RefreshCw
 } from 'lucide-react';
 import { useGameIntelligence } from '../../hooks/useGameIntelligence';
+import { useLinkedAccounts } from '../../hooks/useLinkedAccounts';
 import { IntelligenceDashboard } from './IntelligenceDashboard';
 import { WeaknessReportView } from './WeaknessReportView';
 import { RecurringMistakesView } from './RecurringMistakesView';
@@ -17,6 +20,7 @@ import { AnalyzedGamesView } from './AnalyzedGamesView';
 import { InsufficientDataCard } from './InsufficientDataCard';
 import { BatchAnalysisProgress } from './BatchAnalysisProgress';
 import { MistakeTrainerModal } from './MistakeTrainerModal';
+import { LinkedAccountsModal } from '../linkedAccounts/LinkedAccountsModal';
 import type { DetectedMistake } from '../../types/intelligence';
 import { Button } from '../ui/Button';
 
@@ -54,8 +58,12 @@ export const GameIntelligencePage: React.FC<GameIntelligencePageProps> = ({
     isInsufficientData
   } = useGameIntelligence();
 
+  const { config: linkedConfig, isSyncing: isSyncingLinked, syncGames: syncLinkedGames } = useLinkedAccounts();
+  const [showLinkedModal, setShowLinkedModal] = useState(false);
   const [activeTab, setActiveTab] = useState<IntelligenceTab>('dashboard');
   const [activeMistakeToTrain, setActiveMistakeToTrain] = useState<DetectedMistake | null>(null);
+
+  const isAccountsLinked = !!(linkedConfig.chesscomUsername || linkedConfig.lichessUsername);
 
   return (
     <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 max-w-7xl mx-auto w-full space-y-6">
@@ -80,8 +88,42 @@ export const GameIntelligencePage: React.FC<GameIntelligencePageProps> = ({
           </div>
         </div>
 
-        {/* Action Controls: Batch Analysis & Filters */}
+        {/* Action Controls: Batch Analysis, Account Sync & Filters */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Linked accounts sync button */}
+          {isAccountsLinked ? (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => syncLinkedGames({ showToast: true })}
+                disabled={isSyncingLinked}
+                className="text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                title="Sync recent matches from Chess.com and Lichess"
+              >
+                <RefreshCw size={13} className={isSyncingLinked ? 'animate-spin text-accent' : ''} />
+                <span>{isSyncingLinked ? 'Syncing...' : 'Sync Matches'}</span>
+              </Button>
+              <button
+                onClick={() => setShowLinkedModal(true)}
+                className="p-2 rounded-xl bg-surface-2 hover:bg-surface-3 border border-border-1 text-content-3 hover:text-content-1 transition-colors cursor-pointer"
+                title="Manage Linked Accounts"
+              >
+                <Globe size={15} />
+              </button>
+            </div>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowLinkedModal(true)}
+              className="text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            >
+              <Globe size={14} className="text-accent" />
+              <span>Link Accounts</span>
+            </Button>
+          )}
+
           {/* Color filter */}
           <div className="flex items-center bg-surface-2 border border-border-1 rounded-xl p-1 text-xs">
             {(['all', 'white', 'black'] as const).map(c => (
@@ -205,6 +247,7 @@ export const GameIntelligencePage: React.FC<GameIntelligencePageProps> = ({
               onOpenReview={onOpenReview}
               onAnalyzeGame={(g) => analyzeGame(g)}
               isAnalyzingBatch={isAnalyzingBatch}
+              onOpenLinkedAccounts={() => setShowLinkedModal(true)}
             />
           )}
         </>
@@ -217,6 +260,13 @@ export const GameIntelligencePage: React.FC<GameIntelligencePageProps> = ({
           mistakesList={summary.recurringMistakes}
           onClose={() => setActiveMistakeToTrain(null)}
           onSelectMistake={setActiveMistakeToTrain}
+        />
+      )}
+
+      {/* 6. Linked Accounts Modal */}
+      {showLinkedModal && (
+        <LinkedAccountsModal
+          onClose={() => setShowLinkedModal(false)}
         />
       )}
     </div>

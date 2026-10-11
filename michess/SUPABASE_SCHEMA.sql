@@ -1921,3 +1921,9 @@ DROP POLICY IF EXISTS "Users can delete own analyses" ON public.game_analyses;
 CREATE POLICY "Users can delete own analyses" ON public.game_analyses
     FOR DELETE USING (auth.uid() = user_id);
 
+-- 15. Linked Accounts (Chess.com & Lichess Profile Integration)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS chesscom_username TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS lichess_username TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS sync_external_games BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_external_sync TIMESTAMP WITH TIME ZONE;
+

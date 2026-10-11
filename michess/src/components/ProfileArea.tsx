@@ -6,15 +6,17 @@ import { User, Save, Clock, LogOut, ArrowLeft, ShieldCheck, Mail, Upload } from 
 import { supabase } from '../services/supabase';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { LinkedAccountsCard } from './linkedAccounts/LinkedAccountsCard';
 
 interface ProfileAreaProps {
   onExit: () => void;
   onViewProfile?: (username: string) => void;
   onProfileUpdate?: () => void;
   onRequireAuth?: () => void;
+  onOpenIntelligence?: () => void;
 }
 
-export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile, onProfileUpdate, onRequireAuth }) => {
+export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile, onProfileUpdate, onRequireAuth, onOpenIntelligence }) => {
   const { user } = useAuth();
   const { profile, loading, updateUsername, uploadAvatar } = useProfile();
   const { addToast } = useToast();
@@ -286,6 +288,10 @@ export const ProfileArea: React.FC<ProfileAreaProps> = ({ onExit, onViewProfile,
               </div>
             </div>
             
+            <div className="pt-2">
+              <LinkedAccountsCard onOpenIntelligence={onOpenIntelligence} />
+            </div>
+
             <h2 className="text-xl font-bold text-content-1 mt-6 mb-2">Account</h2>
             <div className="flex justify-between items-center p-4 bg-surface-3 rounded-lg border border-border-1">
               <div className="flex items-center gap-3">

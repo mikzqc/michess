@@ -38,6 +38,7 @@ import { AdminArea } from './components/admin/AdminArea';
 import { AccountRestrictionBanner } from './components/AccountRestrictionBanner';
 import { BannedLockScreen } from './components/BannedLockScreen';
 import { GameIntelligencePage } from './components/intelligence/GameIntelligencePage';
+import { LinkedAccountsModal } from './components/linkedAccounts/LinkedAccountsModal';
 import { BookOpen, MessageSquare, Shield, Brain } from 'lucide-react';
 import heroImage from './assets/hero.png';
 
@@ -61,6 +62,7 @@ function App() {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showFriendsChat, setShowFriendsChat] = useState(false);
   const [chatActiveFriendId, setChatActiveFriendId] = useState<string | null>(null);
+  const [showLinkedAccountsModal, setShowLinkedAccountsModal] = useState(false);
   const { totalUnreadCount } = useDirectChat();
   const { addToast } = useToast();
   const { profile, loading: profileLoading, refreshProfile } = useProfile();
@@ -869,6 +871,7 @@ function App() {
             onClear={clearHistory}
             onClose={() => handleSetView('home')}
             onViewProfile={handleViewProfile}
+            onOpenLinkedAccounts={() => setShowLinkedAccountsModal(true)}
           />
         )}
 
@@ -896,6 +899,7 @@ function App() {
             onViewProfile={handleViewProfile}
             onProfileUpdate={refreshProfile}
             onRequireAuth={() => setShowAuth(true)}
+            onOpenIntelligence={() => handleSetView('intelligence')}
           />
         )}
 
@@ -975,6 +979,12 @@ function App() {
       </main>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showLinkedAccountsModal && (
+        <LinkedAccountsModal 
+          onClose={() => setShowLinkedAccountsModal(false)} 
+          onOpenIntelligence={() => handleSetView('intelligence')}
+        />
+      )}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       {showResetPassword && <ResetPasswordModal onClose={() => setShowResetPassword(false)} />}
       {user && profile && (!profile.games_played || profile.games_played === 0) && (!profile.highest_rating && !profile.rating_bullet && !profile.rating_blitz) && !localStorage.getItem('skill_modal_' + user.id) && !skillModalDismissed && (

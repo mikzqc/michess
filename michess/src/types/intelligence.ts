@@ -1,4 +1,5 @@
 import type { MoveClassificationType } from './classification';
+import type { GameSource } from './history';
 
 export type GamePhase = 'opening' | 'middlegame' | 'endgame';
 
@@ -51,7 +52,7 @@ export interface GameIntelligenceAnalysis {
   opponent: string;
   userColor: 'w' | 'b';
   result: 'win' | 'loss' | 'draw' | '*';
-  source: 'local' | 'computer' | 'import';
+  source: GameSource;
   opening?: {
     name: string;
     eco: string;

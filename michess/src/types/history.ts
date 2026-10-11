@@ -1,3 +1,5 @@
+export type GameSource = 'local' | 'computer' | 'import' | 'chesscom' | 'lichess';
+
 export interface HistoryGame {
   id: string;
   pgn: string;
@@ -8,7 +10,7 @@ export interface HistoryGame {
   event?: string;
   opening?: string;
   startingFen?: string;
-  source: 'local' | 'computer' | 'import';
+  source: GameSource;
   timestamp: number;
   reviewed: boolean;
   whiteAccuracy?: number;
@@ -18,4 +20,5 @@ export interface HistoryGame {
   classifications?: Record<string, number>;
   syncStatus?: 'synced' | 'pending' | 'local';
   cloudId?: string; // The UUID from Supabase
+  externalUrl?: string;
 }

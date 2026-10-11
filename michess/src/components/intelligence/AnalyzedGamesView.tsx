@@ -2,7 +2,8 @@ import React from 'react';
 import { 
   Clock, 
   Sparkles, 
-  Eye
+  Eye,
+  Globe
 } from 'lucide-react';
 import type { GameIntelligenceAnalysis } from '../../types/intelligence';
 import type { HistoryGame } from '../../types/history';
@@ -13,6 +14,7 @@ interface AnalyzedGamesViewProps {
   onOpenReview: (pgn: string) => void;
   onAnalyzeGame: (game: HistoryGame) => void;
   isAnalyzingBatch: boolean;
+  onOpenLinkedAccounts?: () => void;
 }
 
 export const AnalyzedGamesView: React.FC<AnalyzedGamesViewProps> = ({
@@ -20,20 +22,33 @@ export const AnalyzedGamesView: React.FC<AnalyzedGamesViewProps> = ({
   allHistoryGames,
   onOpenReview,
   onAnalyzeGame,
-  isAnalyzingBatch
+  isAnalyzingBatch,
+  onOpenLinkedAccounts
 }) => {
   const analyzedMap = new Map<string, GameIntelligenceAnalysis>();
   analyses.forEach(a => analyzedMap.set(a.gameId, a));
 
   return (
     <div className="space-y-6">
-      <div className="bg-surface-2 border border-border-1 rounded-2xl p-5 sm:p-6 shadow-sm">
-        <h3 className="text-base sm:text-lg font-bold text-content-1 mb-1">
-          Games & Move-by-Move Evaluations
-        </h3>
-        <p className="text-xs text-content-3">
-          Every game evaluated with Stockfish. Open any game in full interactive review to explore engine alternatives and the full evaluation graph.
-        </p>
+      <div className="bg-surface-2 border border-border-1 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-base sm:text-lg font-bold text-content-1 mb-1">
+            Games & Move-by-Move Evaluations
+          </h3>
+          <p className="text-xs text-content-3">
+            Every game evaluated with Stockfish. Open any game in full interactive review to explore engine alternatives and the full evaluation graph.
+          </p>
+        </div>
+
+        {onOpenLinkedAccounts && (
+          <button
+            onClick={onOpenLinkedAccounts}
+            className="px-3.5 py-2 rounded-xl bg-surface-3 hover:bg-surface-3/80 text-content-1 text-xs font-semibold transition-colors border border-border-1 cursor-pointer flex items-center gap-2 shrink-0 self-start sm:self-center"
+          >
+            <Globe size={14} className="text-accent" />
+            <span>Link Chess.com / Lichess</span>
+          </button>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -58,6 +73,15 @@ export const AnalyzedGamesView: React.FC<AnalyzedGamesViewProps> = ({
                     </span>
                     <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-surface-3 text-content-2">
                       {game.result}
+                    </span>
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                      game.source === 'chesscom'
+                        ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-800/60'
+                        : game.source === 'lichess'
+                        ? 'bg-indigo-950/50 text-indigo-400 border border-indigo-800/60'
+                        : 'bg-surface-3 text-content-3'
+                    }`}>
+                      {game.source === 'chesscom' ? '♟ Chess.com' : game.source === 'lichess' ? '♞ Lichess' : game.source}
                     </span>
                     <span className="text-[11px] text-content-3 font-mono">
                       {game.date}

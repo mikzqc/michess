@@ -32,7 +32,7 @@ export function useGameIntelligence() {
   const [analyses, setAnalyses] = useState<GameIntelligenceAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [colorFilter, setColorFilter] = useState<'all' | 'white' | 'black'>('all');
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'computer' | 'local' | 'import'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'computer' | 'local' | 'import' | 'chesscom' | 'lichess'>('all');
 
   // Batch analysis state
   const [isAnalyzingBatch, setIsAnalyzingBatch] = useState(false);
@@ -118,10 +118,33 @@ export function useGameIntelligence() {
 
   // Determine user's color in a game
   const detectUserColor = useCallback((game: HistoryGame): 'w' | 'b' => {
-    const currentUsername = profile?.username?.trim().toLowerCase();
+    let chesscomUser = profile?.chesscom_username?.trim().toLowerCase();
+    let lichessUser = profile?.lichess_username?.trim().toLowerCase();
+    if (!chesscomUser || !lichessUser) {
+      try {
+        const stored = localStorage.getItem('michess_linked_accounts_v1');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (!chesscomUser) chesscomUser = parsed.chesscomUsername?.trim().toLowerCase();
+          if (!lichessUser) lichessUser = parsed.lichessUsername?.trim().toLowerCase();
+        }
+      } catch {}
+    }
+
     const whiteLower = game.white?.trim().toLowerCase();
     const blackLower = game.black?.trim().toLowerCase();
 
+    // Check external platform usernames first
+    if (game.source === 'chesscom' && chesscomUser) {
+      if (whiteLower === chesscomUser) return 'w';
+      if (blackLower === chesscomUser) return 'b';
+    }
+    if (game.source === 'lichess' && lichessUser) {
+      if (whiteLower === lichessUser) return 'w';
+      if (blackLower === lichessUser) return 'b';
+    }
+
+    const currentUsername = profile?.username?.trim().toLowerCase();
     if (currentUsername) {
       if (whiteLower === currentUsername) return 'w';
       if (blackLower === currentUsername) return 'b';
@@ -136,7 +159,7 @@ export function useGameIntelligence() {
 
     // Default to White
     return 'w';
-  }, [profile?.username]);
+  }, [profile?.username, profile?.chesscom_username, profile?.lichess_username]);
 
   // Determine game result from user's perspective
   const detectUserResult = useCallback((game: HistoryGame, userColor: 'w' | 'b'): 'win' | 'loss' | 'draw' | '*' => {

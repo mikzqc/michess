@@ -11,6 +11,7 @@ import { Button } from './ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../services/supabase';
 import { useToast } from './Toast';
+import { LinkedAccountsCard } from './linkedAccounts/LinkedAccountsCard';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -310,6 +311,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
               )}
             </Button>
           </div>
+        </div>
+
+        <div className="flex flex-col gap-2 pt-2">
+          <LinkedAccountsCard compact />
         </div>
 
         {user && (
