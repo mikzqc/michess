@@ -121,14 +121,15 @@ export default async function handler(req: any, res: any) {
     // Adaptive fallback from clean text if model output conversational explanation
     const cleanPlain = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```[\s\S]*?```/gi, '').trim();
     if (cleanPlain.length >= 20) {
-      const firstPeriod = cleanPlain.indexOf('.');
-      const firstSentence = firstPeriod !== -1 ? cleanPlain.slice(0, firstPeriod + 1).trim() : cleanPlain.slice(0, 150).trim();
+      const cleanHeader = cleanPlain.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').trim();
+      const firstLine = cleanHeader.split('\n').filter(Boolean)[0] || '';
+      const summary = firstLine.length >= 10 && firstLine.length <= 160 ? firstLine : cleanHeader.slice(0, 140).trim();
       return {
-        summary: firstSentence,
-        move_purpose: cleanPlain.length > firstSentence.length ? cleanPlain.slice(firstSentence.length).trim() : 'Controls key squares and coordinates pieces.',
+        summary,
+        move_purpose: 'Controls key squares, opens lines for piece development, and improves coordination.',
         tactical_consequences: 'Maintains active tactical piece coordination.',
-        opponent_threat: 'The opponent will seek counterplay in the center.',
-        lesson: 'Look for active, purposeful moves over passive waiting moves.'
+        opponent_threat: 'The opponent will seek central counterplay.',
+        lesson: 'Look for purposeful moves that activate pieces and control key squares.'
       };
     }
 
