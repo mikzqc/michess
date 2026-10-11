@@ -199,12 +199,7 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
   }, [mistake.bestMove, mistake.fenBefore]);
 
   const handleToggleHint = () => {
-    const next = !showHint;
-    setShowHint(next);
-    if (next && mistake.bestMove && mistake.bestMove.length >= 2) {
-      const from = mistake.bestMove.slice(0, 2);
-      highlightSquareClick(from);
-    }
+    setShowHint(prev => !prev);
   };
 
   const arrows: any[] = useMemo(() => {
@@ -215,15 +210,8 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
         color: 'rgba(34, 197, 94, 0.9)'
       }];
     }
-    if (showHint && mistake.bestMove && mistake.bestMove.length >= 4) {
-      return [{
-        startSquare: mistake.bestMove.slice(0, 2),
-        endSquare: mistake.bestMove.slice(2, 4),
-        color: 'rgba(245, 158, 11, 0.9)'
-      }];
-    }
     return [];
-  }, [showSolution, showHint, mistake.bestMove]);
+  }, [showSolution, mistake.bestMove]);
 
   const combinedSquareStyles = useMemo(() => {
     const styles = { ...squareStyles };
@@ -343,7 +331,7 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
                 <div>
                   <p className="font-bold">Move Hint</p>
                   <p className="mt-0.5 text-amber-200/90 leading-relaxed">
-                    Look for the winning continuation with your <span className="font-bold text-amber-300">{hintPieceInfo.name}</span> on <span className="font-mono font-bold text-amber-300">{hintPieceInfo.from}</span> (highlighted in gold with legal move dots).
+                    Look for the winning move with your <span className="font-bold text-amber-300">{hintPieceInfo.name}</span> on <span className="font-mono font-bold text-amber-300">{hintPieceInfo.from}</span> (highlighted in gold).
                   </p>
                 </div>
               </div>
