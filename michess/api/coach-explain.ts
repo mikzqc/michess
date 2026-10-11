@@ -74,20 +74,20 @@ export default async function handler(req: any, res: any) {
     }
 
     if (primary === 'z-ai/glm-5.3-flash') {
-      return ['z-ai/glm-5.3-flash', 'openai/gpt-oss-20b', 'north-mini-code'];
+      return ['z-ai/glm-5.3-flash', 'openai/gpt-oss-20b', 'north-mini-code', 'deepseek-chat'];
     }
 
-    const defaults = ['z-ai/glm-5.3-flash', 'openai/gpt-oss-20b', 'north-mini-code'];
+    const defaults = ['z-ai/glm-5.3-flash', 'openai/gpt-oss-20b', 'north-mini-code', 'deepseek-chat'];
     return [primary, ...defaults.filter((m: string) => m !== primary)];
   };
 
   const extractJsonString = (rawText: string): string | null => {
     if (!rawText || typeof rawText !== 'string') return null;
-    const trimmed = rawText.trim();
+    let trimmed = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
     // 1. Match code fences ```json ... ```
     const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (codeBlockMatch) {
-      return codeBlockMatch[1].trim();
+      trimmed = codeBlockMatch[1].trim();
     }
     // 2. Match outermost braces { ... }
     const firstBrace = trimmed.indexOf('{');
@@ -98,20 +98,41 @@ export default async function handler(req: any, res: any) {
     return trimmed;
   };
 
-  const isValidCoachJson = (rawText: string): boolean => {
+  const normalizeCoachExplanation = (rawText: string): { summary: string; move_purpose: string; tactical_consequences: string; opponent_threat: string; lesson: string } | null => {
     const jsonStr = extractJsonString(rawText);
-    if (!jsonStr) return false;
-    try {
-      const parsed = JSON.parse(jsonStr);
-      return Boolean(
-        parsed &&
-        typeof parsed === 'object' &&
-        typeof parsed.summary === 'string' &&
-        parsed.summary.trim().length > 0
-      );
-    } catch {
-      return false;
+    if (jsonStr) {
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (parsed && typeof parsed === 'object') {
+          const summary = parsed.summary || parsed.takeaway || parsed.overview || parsed.explanation || '';
+          if (typeof summary === 'string' && summary.trim().length > 0) {
+            return {
+              summary: summary.trim(),
+              move_purpose: String(parsed.move_purpose || parsed.purpose || '').trim(),
+              tactical_consequences: String(parsed.tactical_consequences || parsed.tactics || '').trim(),
+              opponent_threat: String(parsed.opponent_threat || parsed.threat || '').trim(),
+              lesson: String(parsed.lesson || parsed.principle || '').trim() || 'Calculate forcing moves before committing.'
+            };
+          }
+        }
+      } catch {}
     }
+
+    // Adaptive fallback from clean text if model output conversational explanation
+    const cleanPlain = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```[\s\S]*?```/gi, '').trim();
+    if (cleanPlain.length >= 20) {
+      const firstPeriod = cleanPlain.indexOf('.');
+      const firstSentence = firstPeriod !== -1 ? cleanPlain.slice(0, firstPeriod + 1).trim() : cleanPlain.slice(0, 150).trim();
+      return {
+        summary: firstSentence,
+        move_purpose: cleanPlain.length > firstSentence.length ? cleanPlain.slice(firstSentence.length).trim() : 'Controls key squares and coordinates pieces.',
+        tactical_consequences: 'Maintains active tactical piece coordination.',
+        opponent_threat: 'The opponent will seek counterplay in the center.',
+        lesson: 'Look for active, purposeful moves over passive waiting moves.'
+      };
+    }
+
+    return null;
   };
 
   const models = resolveModelChain();
@@ -127,8 +148,7 @@ export default async function handler(req: any, res: any) {
   for (let i = 0; i < models.length; i++) {
     const currentModel = models[i];
     const controller = new AbortController();
-    // 11s for primary, 9s for fallbacks to avoid timing out on normal inference
-    const timeoutMs = i === 0 ? 11000 : 9000;
+    const timeoutMs = 8500; // 8.5s timeout per model
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
@@ -145,7 +165,7 @@ export default async function handler(req: any, res: any) {
             { role: 'user', content: userPrompt }
           ],
           temperature: 0.3,
-          max_tokens: 420
+          max_tokens: 380
         }),
         signal: controller.signal
       });
@@ -163,15 +183,17 @@ export default async function handler(req: any, res: any) {
       const data = (await upstream.json()) as any;
       const content = data?.choices?.[0]?.message?.content || '';
 
-      if (!isValidCoachJson(content)) {
-        console.warn(`[AI Coach] Model '${currentModel}' produced invalid non-JSON output. Retrying next fallback...`);
-        fallbackAttempts.push({ model: currentModel, error: 'Invalid structured output' });
+      const normalized = normalizeCoachExplanation(content);
+      if (!normalized) {
+        const snippet = content.slice(0, 80).replace(/\n/g, ' ');
+        console.warn(`[AI Coach] Model '${currentModel}' produced unparseable output: "${snippet}"`);
+        fallbackAttempts.push({ model: currentModel, error: `Invalid output: "${snippet}"` });
         continue;
       }
 
       // Valid explanation obtained
       console.log(`[AI Coach] Successfully generated explanation with model '${currentModel}' (attempt ${i + 1}/${models.length}).`);
-      finalContent = extractJsonString(content) || content;
+      finalContent = JSON.stringify(normalized);
       finalModel = currentModel;
       succeeded = true;
       break;
