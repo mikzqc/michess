@@ -27,7 +27,11 @@ class CoachService {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          parsed.forEach(([key, val]) => this.cache.set(key, val));
+          parsed.forEach(([key, val]) => {
+            if (val && !val.fallback) {
+              this.cache.set(key, val);
+            }
+          });
         }
       }
     } catch (e) {
@@ -53,7 +57,8 @@ class CoachService {
    */
   public getCachedExplanation(evidence: CoachMoveEvidence): CoachExplanation | null {
     const key = this.getCacheKey(evidence);
-    return this.cache.get(key) || null;
+    const cached = this.cache.get(key);
+    return (cached && !cached.fallback) ? cached : null;
   }
 
   /**
@@ -75,7 +80,7 @@ class CoachService {
 
     if (!options?.forceRefresh) {
       const cached = this.cache.get(key);
-      if (cached) {
+      if (cached && !cached.fallback) {
         return { ...cached, cached: true };
       }
     }
@@ -166,9 +171,7 @@ class CoachService {
       fallback.fallbackAttempts = fallbackAttempts;
       fallback.apiError = apiError || undefined;
 
-      // Cache fallback so subsequent views of this move don't hammer an unconfigured endpoint
-      this.cache.set(key, fallback);
-      this.persistCache();
+      // Return reliable deterministic fallback without persisting it to localStorage
       return fallback;
     })();
 

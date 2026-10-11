@@ -378,6 +378,13 @@ export const CoachPanel: React.FC<CoachPanelProps> = ({
                     : 'Deterministic Stockfish analysis active. Configure TOKENREPLY_API_KEY for dynamic LLM coaching.'}
                 </span>
               </div>
+              <button
+                onClick={() => currentEvidence && fetchExplanation(currentEvidence, true)}
+                className="px-2 py-1 rounded-md bg-accent/20 hover:bg-accent/30 text-accent font-semibold text-[10px] cursor-pointer shrink-0 transition-colors"
+                title="Retry AI generation"
+              >
+                Retry
+              </button>
             </div>
           ) : (
             <div className="flex items-center justify-between text-[10px] text-content-3 font-mono px-1">
