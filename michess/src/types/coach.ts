@@ -57,6 +57,7 @@ export interface CoachExplanation {
   generatedAt: number;
   fallback?: boolean;
   fallbackAttempts?: FallbackAttempt[];
+  apiError?: string;
 }
 
 export interface CoachRequestPayload {

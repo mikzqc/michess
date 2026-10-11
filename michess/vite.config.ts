@@ -7,10 +7,23 @@ function tokenReplyCoachPlugin(): Plugin {
     name: 'tokenreply-coach-dev-middleware',
     configureServer(server) {
       server.middlewares.use('/api/coach-explain', async (req, res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+
+        if (req.method === 'OPTIONS') {
+          res.statusCode = 200;
+          res.end();
+          return;
+        }
+
         if (req.method !== 'POST') {
-          res.statusCode = 405;
+          res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          res.end(JSON.stringify({ 
+            info: 'Michess AI Coach endpoint is ready. Send POST requests with move evidence.',
+            status: 'online'
+          }));
           return;
         }
 

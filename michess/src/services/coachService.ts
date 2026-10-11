@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import type { CoachMoveEvidence, CoachExplanation } from '../types/coach';
 import { buildCoachPrompt, validateCoachResponse, generateFallbackCoachExplanation } from '../utils/coachPrompt';
 
-const COACH_CACHE_KEY = 'michess_coach_cache_v1';
+const COACH_CACHE_KEY = 'michess_coach_cache_v2';
 const MAX_CACHE_ENTRIES = 200;
 
 class CoachService {
@@ -20,6 +20,9 @@ class CoachService {
 
   private loadCache(): void {
     try {
+      // Invalidate legacy v1 cache with old error strings
+      localStorage.removeItem('michess_coach_cache_v1');
+
       const stored = localStorage.getItem(COACH_CACHE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -161,9 +164,7 @@ class CoachService {
       const fallback = generateFallbackCoachExplanation(evidence, apiError || undefined);
       fallback.model = modelUsed;
       fallback.fallbackAttempts = fallbackAttempts;
-      if (apiError) {
-        fallback.summary += ` (AI Coach Note: ${apiError})`;
-      }
+      fallback.apiError = apiError || undefined;
 
       // Cache fallback so subsequent views of this move don't hammer an unconfigured endpoint
       this.cache.set(key, fallback);
