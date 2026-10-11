@@ -4,6 +4,7 @@ import { Chessboard } from 'react-chessboard';
 import { X, CheckCircle2, AlertCircle, RotateCcw, Lightbulb, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import type { DetectedMistake } from '../../types/intelligence';
 import { useSettings } from '../../hooks/useSettings';
+import { useBoardHighlights } from '../../hooks/useBoardHighlights';
 import { BOARD_THEMES, getCustomPieces } from '../../utils/themes';
 import { Button } from '../ui/Button';
 
@@ -21,7 +22,7 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
   onSelectMistake
 }) => {
   const { settings } = useSettings();
-  const [, setChess] = useState(() => new Chess(mistake.fenBefore));
+  const [chessInstance, setChessInstance] = useState(() => new Chess(mistake.fenBefore));
   const [fen, setFen] = useState(mistake.fenBefore);
   const [status, setStatus] = useState<'attempting' | 'solved' | 'failed'>('attempting');
   const [feedback, setFeedback] = useState<string>('');
@@ -31,15 +32,29 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
   const activeTheme = BOARD_THEMES[settings.boardTheme] || BOARD_THEMES.slate;
   const boardOrientation = mistake.color === 'w' ? 'white' : 'black';
 
+  const {
+    squareStyles,
+    handlePieceDrag,
+    handlePieceDropEnd,
+    handleSquareClick: highlightSquareClick,
+    clearSelection
+  } = useBoardHighlights({
+    game: chessInstance,
+    history: chessInstance.history({ verbose: true }) as any,
+    playerColor: mistake.color === 'w' ? 'white' : 'black',
+    showLegalMoves: settings.showLegalMoves !== false
+  });
+
   // Reset when mistake changes
   useEffect(() => {
     const c = new Chess(mistake.fenBefore);
-    setChess(c);
+    setChessInstance(c);
     setFen(mistake.fenBefore);
     setStatus('attempting');
     setFeedback('');
     setShowHint(false);
     setShowSolution(false);
+    clearSelection();
   }, [mistake]);
 
   // Derive the SAN for the bestMove
@@ -59,53 +74,85 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
 
   const handleReset = () => {
     const c = new Chess(mistake.fenBefore);
-    setChess(c);
+    setChessInstance(c);
     setFen(mistake.fenBefore);
     setStatus('attempting');
     setFeedback('');
     setShowHint(false);
     setShowSolution(false);
+    clearSelection();
+  };
+
+  const executeAttempt = (from: string, to: string, promotionChoice?: string): boolean => {
+    if (status === 'solved') return false;
+    if (!to || from === to) return false;
+
+    try {
+      const testChess = new Chess(fen);
+      const piece = testChess.get(from as any);
+      if (!piece) return false;
+
+      const isPromotion = promotionChoice || (
+        piece.type === 'p' && (
+          (piece.color === 'w' && to[1] === '8') ||
+          (piece.color === 'b' && to[1] === '1')
+        ) ? 'q' : undefined
+      );
+
+      const move = testChess.move({
+        from,
+        to,
+        promotion: isPromotion
+      });
+
+      if (!move) return false;
+
+      const playedUci = `${from}${to}${isPromotion || ''}`;
+      const targetUci = mistake.bestMove || '';
+
+      // Check if user played the best move
+      const isCorrect = playedUci === targetUci || (targetUci.startsWith(from + to));
+
+      if (isCorrect) {
+        setChessInstance(testChess);
+        setFen(testChess.fen());
+        setStatus('solved');
+        setFeedback(`Outstanding! You found the winning continuation: ${move.san}.`);
+        clearSelection();
+        return true;
+      } else {
+        setStatus('failed');
+        setFeedback(`You played ${move.san}, which loses the advantage. Try again!`);
+        clearSelection();
+        return false;
+      }
+    } catch {
+      clearSelection();
+      return false;
+    }
   };
 
   const handlePieceDrop = (args: any) => {
+    handlePieceDropEnd();
     if (status === 'solved') return false;
     const sourceSquare = args?.sourceSquare;
     const targetSquare = args?.targetSquare;
     const piece = args?.piece;
     if (!targetSquare || sourceSquare === targetSquare) return false;
 
-    try {
-      const isPromotion = (piece === 'wP' && targetSquare[1] === '8') || (piece === 'bP' && targetSquare[1] === '1');
-      const promotionChoice = isPromotion ? 'q' : undefined;
+    const pieceStr = typeof piece === 'string' ? piece : piece?.pieceType;
+    const isPromotion = (pieceStr === 'wP' && targetSquare[1] === '8') || (pieceStr === 'bP' && targetSquare[1] === '1');
+    const promotionChoice = isPromotion ? 'q' : undefined;
 
-      const testChess = new Chess(fen);
-      const move = testChess.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: promotionChoice
-      });
+    return executeAttempt(sourceSquare, targetSquare, promotionChoice);
+  };
 
-      if (!move) return false;
+  const handleSquareClick = (square: string | null) => {
+    if (status === 'solved' || !square) return;
 
-      const playedUci = `${sourceSquare}${targetSquare}${promotionChoice || ''}`;
-      const targetUci = mistake.bestMove || '';
-
-      // Check if user played the best move
-      const isCorrect = playedUci === targetUci || (targetUci.startsWith(sourceSquare + targetSquare));
-
-      if (isCorrect) {
-        setChess(testChess);
-        setFen(testChess.fen());
-        setStatus('solved');
-        setFeedback(`Outstanding! You found the winning continuation: ${move.san}.`);
-        return true;
-      } else {
-        setStatus('failed');
-        setFeedback(`You played ${move.san}, which loses the advantage. Try again!`);
-        return false;
-      }
-    } catch {
-      return false;
+    const move = highlightSquareClick(square);
+    if (move) {
+      executeAttempt(move.from, move.to);
     }
   };
 
@@ -117,11 +164,12 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
       const to = mistake.bestMove.slice(2, 4);
       const promotion = mistake.bestMove.slice(4, 5) || undefined;
       c.move({ from, to, promotion });
-      setChess(c);
+      setChessInstance(c);
       setFen(c.fen());
       setShowSolution(true);
       setStatus('solved');
       setFeedback(`Engine solution: ${bestMoveSan}`);
+      clearSelection();
     } catch {}
   };
 
@@ -188,13 +236,23 @@ export const MistakeTrainerModal: React.FC<MistakeTrainerModalProps> = ({
                 options={{
                   id: "MistakeTrainerBoard",
                   position: fen,
-                  onPieceDrop: handlePieceDrop,
+                  showNotation: settings.showCoordinates,
+                  animationDurationInMs: settings.moveAnimations ? 200 : 0,
+                  pieces: getCustomPieces(settings.pieceSet),
                   boardOrientation: boardOrientation as any,
                   darkSquareStyle: { backgroundColor: activeTheme.dark },
                   lightSquareStyle: { backgroundColor: activeTheme.light },
-                  pieces: getCustomPieces(settings.pieceSet),
+                  darkSquareNotationStyle: { color: activeTheme.light },
+                  lightSquareNotationStyle: { color: activeTheme.dark },
                   arrows: arrows,
-                  animationDurationInMs: 200
+                  squareStyles: squareStyles,
+                  canDragPiece: () => status !== 'solved',
+                  onPieceDrop: handlePieceDrop,
+                  onPieceDrag: (args: any) => {
+                    if (status !== 'solved') handlePieceDrag(args);
+                  },
+                  onPieceDragCancel: handlePieceDropEnd,
+                  onSquareClick: (args: any) => handleSquareClick(args?.square)
                 }}
               />
             </div>

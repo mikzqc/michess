@@ -694,8 +694,8 @@ export function computeIntelligenceSummary(
     sumAcc += a.userAccuracy;
 
     for (const ph of ['opening', 'middlegame', 'endgame'] as GamePhase[]) {
-      const pm = a.phases[ph];
-      if (pm.moveCount > 0) {
+      const pm = a.phases?.[ph];
+      if (pm && pm.moveCount > 0) {
         phaseSums[ph].acc += pm.accuracy;
         phaseSums[ph].acpl += pm.acpl;
         phaseSums[ph].blunders += pm.blunders;
