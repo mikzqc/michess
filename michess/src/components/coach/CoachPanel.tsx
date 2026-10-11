@@ -17,6 +17,7 @@ import type { AnalyzedMove } from '../../types/review';
 import type { CoachExplanation, CoachMoveEvidence } from '../../types/coach';
 import { extractCoachMoveEvidence } from '../../utils/coachEvidence';
 import { coachService } from '../../services/coachService';
+import { cleanCoachTextField } from '../../utils/coachPrompt';
 import { MoveClassificationBadge } from '../MoveClassificationBadge';
 import { CLASSIFICATIONS } from '../../types/classification';
 import { Button } from '../ui/Button';
@@ -263,13 +264,13 @@ export const CoachPanel: React.FC<CoachPanelProps> = ({
                   <span className="text-content-3 font-normal">•</span>
                 </div>
               )}
-              <span className="text-content-2 font-medium">{explanation.summary}</span>
+              <span className="text-content-2 font-medium">{cleanCoachTextField(explanation.summary)}</span>
             </div>
 
             {explanation.move_purpose && (
               <p className="text-content-3 leading-relaxed mt-1 text-[11px]">
                 <span className="font-semibold text-content-2">Purpose: </span>
-                {explanation.move_purpose}
+                {cleanCoachTextField(explanation.move_purpose)}
               </p>
             )}
           </div>
@@ -284,7 +285,7 @@ export const CoachPanel: React.FC<CoachPanelProps> = ({
                   <span>Tactical Impact</span>
                 </span>
                 <p className="text-content-2 leading-relaxed text-[11px]">
-                  {explanation.tactical_consequences || 'Solid positioning preserving current dynamics.'}
+                  {cleanCoachTextField(explanation.tactical_consequences) || 'Solid positioning preserving current dynamics.'}
                 </p>
               </div>
             </div>
@@ -297,7 +298,7 @@ export const CoachPanel: React.FC<CoachPanelProps> = ({
                   <span>Opponent Threat / Reply</span>
                 </span>
                 <p className="text-content-2 leading-relaxed text-[11px]">
-                  {explanation.opponent_threat || 'Enemy counterplay is restricted.'}
+                  {cleanCoachTextField(explanation.opponent_threat) || 'Enemy counterplay is restricted.'}
                 </p>
               </div>
             </div>
@@ -320,7 +321,7 @@ export const CoachPanel: React.FC<CoachPanelProps> = ({
 
               {explanation.why_better && (
                 <p className="text-amber-200/90 leading-relaxed text-[11px]">
-                  {explanation.why_better}
+                  {cleanCoachTextField(explanation.why_better)}
                 </p>
               )}
 
@@ -361,7 +362,7 @@ export const CoachPanel: React.FC<CoachPanelProps> = ({
               <div>
                 <span className="font-bold block text-[11px] text-teal-200 uppercase tracking-wide">Coach Lesson</span>
                 <p className="text-teal-100/90 leading-relaxed text-[11px] mt-0.5">
-                  {explanation.lesson}
+                  {cleanCoachTextField(explanation.lesson)}
                 </p>
               </div>
             </div>

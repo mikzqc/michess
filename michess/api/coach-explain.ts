@@ -81,15 +81,45 @@ export default async function handler(req: any, res: any) {
     return [primary, ...defaults.filter((m: string) => m !== primary)];
   };
 
+  const extractRegexField = (key: string, text: string): string => {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"`, 'i'));
+    if (match) {
+      try {
+        return JSON.parse(`"${match[1]}"`).trim();
+      } catch {
+        return match[1].replace(/\\"/g, '"').trim();
+      }
+    }
+    const partialMatch = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"\\r\\n]+)(?:"|$|,)`, 'i'));
+    if (partialMatch && partialMatch[1].trim().length > 0) {
+      return partialMatch[1].replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+    }
+    return '';
+  };
+
+  const cleanTextField = (text?: string): string => {
+    if (!text || typeof text !== 'string') return '';
+    let clean = text.trim();
+    if (clean.startsWith('{') || clean.includes('"summary"')) {
+      const extracted = extractRegexField('summary', clean);
+      if (extracted) {
+        clean = extracted;
+      } else {
+        clean = clean.replace(/^[{\s]*"?[a-zA-Z0-9_-]+"?\s*:\s*"?/i, '')
+                     .replace(/"?\s*[,}].*$/s, '')
+                     .trim();
+      }
+    }
+    return clean.replace(/^"+|"+$/g, '').trim();
+  };
+
   const extractJsonString = (rawText: string): string | null => {
     if (!rawText || typeof rawText !== 'string') return null;
     let trimmed = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-    // 1. Match code fences ```json ... ```
     const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (codeBlockMatch) {
       trimmed = codeBlockMatch[1].trim();
     }
-    // 2. Match outermost braces { ... }
     const firstBrace = trimmed.indexOf('{');
     const lastBrace = trimmed.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -98,29 +128,49 @@ export default async function handler(req: any, res: any) {
     return trimmed;
   };
 
-  const normalizeCoachExplanation = (rawText: string): { summary: string; move_purpose: string; tactical_consequences: string; opponent_threat: string; lesson: string } | null => {
-    const jsonStr = extractJsonString(rawText);
+  const normalizeCoachExplanation = (rawText: string): { summary: string; move_purpose: string; tactical_consequences: string; opponent_threat: string; better_move?: string; why_better?: string; lesson: string } | null => {
+    if (!rawText || typeof rawText !== 'string') return null;
+    const cleaned = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+    // 1. Try standard JSON parse
+    const jsonStr = extractJsonString(cleaned);
     if (jsonStr) {
       try {
         const parsed = JSON.parse(jsonStr);
         if (parsed && typeof parsed === 'object') {
-          const summary = parsed.summary || parsed.takeaway || parsed.overview || parsed.explanation || '';
-          if (typeof summary === 'string' && summary.trim().length > 0) {
+          const summary = cleanTextField(parsed.summary || parsed.takeaway || parsed.verdict || parsed.explanation);
+          if (summary && summary.length >= 8) {
             return {
-              summary: summary.trim(),
-              move_purpose: String(parsed.move_purpose || parsed.purpose || '').trim(),
-              tactical_consequences: String(parsed.tactical_consequences || parsed.tactics || '').trim(),
-              opponent_threat: String(parsed.opponent_threat || parsed.threat || '').trim(),
-              lesson: String(parsed.lesson || parsed.principle || '').trim() || 'Calculate forcing moves before committing.'
+              summary,
+              move_purpose: cleanTextField(parsed.move_purpose || parsed.purpose),
+              tactical_consequences: cleanTextField(parsed.tactical_consequences || parsed.tactics),
+              opponent_threat: cleanTextField(parsed.opponent_threat || parsed.threat),
+              better_move: cleanTextField(parsed.better_move) || undefined,
+              why_better: cleanTextField(parsed.why_better) || undefined,
+              lesson: cleanTextField(parsed.lesson || parsed.principle) || 'Calculate forcing moves before committing.'
             };
           }
         }
       } catch {}
     }
 
-    // Adaptive fallback from clean text if model output conversational explanation
-    const cleanPlain = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```[\s\S]*?```/gi, '').trim();
-    if (cleanPlain.length >= 20) {
+    // 2. Resilient field-level regex extraction for partial or truncated model responses
+    const summaryRegex = cleanTextField(extractRegexField('summary', cleaned));
+    if (summaryRegex && summaryRegex.length >= 8) {
+      return {
+        summary: summaryRegex,
+        move_purpose: cleanTextField(extractRegexField('move_purpose', cleaned)),
+        tactical_consequences: cleanTextField(extractRegexField('tactical_consequences', cleaned)),
+        opponent_threat: cleanTextField(extractRegexField('opponent_threat', cleaned)),
+        better_move: cleanTextField(extractRegexField('better_move', cleaned)) || undefined,
+        why_better: cleanTextField(extractRegexField('why_better', cleaned)) || undefined,
+        lesson: cleanTextField(extractRegexField('lesson', cleaned)) || 'Calculate forcing moves before committing.'
+      };
+    }
+
+    // 3. Fallback from plain text ONLY if it is truly non-JSON human text (never if it contains raw JSON braces or keys)
+    const cleanPlain = cleaned.replace(/```[\s\S]*?```/gi, '').trim();
+    if (cleanPlain.length >= 20 && !cleanPlain.startsWith('{') && !cleanPlain.includes('"summary"')) {
       const cleanHeader = cleanPlain.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').trim();
       const firstLine = cleanHeader.split('\n').filter(Boolean)[0] || '';
       const summary = firstLine.length >= 10 && firstLine.length <= 160 ? firstLine : cleanHeader.slice(0, 140).trim();
@@ -149,7 +199,7 @@ export default async function handler(req: any, res: any) {
   for (let i = 0; i < models.length; i++) {
     const currentModel = models[i];
     const controller = new AbortController();
-    const timeoutMs = 8500; // 8.5s timeout per model
+    const timeoutMs = 10000; // 10s timeout per model
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
@@ -166,7 +216,7 @@ export default async function handler(req: any, res: any) {
             { role: 'user', content: userPrompt }
           ],
           temperature: 0.3,
-          max_tokens: 380
+          max_tokens: 600
         }),
         signal: controller.signal
       });

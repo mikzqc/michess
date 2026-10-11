@@ -54,23 +54,22 @@ describe('Michess AI Chess Coach System', () => {
     const evalBeforeStr = formatEvalScore(evidence.evalBefore?.score);
     const evalAfterStr = formatEvalScore(evidence.evalAfter?.score);
 
-    const system = `You are a world-class, encouraging AI Chess Coach analyzing a move in a game.
-You explain chess clearly and accurately for beginner and intermediate players.
+    const system = `You are a world-class, encouraging Grandmaster Chess Coach analyzing a move in a game for an improving student.
+Explain the chess clearly, accurately, and with crisp conciseness.
 
-CRITICAL INSTRUCTIONS:
-1. Stockfish engine analysis and chess.js are the absolute source of truth.
-2. Use ONLY the supplied verified chess facts. NEVER fabricate attacks, pins, forks, mate threats, or evaluations not supported by the evidence.
-3. If the strategic purpose of a quiet move is uncertain, explain observable positional consequences (development, center control, king safety, open files).
-4. Always distinguish between verified tactical facts and strategic interpretation.
-5. You MUST return ONLY a valid, parseable JSON object matching this exact schema:
+STRICT OUTPUT CONSTRAINTS:
+1. Output ONLY a valid JSON object. No markdown fences, no preambles, no commentary, no <think> tags.
+2. Keep EVERY field brief: 1 to 2 short sentences per field (maximum 25 words per field).
+3. Ground truth: Stockfish engine analysis and chess.js are the absolute source of truth. NEVER fabricate attacks, pins, forks, mate threats, or evaluations not in the evidence.
+4. Schema:
 {
-  "summary": "1-2 sentence takeaway of the move.",
-  "move_purpose": "Why this move was played and what it aims to achieve.",
-  "tactical_consequences": "Concrete tactical changes (captures, checks, hanging pieces, defenses).",
-  "opponent_threat": "What the opponent is threatening or how they can best respond.",
-  "better_move": "Best move recommended by the engine, or empty if this move is already best.",
-  "why_better": "Why the engine alternative is stronger, or empty if not applicable.",
-  "lesson": "A memorable practical chess principle the student can apply in future games."
+  "summary": "Crisp 1-sentence verdict on move quality and main consequence. (Max 20 words)",
+  "move_purpose": "1 short sentence explaining the player's primary positional or tactical goal. (Max 20 words)",
+  "tactical_consequences": "1 short sentence on concrete tactical impact (checks, captures, piece safety, opened lines). (Max 20 words)",
+  "opponent_threat": "1 short sentence on the opponent's best reply or counterplay. (Max 20 words)",
+  "better_move": "Best move in SAN notation if one is recommended, or empty string if played move was optimal.",
+  "why_better": "1 short sentence explaining why the alternative is superior, or empty string if not applicable. (Max 20 words)",
+  "lesson": "1 memorable general chess principle the student should apply. (Max 15 words)"
 }`;
 
     const user = `Analyze this move using the verified evidence:
@@ -89,21 +88,53 @@ Engine Evaluation:
 - Engine Best Move: ${evidence.bestMoveSan || evidence.bestMove || 'None'}
 - Principal Variation (PV): ${evidence.pv || 'None'}
 
-Verified Tactical Facts:
+Verified Facts:
 - Check: ${evidence.tacticalFacts.isCheck ? 'Yes' : 'No'}
 - Checkmate: ${evidence.tacticalFacts.isCheckmate ? 'Yes' : 'No'}
-- Capture: ${evidence.tacticalFacts.isCapture ? `Yes (captured ${evidence.tacticalFacts.capturedPiece || 'piece'})` : 'No'}
+- Capture: ${evidence.tacticalFacts.isCapture ? `Yes (${evidence.tacticalFacts.capturedPiece || 'piece'})` : 'No'}
 - Castling: ${evidence.tacticalFacts.isCastling ? 'Yes' : 'No'}
-- Promotion: ${evidence.tacticalFacts.isPromotion ? 'Yes' : 'No'}`;
+- Promotion: ${evidence.tacticalFacts.isPromotion ? `Yes (${evidence.tacticalFacts.promotedTo})` : 'No'}`;
 
     return { system, user };
+  }
+
+  function extractRegexField(key, text) {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"`, 'i'));
+    if (match) {
+      try {
+        return JSON.parse(`"${match[1]}"`).trim();
+      } catch {
+        return match[1].replace(/\\"/g, '"').trim();
+      }
+    }
+    const partialMatch = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"\\r\\n]+)(?:"|$|,)`, 'i'));
+    if (partialMatch && partialMatch[1].trim().length > 0) {
+      return partialMatch[1].replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+    }
+    return '';
+  }
+
+  function cleanCoachTextField(text) {
+    if (!text || typeof text !== 'string') return '';
+    let clean = text.trim();
+    if (clean.startsWith('{') || clean.includes('"summary"')) {
+      const extracted = extractRegexField('summary', clean);
+      if (extracted) {
+        clean = extracted;
+      } else {
+        clean = clean.replace(/^[{\s]*"?[a-zA-Z0-9_-]+"?\s*:\s*"?/i, '')
+                     .replace(/"?\s*[,}].*$/s, '')
+                     .trim();
+      }
+    }
+    return clean.replace(/^"+|"+$/g, '').trim();
   }
 
   // Helper simulating response JSON validation & extraction
   function validateCoachApiResponse(raw) {
     if (!raw || typeof raw !== 'string') return null;
 
-    let jsonStr = raw.trim();
+    let jsonStr = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
     if (jsonStr.startsWith('```json')) {
       jsonStr = jsonStr.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
     } else if (jsonStr.startsWith('```')) {
@@ -112,21 +143,39 @@ Verified Tactical Facts:
 
     try {
       const parsed = JSON.parse(jsonStr);
-      if (!parsed || typeof parsed !== 'object') return null;
-      if (!parsed.summary || typeof parsed.summary !== 'string') return null;
-
-      return {
-        summary: parsed.summary.trim(),
-        move_purpose: typeof parsed.move_purpose === 'string' ? parsed.move_purpose.trim() : '',
-        tactical_consequences: typeof parsed.tactical_consequences === 'string' ? parsed.tactical_consequences.trim() : '',
-        opponent_threat: typeof parsed.opponent_threat === 'string' ? parsed.opponent_threat.trim() : '',
-        better_move: typeof parsed.better_move === 'string' ? parsed.better_move.trim() : undefined,
-        why_better: typeof parsed.why_better === 'string' ? parsed.why_better.trim() : undefined,
-        lesson: typeof parsed.lesson === 'string' ? parsed.lesson.trim() : 'Always evaluate checks, captures, and threats.'
-      };
+      if (parsed && typeof parsed === 'object') {
+        const summary = cleanCoachTextField(parsed.summary || parsed.takeaway || parsed.verdict);
+        if (summary) {
+          return {
+            summary,
+            move_purpose: cleanCoachTextField(parsed.move_purpose || parsed.purpose),
+            tactical_consequences: cleanCoachTextField(parsed.tactical_consequences || parsed.tactics),
+            opponent_threat: cleanCoachTextField(parsed.opponent_threat || parsed.threat),
+            better_move: cleanCoachTextField(parsed.better_move) || undefined,
+            why_better: cleanCoachTextField(parsed.why_better) || undefined,
+            lesson: cleanCoachTextField(parsed.lesson) || 'Always evaluate checks, captures, and threats.'
+          };
+        }
+      }
     } catch {
-      return null;
+      // Fall through to regex recovery
     }
+
+    // Regex extraction recovery for truncated outputs
+    const summaryRegex = cleanCoachTextField(extractRegexField('summary', raw));
+    if (summaryRegex && summaryRegex.length >= 8) {
+      return {
+        summary: summaryRegex,
+        move_purpose: cleanCoachTextField(extractRegexField('move_purpose', raw)),
+        tactical_consequences: cleanCoachTextField(extractRegexField('tactical_consequences', raw)),
+        opponent_threat: cleanCoachTextField(extractRegexField('opponent_threat', raw)),
+        better_move: cleanCoachTextField(extractRegexField('better_move', raw)) || undefined,
+        why_better: cleanCoachTextField(extractRegexField('why_better', raw)) || undefined,
+        lesson: cleanCoachTextField(extractRegexField('lesson', raw)) || 'Always evaluate checks, captures, and threats.'
+      };
+    }
+
+    return null;
   }
 
   // Helper simulating fallback explanation generator
@@ -298,10 +347,33 @@ Verified Tactical Facts:
     assert.equal(validated.summary, 'Solid developing move pinning the knight.');
     assert.equal(validated.lesson, 'Develop pieces with a concrete purpose against enemy key squares.');
 
-    // Malformed JSON should return null safely without throwing
+    // Malformed non-JSON strings should return null safely without throwing
     assert.equal(validateCoachApiResponse('Not a json string'), null);
     assert.equal(validateCoachApiResponse('{ "broken": true '), null);
     assert.equal(validateCoachApiResponse(null), null);
+  });
+
+  it('recovers truncated JSON model responses cleanly without leaking raw JSON syntax into summary', () => {
+    // Exact user failure case where LLM truncated mid-sentence
+    const truncatedRaw = `{"summary": "White opt for a quiet e3 instead of a more active e4, slightly relaxing the advantage.", "move_purpose": "To modestly secure their`;
+
+    const validated = validateCoachApiResponse(truncatedRaw);
+    assert.ok(validated);
+    assert.equal(
+      validated.summary,
+      'White opt for a quiet e3 instead of a more active e4, slightly relaxing the advantage.'
+    );
+    // Summary must never contain raw JSON markers
+    assert.ok(!validated.summary.includes('{"summary"'));
+    assert.ok(!validated.summary.includes('move_purpose'));
+    assert.equal(validated.move_purpose, 'To modestly secure their');
+
+    // Test cleaning nested JSON strings
+    assert.equal(
+      cleanCoachTextField('{"summary": "A clean verdict."}'),
+      'A clean verdict.'
+    );
+    assert.equal(cleanCoachTextField('"quoted string"'), 'quoted string');
   });
 
   it('generates high quality deterministic fallback explanations for all move classifications', () => {

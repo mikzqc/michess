@@ -118,12 +118,44 @@ serve(async (req: Request) => {
     return [primary, ...defaults.filter(m => m !== primary)];
   };
 
+  const extractRegexField = (key: string, text: string): string => {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"`, 'i'));
+    if (match) {
+      try {
+        return JSON.parse(`"${match[1]}"`).trim();
+      } catch {
+        return match[1].replace(/\\"/g, '"').trim();
+      }
+    }
+    const partialMatch = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"\\r\\n]+)(?:"|$|,)`, 'i'));
+    if (partialMatch && partialMatch[1].trim().length > 0) {
+      return partialMatch[1].replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+    }
+    return '';
+  };
+
+  const cleanTextField = (text?: string): string => {
+    if (!text || typeof text !== 'string') return '';
+    let clean = text.trim();
+    if (clean.startsWith('{') || clean.includes('"summary"')) {
+      const extracted = extractRegexField('summary', clean);
+      if (extracted) {
+        clean = extracted;
+      } else {
+        clean = clean.replace(/^[{\s]*"?[a-zA-Z0-9_-]+"?\s*:\s*"?/i, '')
+                     .replace(/"?\s*[,}].*$/s, '')
+                     .trim();
+      }
+    }
+    return clean.replace(/^"+|"+$/g, '').trim();
+  };
+
   const extractJsonString = (rawText: string): string | null => {
     if (!rawText || typeof rawText !== 'string') return null;
-    const trimmed = rawText.trim();
+    let trimmed = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
     const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (codeBlockMatch) {
-      return codeBlockMatch[1].trim();
+      trimmed = codeBlockMatch[1].trim();
     }
     const firstBrace = trimmed.indexOf('{');
     const lastBrace = trimmed.lastIndexOf('}');
@@ -133,20 +165,45 @@ serve(async (req: Request) => {
     return trimmed;
   };
 
-  const isValidCoachJson = (rawText: string): boolean => {
-    const jsonStr = extractJsonString(rawText);
-    if (!jsonStr) return false;
-    try {
-      const parsed = JSON.parse(jsonStr);
-      return Boolean(
-        parsed &&
-        typeof parsed === 'object' &&
-        typeof parsed.summary === 'string' &&
-        parsed.summary.trim().length > 0
-      );
-    } catch {
-      return false;
+  const normalizeCoachExplanation = (rawText: string): any => {
+    if (!rawText || typeof rawText !== 'string') return null;
+    const cleaned = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+    const jsonStr = extractJsonString(cleaned);
+    if (jsonStr) {
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (parsed && typeof parsed === 'object') {
+          const summary = cleanTextField(parsed.summary || parsed.takeaway || parsed.verdict || parsed.explanation);
+          if (summary && summary.length >= 8) {
+            return {
+              summary,
+              move_purpose: cleanTextField(parsed.move_purpose || parsed.purpose),
+              tactical_consequences: cleanTextField(parsed.tactical_consequences || parsed.tactics),
+              opponent_threat: cleanTextField(parsed.opponent_threat || parsed.threat),
+              better_move: cleanTextField(parsed.better_move) || undefined,
+              why_better: cleanTextField(parsed.why_better) || undefined,
+              lesson: cleanTextField(parsed.lesson || parsed.principle) || 'Calculate forcing moves before committing.'
+            };
+          }
+        }
+      } catch {}
     }
+
+    const summaryRegex = cleanTextField(extractRegexField('summary', cleaned));
+    if (summaryRegex && summaryRegex.length >= 8) {
+      return {
+        summary: summaryRegex,
+        move_purpose: cleanTextField(extractRegexField('move_purpose', cleaned)),
+        tactical_consequences: cleanTextField(extractRegexField('tactical_consequences', cleaned)),
+        opponent_threat: cleanTextField(extractRegexField('opponent_threat', cleaned)),
+        better_move: cleanTextField(extractRegexField('better_move', cleaned)) || undefined,
+        why_better: cleanTextField(extractRegexField('why_better', cleaned)) || undefined,
+        lesson: cleanTextField(extractRegexField('lesson', cleaned)) || 'Calculate forcing moves before committing.'
+      };
+    }
+
+    return null;
   };
 
   const systemPrompt = prompt?.system || "You are an encouraging AI Chess Coach analyzing a move in a game.";
@@ -180,7 +237,7 @@ serve(async (req: Request) => {
             { role: "user", content: userPrompt }
           ],
           temperature: 0.3,
-          max_tokens: 420
+          max_tokens: 600
         }),
         signal: controller.signal
       });
@@ -198,7 +255,8 @@ serve(async (req: Request) => {
       const data = await upstreamResponse.json();
       const content = data?.choices?.[0]?.message?.content || "";
 
-      if (!isValidCoachJson(content)) {
+      const normalized = normalizeCoachExplanation(content);
+      if (!normalized) {
         console.warn(`[AI Coach] Model '${currentModel}' produced invalid non-JSON output. Retrying next fallback...`);
         fallbackAttempts.push({ model: currentModel, error: "Invalid structured output" });
         continue;
@@ -206,7 +264,7 @@ serve(async (req: Request) => {
 
       // Valid response obtained
       console.log(`[AI Coach] Successfully generated explanation with model '${currentModel}' (attempt ${i + 1}/${models.length}).`);
-      finalContent = extractJsonString(content) || content;
+      finalContent = JSON.stringify(normalized);
       finalModel = currentModel;
       succeeded = true;
       break;
