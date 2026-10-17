@@ -19,7 +19,7 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
   const [glitchActive, setGlitchActive] = useState(false);
   const [trackingOffset, setTrackingOffset] = useState(0);
   const [showLogs, setShowLogs] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [frameCounter, setFrameCounter] = useState(18);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
 
@@ -75,6 +75,13 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
 
   const startAudio = useCallback(() => {
     try {
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        if (audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume().catch(() => {});
+        }
+        return;
+      }
+
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
 
@@ -130,6 +137,10 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
 
       noiseSourceRef.current = whiteNoise;
       noiseGainRef.current = noiseGain;
+
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
     } catch {
       // Audio context policy or unavailable
     }
@@ -145,11 +156,25 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
     }
   };
 
+  // Start audio on mount (default ON) and handle browser autoplay resumption
   useEffect(() => {
+    startAudio();
+
+    const handleFirstInteraction = () => {
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+    };
+
+    window.addEventListener('pointerdown', handleFirstInteraction, { passive: true });
+    window.addEventListener('keydown', handleFirstInteraction, { passive: true });
+
     return () => {
+      window.removeEventListener('pointerdown', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
       stopAudio();
     };
-  }, [stopAudio]);
+  }, [startAudio, stopAudio]);
 
   const handleManualTracking = () => {
     setGlitchActive(true);
