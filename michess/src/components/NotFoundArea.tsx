@@ -15,6 +15,61 @@ interface NotFoundAreaProps {
   onExit: () => void;
 }
 
+// Generates an in-memory seamless looping 60Hz CRT hum & tape static WAV audio blob
+function generateAnalogAudioBlobUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const sampleRate = 22050;
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const duration = 2.0; // 2 seconds seamless loop
+    const numSamples = Math.floor(sampleRate * duration);
+    const blockAlign = numChannels * (bitsPerSample / 8);
+    const byteRate = sampleRate * blockAlign;
+    const dataSize = numSamples * blockAlign;
+
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    let offset = 44;
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      // 60Hz CRT hum with slight 120Hz harmonic + soft tape noise
+      const hum = Math.sin(2 * Math.PI * 60 * t) * 0.12 + Math.sin(2 * Math.PI * 120 * t) * 0.04;
+      const noise = (Math.random() * 2 - 1) * 0.04;
+      let sample = (hum + noise) * 0.45;
+      sample = Math.max(-1, Math.min(1, sample));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      offset += 2;
+    }
+
+    const blob = new Blob([buffer], { type: 'audio/wav' });
+    return URL.createObjectURL(blob);
+  } catch {
+    return null;
+  }
+}
+
 export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
   const [glitchActive, setGlitchActive] = useState(false);
   const [trackingOffset, setTrackingOffset] = useState(0);
@@ -22,6 +77,10 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [frameCounter, setFrameCounter] = useState(18);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [audioSrcUrl, setAudioSrcUrl] = useState<string | null>(null);
+
+  // Audio element reference for native HTML5 autoplay
+  const audioElemRef = useRef<HTMLAudioElement | null>(null);
 
   // Audio Context Ref for CRT 60Hz hum + tape hiss
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -29,6 +88,15 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
   const humGainRef = useRef<GainNode | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const noiseGainRef = useRef<GainNode | null>(null);
+
+  // Generate WAV blob URL on mount
+  useEffect(() => {
+    const url = generateAnalogAudioBlobUrl();
+    setAudioSrcUrl(url);
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, []);
 
   // Setup periodic analog glitch & frame increment
   useEffect(() => {
@@ -54,6 +122,9 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
   // Audio synthesis: Web Audio API CRT hum + gentle tape hiss
   const stopAudio = useCallback(() => {
     try {
+      if (audioElemRef.current) {
+        audioElemRef.current.pause();
+      }
       if (humOscRef.current) {
         humOscRef.current.stop();
         humOscRef.current.disconnect();
@@ -74,8 +145,15 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
   }, []);
 
   const startAudio = useCallback(() => {
+    // 1. Trigger native HTML5 audio play (uses browser media pipeline)
+    if (audioElemRef.current) {
+      audioElemRef.current.volume = 0.4;
+      audioElemRef.current.play().catch(() => {});
+    }
+
+    // 2. Also start Web Audio API context in parallel
     try {
-      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      if (audioCtxRef.current) {
         if (audioCtxRef.current.state === 'suspended') {
           audioCtxRef.current.resume().catch(() => {});
         }
@@ -88,7 +166,7 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
       const ctx = new AudioCtx();
       audioCtxRef.current = ctx;
 
-      // 1. 60Hz CRT Hum oscillator
+      // 60Hz CRT Hum oscillator
       const humOsc = ctx.createOscillator();
       const humFilter = ctx.createBiquadFilter();
       const humGain = ctx.createGain();
@@ -110,7 +188,7 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
       humOscRef.current = humOsc;
       humGainRef.current = humGain;
 
-      // 2. Soft tape hiss / static
+      // Soft tape hiss / static
       const bufferSize = ctx.sampleRate * 2;
       const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
@@ -151,30 +229,55 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
       stopAudio();
       setSoundEnabled(false);
     } else {
-      startAudio();
       setSoundEnabled(true);
+      startAudio();
     }
   };
 
-  // Start audio on mount (default ON) and handle browser autoplay resumption
+  // Immediate start on arrival + comprehensive arrival gesture unlock
   useEffect(() => {
+    // Attempt instant audio start
     startAudio();
 
-    const handleFirstInteraction = () => {
-      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume().catch(() => {});
+    // Trigger on ANY arrival interaction: moving cursor, touch, scroll, focus, wheel
+    const arrivalEvents = [
+      'mousemove',
+      'pointermove',
+      'mouseenter',
+      'pointerenter',
+      'mouseover',
+      'scroll',
+      'wheel',
+      'touchstart',
+      'pointerdown',
+      'mousedown',
+      'keydown',
+      'focus'
+    ];
+
+    const unlockOnArrival = () => {
+      if (soundEnabled) {
+        startAudio();
+        if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume().catch(() => {});
+        }
+        if (audioElemRef.current && audioElemRef.current.paused) {
+          audioElemRef.current.play().catch(() => {});
+        }
       }
     };
 
-    window.addEventListener('pointerdown', handleFirstInteraction, { passive: true });
-    window.addEventListener('keydown', handleFirstInteraction, { passive: true });
+    arrivalEvents.forEach(evt => {
+      window.addEventListener(evt, unlockOnArrival, { passive: true });
+    });
 
     return () => {
-      window.removeEventListener('pointerdown', handleFirstInteraction);
-      window.removeEventListener('keydown', handleFirstInteraction);
+      arrivalEvents.forEach(evt => {
+        window.removeEventListener(evt, unlockOnArrival);
+      });
       stopAudio();
     };
-  }, [startAudio, stopAudio]);
+  }, [soundEnabled, startAudio, stopAudio]);
 
   const handleManualTracking = () => {
     setGlitchActive(true);
@@ -204,6 +307,18 @@ export const NotFoundArea: React.FC<NotFoundAreaProps> = ({ onExit }) => {
 
   return (
     <div className="flex-1 w-full min-h-[calc(100vh-4rem)] flex flex-col relative overflow-y-auto bg-[#050505] text-[#d4d4d4] font-mono select-none crt-container">
+      {/* Hidden native looping audio for instant browser autoplay pipeline */}
+      {audioSrcUrl && (
+        <audio
+          ref={audioElemRef}
+          src={audioSrcUrl}
+          autoPlay
+          loop
+          playsInline
+          style={{ display: 'none' }}
+        />
+      )}
+
       {/* 1. CRT Curved Vignette & Raster Overlay */}
       <div className="pointer-events-none fixed inset-0 z-30 crt-overlay" />
       <div className="pointer-events-none fixed inset-0 z-20 scanlines opacity-60" />
